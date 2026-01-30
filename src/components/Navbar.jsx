@@ -13,7 +13,6 @@ const Navbar = () => {
     <div className='flex items-center justify-between text-sm p-4 mb-5 border-b border-b-gray-400'>
         <div className='flex items-center gap-2'>
           <img src={assets.logo} alt="logo" className='w-44 cursor-pointer' />
-          <span className='text-2xl font-bold text-pink-600'>HDNCare</span>
         </div>
         <ul className='hidden md:flex items-start gap-5 font-medium'>
             <NavLink to='/'>
@@ -49,7 +48,7 @@ const Navbar = () => {
             </div>
             :<button onClick={()=>navigate('/login')} className='bg-primary text-white px-8 py-3 rounded-full font-light hidden md:block'>Create account</button>
           }
-         
+          
         </div>
     </div>
   )
