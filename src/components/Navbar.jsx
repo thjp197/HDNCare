@@ -10,43 +10,43 @@ const Navbar = () => {
       const [token, setToken] = useState(true);
 
   return (
-    <div className='flex items-center justify-between text-sm p-4 mb-5 border-b border-b-gray-400'>
+    <div className='flex items-center justify-between p-4 mb-5 text-sm border-b border-b-gray-400'>
         <div className='flex items-center gap-2'>
-          <img src={assets.logo} alt="logo" className='w-44 cursor-pointer' />
+          <img src={assets.logo} alt="logo" className='cursor-pointer w-44' />
         </div>
-        <ul className='hidden md:flex items-start gap-5 font-medium'>
+        <ul className='items-start hidden gap-10 font-medium md:flex'>
             <NavLink to='/'>
               <li className='py-1'>HOME</li>
-              <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto' hidden/>
+              <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
             <NavLink to='/stylists'>
               <li className='py-1'>ALL STYLIST</li>
-              <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto' hidden/>
+              <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
             <NavLink to='/about'>
               <li className='py-1'>ABOUT</li>
-              <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto' hidden/>
+              <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
             <NavLink to='/contact'>
               <li className='py-1'>CONTACT</li>
-              <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto' hidden/>
+              <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
         </ul>
         <div className='flex items-center gap-4'>
           {
             token 
-            ? <div className='flex items-center gap-2 cursor-pointer group relative'>
+            ? <div className='relative flex items-center gap-2 cursor-pointer group'>
               <img className='w-8 rounded-full' src={assets.profile_pic} alt=""/>
               <img className='w-2.5' src={assets.dropdown_icon} alt=""/>
-              <div className='absolute top-8 right-0 pt-14 text-base font-medium text-gray-600 z-20 hidden group-hover:block'>
-                <div className='min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4'>
-                  <p onClick={()=>navigate('my-profile')} className='hover:text-black cursor-pointer'>My profile</p>
-                  <p onClick={()=>navigate('my-appointments')} className='hover:text-black cursor-pointer'>My Appointments</p>
-                  <p onClick={()=>setToken(false)} className='hover:text-black cursor-pointer'>Logout</p>
+              <div className='absolute right-0 z-20 hidden text-base font-medium text-gray-600 top-8 pt-14 group-hover:block'>
+                <div className='flex flex-col gap-4 p-4 rounded min-w-48 bg-stone-100'>
+                  <p onClick={()=>navigate('my-profile')} className='cursor-pointer hover:text-black'>My profile</p>
+                  <p onClick={()=>navigate('my-appointments')} className='cursor-pointer hover:text-black'>My Appointments</p>
+                  <p onClick={()=>setToken(false)} className='cursor-pointer hover:text-black'>Logout</p>
                 </div>
               </div>
             </div>
-            :<button onClick={()=>navigate('/login')} className='bg-primary text-white px-8 py-3 rounded-full font-light hidden md:block'>Create account</button>
+            :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-primary md:block'>Create account</button>
           }
           
         </div>
