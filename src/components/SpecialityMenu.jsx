@@ -5,7 +5,7 @@ import { specialityData } from '../assets/assets'
 const SpecialityMenu = () => {
     return (
         <div id='speciality' className='flex flex-col items-center gap-4 py-16 text-gray-800'>
-            <h1 className='text-3xl font-medium'>Find by Speciality</h1>
+            <h1 className='text-3xl font-medium'>Tìm Theo Chuyên Môn</h1>
             <p className='text-sm text-center sm:w-1/3'>.....................................................................</p>
             <div className='flex w-full gap-32 pt-5 overflow-scroll sm:justify-center '>
                 {specialityData.map((item, index) => (

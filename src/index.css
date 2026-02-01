@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+* {
+  font-family: 'arial', sans-serif;
+}
 .active hr{
   @apply block
 }

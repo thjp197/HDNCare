@@ -5,6 +5,7 @@ export const assets = {
   group_profiles: '/group_profiles.png',
   arrow_icon: '/arrow_icon.svg',
   header_img: '/banner.png',
+  appointment_img: '/appointment_img.png',
 }
 
 export const specialityData = [
@@ -13,11 +14,11 @@ export const specialityData = [
     image: '/makeup.png',
   },
    {
-    speciality: 'Hair cut',
+    speciality: 'Cắt tóc',
     image: '/salon.png',
   },
    {
-    speciality: 'Relax hair wash',
+    speciality: 'Gội đầu thư giãn',
     image: '/facial-massage.png',
   },
 ]
@@ -55,6 +56,48 @@ export const stylists = [
         _id: 'stylist3',
         name: 'Sarah Patel',
         image: '/sty3.jpg',
+        speciality: 'Skincare & Beauty Stylist',
+        degree: 'Advanced Skincare Certification',
+        experience: '1 Year',
+        about: 'Sarah Patel focuses on skincare and beauty styling for women. She helps clients build the right skincare routine and combines it with makeup techniques to achieve healthy, glowing skin.',
+        fees: 30,
+        address: {
+            line1: '37th Cross, Richmond',
+            line2: 'Circle, Ring Road, London'
+        }
+    },
+    {
+        _id: 'stylist4',
+        name: 'Sarah Patel',
+        image: '/sty4.jpg',
+        speciality: 'Skincare & Beauty Stylist',
+        degree: 'Advanced Skincare Certification',
+        experience: '1 Year',
+        about: 'Sarah Patel focuses on skincare and beauty styling for women. She helps clients build the right skincare routine and combines it with makeup techniques to achieve healthy, glowing skin.',
+        fees: 30,
+        address: {
+            line1: '37th Cross, Richmond',
+            line2: 'Circle, Ring Road, London'
+        }
+    },
+    {
+        _id: 'stylist5',
+        name: 'Sarah Patel',
+        image: '/sty5.jpg',
+        speciality: 'Skincare & Beauty Stylist',
+        degree: 'Advanced Skincare Certification',
+        experience: '1 Year',
+        about: 'Sarah Patel focuses on skincare and beauty styling for women. She helps clients build the right skincare routine and combines it with makeup techniques to achieve healthy, glowing skin.',
+        fees: 30,
+        address: {
+            line1: '37th Cross, Richmond',
+            line2: 'Circle, Ring Road, London'
+        }
+    },
+    {
+        _id: 'stylist6',
+        name: 'Sarah Patel',
+        image: '/sty6.jpg',
         speciality: 'Skincare & Beauty Stylist',
         degree: 'Advanced Skincare Certification',
         experience: '1 Year',
