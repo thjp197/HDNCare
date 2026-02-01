@@ -25,12 +25,15 @@ const Stylists = () => {
 
   return (
     <div>
-      <p>Tất cả nhà tạo mẫu</p>
-      <div>
-        <div>
-          <p>Make up</p>
-          <p>Cắt tóc</p>
-          <p>Gội đầu thư giãn</p>
+      <p className="text-gray-600">Tất cả chuyên viên</p>
+      <div className="flex flex-col sm:flex-row items-start gap-5 mt-5">
+        <div className="flex flex-col gap-4 text-s text-gray-600">
+          <p onClick={()=> speciality === 'Trang điểm' ? navigate('/stylists') : navigate('/stylists/Trang điểm')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Trang điểm' ? 'bg-indigo-100 text-black' : ''}`}>Trang điểm</p>
+          <p onClick={()=> speciality === 'Cắt tóc' ? navigate('/stylists') : navigate('/stylists/Cắt tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Cắt tóc' ? 'bg-indigo-100 text-black' : ''}`}>Cắt tóc</p>
+          <p onClick={()=> speciality === 'Gội đầu thư giãn' ? navigate('/stylists') : navigate('/stylists/Gội đầu thư giãn')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Gội đầu thư giãn' ? 'bg-indigo-100 text-black' : ''}`}>Gội đầu thư giãn</p>
+          <p onClick={()=> speciality === 'Chăm sóc cơ thể' ? navigate('/stylists') : navigate('/stylists/Chăm sóc cơ thể')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Chăm sóc cơ thể' ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc cơ thể</p>
+          <p onClick={()=> speciality === 'Chăm sóc da' ? navigate('/stylists') : navigate('/stylists/Chăm sóc da')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Chăm sóc da' ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc da</p>
+          <p onClick={()=> speciality === 'Uốn & Duỗi tóc' ? navigate('/stylists') : navigate('/stylists/Uốn & Duỗi tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Uốn & Duỗi tóc' ? 'bg-indigo-100 text-black' : ''}`}>Uốn & Duỗi tóc</p>
         </div>
         <div className="grid w-full gap-4 grid-cols-auto gap-y-6">
           {filteredStylists.map((item, index) => (

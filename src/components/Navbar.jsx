@@ -20,7 +20,7 @@ const Navbar = () => {
               <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
             <NavLink to='/stylists'>
-              <li className='py-1'>TẤT CẢ NHÀ TẠO MẪU</li>
+              <li className='py-1'>TẤT CẢ CHUYÊN VIÊN</li>
               <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
             <NavLink to='/about'>
@@ -41,7 +41,7 @@ const Navbar = () => {
               <div className='absolute right-0 z-20 hidden text-base font-medium text-gray-600 top-8 pt-14 group-hover:block'>
                 <div className='flex flex-col gap-4 p-4 rounded min-w-48 bg-stone-100'>
                   <p onClick={()=>navigate('my-profile')} className='cursor-pointer hover:text-black'>Hồ sơ của tôi</p>
-                  <p onClick={()=>navigate('my-appointments')} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
+                  <p onClick={()=>navigate('my-appointment')} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
                   <p onClick={()=>setToken(false)} className='cursor-pointer hover:text-black'>Đăng xuất</p>
                 </div>
               </div>
