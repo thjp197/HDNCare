@@ -5,6 +5,7 @@ import { AppContext } from "../context/AppContext";
 const Stylists = () => {
   const { speciality } = useParams();
   const [filteredStylists, setFilteredStylists] = useState([]);
+  const [showFilter, setShowFilter] = useState(false);
   const navigate = useNavigate();
 
   const { stylists } = useContext(AppContext);
@@ -27,7 +28,8 @@ const Stylists = () => {
     <div>
       <p className="text-gray-600">Tất cả chuyên viên</p>
       <div className="flex flex-col sm:flex-row items-start gap-5 mt-5">
-        <div className="flex flex-col gap-4 text-s text-gray-600">
+        <button onClick={() => setShowFilter(!showFilter)} className={`py-1 px-3 border rounded text-sm  transition-all sm:hidden ${showFilter ? 'bg-primary text-white' : ''}`}>Bộ lọc</button>
+        <div className={`flex-col gap-4 text-sm text-gray-600 ${showFilter ? 'flex' : 'hidden sm:flex'}`}>
           <p onClick={()=> speciality === 'Trang điểm' ? navigate('/stylists') : navigate('/stylists/Trang điểm')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Trang điểm' ? 'bg-indigo-100 text-black' : ''}`}>Trang điểm</p>
           <p onClick={()=> speciality === 'Cắt tóc' ? navigate('/stylists') : navigate('/stylists/Cắt tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Cắt tóc' ? 'bg-indigo-100 text-black' : ''}`}>Cắt tóc</p>
           <p onClick={()=> speciality === 'Gội đầu thư giãn' ? navigate('/stylists') : navigate('/stylists/Gội đầu thư giãn')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Gội đầu thư giãn' ? 'bg-indigo-100 text-black' : ''}`}>Gội đầu thư giãn</p>

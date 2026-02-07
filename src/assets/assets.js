@@ -8,6 +8,7 @@ export const assets = {
   appointment_img: '/appointment_img.png',
   verified_icon: '/verified_icon.svg',
   info_icon: '/info_icon.svg',
+  menu_icon: '/menu_icon.svg',
 }
 
 export const specialityData = [

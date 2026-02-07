@@ -1,8 +1,8 @@
-import React, { use, useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { AppContext } from '../context/AppContext'
 import { assets } from '../assets/assets'
-import { time } from 'framer-motion'
+import RelatedStylist from '../components/RelatedStylists'
 
 const Appointment = () => {
 
@@ -15,6 +15,11 @@ const Appointment = () => {
   const [stySlots, setStySlots] = useState([])
   const [slotIndex,setSlotIndex] = useState(0)
   const [slotTime, setSlotTime] = useState('')
+
+  const bookAppointment = async () => {
+    // TODO: Implement appointment booking logic
+    console.log('Booking appointment:', { styId, slotTime, slotIndex })
+  }
 
   const fetchStyInfo = () => {
     const styInfo = stylists.find(sty => sty._id === styId)
@@ -116,9 +121,28 @@ const Appointment = () => {
         </div>
 
         {/* Booking Slots */}
-        <div>
-          
-        </div>
+        <div className='sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]'>
+                <p >Chọn thời gian</p>
+                <div className='flex gap-3 items-center w-full overflow-x-scroll mt-4'>
+                    {stySlots.length && stySlots.map((item, index) => (
+                        <div onClick={() => setSlotIndex(index)} key={index} className={`text-center py-6 min-w-16 rounded-full cursor-pointer ${slotIndex === index ? 'bg-primary text-white' : 'border border-[#DDDDDD]'}`}>
+                            <p>{item[0] && dayOfWeek[item[0].datetime.getDay()]}</p>
+                            <p>{item[0] && item[0].datetime.getDate()}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className='flex items-center gap-3 w-full overflow-x-scroll mt-4'>
+                    {stySlots.length && stySlots[slotIndex].map((item, index) => (
+                        <p onClick={() => setSlotTime(item.time)} key={index} className={`text-sm font-light  flex-shrink-0 px-5 py-2 rounded-full cursor-pointer ${item.time === slotTime ? 'bg-primary text-white' : 'text-[#949494] border border-[#B4B4B4]'}`}>{item.time.toLowerCase()}</p>
+                    ))}
+                </div>
+
+                <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>Đặt lịch</button>
+            </div>
+             {/* Listing related stylists */}
+             <RelatedStylist speciality={styInfo.speciality} docId={styId} />
+
     </div>
   )
 }
