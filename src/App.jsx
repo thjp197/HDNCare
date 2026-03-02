@@ -1,15 +1,16 @@
-import { useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import Home from './pages/Home'
-import Stylists from './pages/Stylists'
-import Login from './pages/Login'
-import About from './pages/About'
-import Contact from './pages/Contact'
-import MyProfile from './pages/MyProfile'
-import MyAppointments from './pages/MyAppointments'
-import Appointments from './pages/Appointment'
-import Navbar from './components/Navbar'
+import Chatbot from './components/Chatbot'
 import Footer from './components/Footer'
+import Navbar from './components/Navbar'
+import './index.css'
+import About from './pages/About'
+import Appointments from './pages/Appointment'
+import Contact from './pages/Contact'
+import Home from './pages/Home'
+import Login from './pages/Login'
+import MyAppointments from './pages/MyAppointments'
+import MyProfile from './pages/MyProfile'
+import Stylists from './pages/Stylists'
 
 const App = () => {
   
@@ -28,6 +29,7 @@ const App = () => {
         <Route path='/appointment/:styId' element={<Appointments />}/>
       </Routes>
       <Footer />
+      <Chatbot />
     </div>
   )
 }
