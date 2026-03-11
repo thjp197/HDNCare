@@ -4,6 +4,7 @@ import 'dotenv/config'
 import connectDB from './config/mongodb.js'
 import connectCloudinary from './config/cloudinary.js'
 import adminRouter from './routes/adminRoute.js'
+import stylistRouter from './routes/stylistRoute.js'
 import dns from 'dns'
 
 //Change DNS 
@@ -21,6 +22,7 @@ app.use(express.json())
 
 // api endpoints
 app.use('/api/admin', adminRouter)
+app.use('/api/stylist', stylistRouter)
 
 app.get('/', (req, res) => {
   res.send('API works!')

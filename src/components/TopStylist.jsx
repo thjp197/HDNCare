@@ -13,8 +13,8 @@ const TopStylist = () => {
         Xem qua các chuyên viên của chúng tôi.
       </p>
 
-      <div className="grid w-full grid-cols-1 gap-6 px-3 pt-8 sm:grid-cols-2 lg:grid-cols-3 sm:px-0">
-        {stylists.slice(0, 9).map((item) => (
+      <div className="grid w-full grid-cols-2 gap-4 px-3 pt-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:px-0">
+        {stylists.slice(0, 10).map((item) => (
           <div
             key={item._id}
             onClick={() => {
@@ -24,7 +24,7 @@ const TopStylist = () => {
             className="overflow-hidden transition-all duration-300 bg-white border border-gray-200 cursor-pointer group rounded-2xl hover:-translate-y-2 hover:shadow-xl"
           >
             {/* IMAGE */}
-            <div className="relative w-full overflow-hidden h-100 bg-blue-50">
+            <div className="relative w-full overflow-hidden h-48 bg-blue-50">
               <img
                 src={item.image}
                 alt={item.name}

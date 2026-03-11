@@ -11,11 +11,14 @@ import Login from './pages/Login'
 import MyAppointments from './pages/MyAppointments'
 import MyProfile from './pages/MyProfile'
 import Stylists from './pages/Stylists'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   
   return (
     <div className='mx-4 sm:mx-[10%]'>
+            <ToastContainer />
       <Navbar/>
       <Routes>
         <Route path='/' element={<Home />}/>

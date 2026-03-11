@@ -96,4 +96,17 @@ const loginAdmin = async (req, res) => {
 
 }
 
-export { addStylist, loginAdmin };
+// API to get all stylists list for admin panel
+const allStylists = async (req, res) => {
+  try {
+
+    const stylists = await stylistModel.find({}).select('-password')
+    res.json({ success: true, stylists })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+export { addStylist, loginAdmin, allStylists };
