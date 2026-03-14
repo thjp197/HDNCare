@@ -25,7 +25,7 @@ export const specialityData = [
     image: "/salon.png",
   },
   {
-    speciality: "Uốn & Duỗi tóc",
+    speciality: "Uốn và Duỗi tóc",
     image: "/hair-curler.png",
   },
   {
@@ -294,7 +294,7 @@ export const stylists = [
     _id: "stylist17",
     name: "Nguyễn Tuấn Anh",
     image: "/sty17.jpg",
-    speciality: "Uốn & Duỗi tóc",
+    speciality: "Uốn và Duỗi tóc",
     degree: "Professional Hair Perm & Straightening Certificate",
     experience: "1 Year",
     about:
@@ -309,7 +309,7 @@ export const stylists = [
     _id: "stylist18",
     name: "Phạm Thùy Chi",
     image: "/sty18.jpg",
-    speciality: "Uốn & Duỗi tóc",
+    speciality: "Uốn và Duỗi tóc",
     degree: "Professional Hair Perm & Straightening Certificate",
     experience: "1 Year",
     about:
@@ -324,7 +324,7 @@ export const stylists = [
     _id: "stylist19",
     name: "Lê Bảo Anh",
     image: "/sty19.jpg",
-    speciality: "Uốn & Duỗi tóc",
+    speciality: "Uốn và Duỗi tóc",
     degree: "Professional Hair Perm & Straightening Certificate",
     experience: "1 Year",
     about:
@@ -339,7 +339,7 @@ export const stylists = [
     _id: "stylist20",
     name: "Ngô Gia Hân",
     image: "/sty20.jpg",
-    speciality: "Uốn & Duỗi tóc",
+    speciality: "Uốn và Duỗi tóc",
     degree: "Professional Hair Perm & Straightening Certificate",
     experience: "1 Year",
     about:

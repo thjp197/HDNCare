@@ -1,4 +1,3 @@
-import { s } from "framer-motion/client";
 import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema({
@@ -15,5 +14,5 @@ const appointmentSchema = new mongoose.Schema({
     isCompleted: {type: Boolean, default: false}
 })
 
-const appointmentModel = mongoose.model.appointment || mongoose.model("appointment", appointmentSchema);
+const appointmentModel = mongoose.models.appointment || mongoose.model("appointment", appointmentSchema);
 export default appointmentModel;

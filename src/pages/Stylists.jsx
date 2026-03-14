@@ -10,10 +10,29 @@ const Stylists = () => {
 
   const { stylists } = useContext(AppContext);
 
+  const normalizeSpeciality = (value = "") =>
+    value
+      .normalize("NFC")
+      .toLowerCase()
+      .replace(/&/g, "và")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const isSpecialityActive = (value) =>
+    normalizeSpeciality(speciality) === normalizeSpeciality(value);
+
+  const handleSpecialityClick = (value) => {
+    navigate(isSpecialityActive(value) ? "/stylists" : `/stylists/${value}`);
+  };
+
   const applyFilter = () => {
     if (speciality) {
+      const normalizedSpeciality = normalizeSpeciality(speciality);
       setFilteredStylists(
-        stylists.filter((stylist) => stylist.speciality === speciality),
+        stylists.filter(
+          (stylist) =>
+            normalizeSpeciality(stylist.speciality) === normalizedSpeciality,
+        ),
       );
     } else {
       setFilteredStylists(stylists);
@@ -30,12 +49,12 @@ const Stylists = () => {
       <div className="flex flex-col sm:flex-row items-start gap-5 mt-5">
         <button onClick={() => setShowFilter(!showFilter)} className={`py-1 px-3 border rounded text-sm  transition-all sm:hidden ${showFilter ? 'bg-primary text-white' : ''}`}>Bộ lọc</button>
         <div className={`flex-col gap-4 text-sm text-gray-600 ${showFilter ? 'flex' : 'hidden sm:flex'}`}>
-          <p onClick={()=> speciality === 'Trang điểm' ? navigate('/stylists') : navigate('/stylists/Trang điểm')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Trang điểm' ? 'bg-indigo-100 text-black' : ''}`}>Trang điểm</p>
-          <p onClick={()=> speciality === 'Cắt tóc' ? navigate('/stylists') : navigate('/stylists/Cắt tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Cắt tóc' ? 'bg-indigo-100 text-black' : ''}`}>Cắt tóc</p>
-          <p onClick={()=> speciality === 'Gội đầu thư giãn' ? navigate('/stylists') : navigate('/stylists/Gội đầu thư giãn')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Gội đầu thư giãn' ? 'bg-indigo-100 text-black' : ''}`}>Gội đầu thư giãn</p>
-          <p onClick={()=> speciality === 'Chăm sóc cơ thể' ? navigate('/stylists') : navigate('/stylists/Chăm sóc cơ thể')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Chăm sóc cơ thể' ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc cơ thể</p>
-          <p onClick={()=> speciality === 'Chăm sóc da' ? navigate('/stylists') : navigate('/stylists/Chăm sóc da')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Chăm sóc da' ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc da</p>
-          <p onClick={()=> speciality === 'Uốn & Duỗi tóc' ? navigate('/stylists') : navigate('/stylists/Uốn & Duỗi tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${speciality === 'Uốn & Duỗi tóc' ? 'bg-indigo-100 text-black' : ''}`}>Uốn & Duỗi tóc</p>
+          <p onClick={() => handleSpecialityClick('Trang điểm')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Trang điểm') ? 'bg-indigo-100 text-black' : ''}`}>Trang điểm</p>
+          <p onClick={() => handleSpecialityClick('Cắt tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Cắt tóc') ? 'bg-indigo-100 text-black' : ''}`}>Cắt tóc</p>
+          <p onClick={() => handleSpecialityClick('Gội đầu thư giãn')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Gội đầu thư giãn') ? 'bg-indigo-100 text-black' : ''}`}>Gội đầu thư giãn</p>
+          <p onClick={() => handleSpecialityClick('Chăm sóc cơ thể')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Chăm sóc cơ thể') ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc cơ thể</p>
+          <p onClick={() => handleSpecialityClick('Chăm sóc da')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Chăm sóc da') ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc da</p>
+          <p onClick={() => handleSpecialityClick('Uốn và Duỗi tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Uốn và Duỗi tóc') ? 'bg-indigo-100 text-black' : ''}`}>Uốn và Duỗi tóc</p>
         </div>
         <div className="grid w-full gap-4 grid-cols-auto gap-y-6">
           {filteredStylists.map((item, index) => (

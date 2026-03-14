@@ -4,6 +4,7 @@ import validator from "validator";
 import userModel from "../models/userModel.js";
 import { v2 as cloudinary } from 'cloudinary'
 import stylistModel from "../models/stylistModel.js";
+import appointmentModel from "../models/appointmentModel.js";
 
 // API to register user
 const registerUser = async (req, res) => {
@@ -125,7 +126,8 @@ const updateProfile = async (req, res) => {
 const bookAppointment = async (req, res) => {
     try {
         
-        const {userId, styId, slotDate, slotTime} = req.body
+        const userId = req.userId
+        const {styId, slotDate, slotTime} = req.body
 
         const styData = await stylistModel.findById(styId).select('-password')
         
