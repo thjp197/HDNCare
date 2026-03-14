@@ -24,11 +24,11 @@ const TopStylist = () => {
             className="overflow-hidden transition-all duration-300 bg-white border border-gray-200 cursor-pointer group rounded-2xl hover:-translate-y-2 hover:shadow-xl"
           >
             {/* IMAGE */}
-            <div className="relative w-full overflow-hidden h-48 bg-blue-50">
+            <div className="relative w-full overflow-hidden h-100  bg-blue-50">
               <img
                 src={item.image}
                 alt={item.name}
-                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                className=" w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
               />
             </div>
 
