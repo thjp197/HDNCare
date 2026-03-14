@@ -3,8 +3,7 @@ import bcrypt from "bcrypt";
 import validator from "validator";
 import userModel from "../models/userModel.js";
 import { v2 as cloudinary } from 'cloudinary'
-
-
+import stylistModel from "../models/stylistModel.js";
 
 // API to register user
 const registerUser = async (req, res) => {
@@ -122,4 +121,59 @@ const updateProfile = async (req, res) => {
     }
 }
 
-export { registerUser, loginUser, getProfile, updateProfile }
+//API to book appointment
+const bookAppointment = async (req, res) => {
+    try {
+        
+        const {userId, styId, slotDate, slotTime} = req.body
+
+        const styData = await stylistModel.findById(styId).select('-password')
+        
+        if(!styData.available){
+            return res.json({ success: false, message: "Stylist not available at the selected time" })
+        }
+
+        let slots_booked = styData.slots_booked
+
+        //checking for slot availability
+        if(slots_booked[slotDate]){
+            if(slots_booked[slotDate].includes(slotTime)){
+                return res.json({ success: false, message: "Slot not available" })
+            } else {
+                slots_booked[slotDate].push(slotTime)
+            }
+        } else {
+            slots_booked[slotDate] = []
+            slots_booked[slotDate].push(slotTime)
+        }
+
+        const userData = await userModel.findById(userId).select('-password')
+
+        delete styData.slots_booked
+
+        const appointmentData = {
+            userId,
+            styId,
+            userData,
+            styData,
+            amount: styData.fees,
+            slotTime,
+            slotDate,
+            date: Date.now()
+        }
+
+        const newAppointment = new appointmentModel(appointmentData)
+        await newAppointment.save()
+
+        //save new slots data in styData
+        await stylistModel.findByIdAndUpdate(styId, { slots_booked })
+
+        res.json({ success: true, message: "Appointment Booked" })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment }
