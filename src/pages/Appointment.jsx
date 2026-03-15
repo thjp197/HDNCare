@@ -29,11 +29,16 @@ const Appointment = () => {
 
   const fetchStyInfo = () => {
     const styInfo = stylists.find((sty) => sty._id === styId);
-    setStyInfo(styInfo);
+    setStyInfo(styInfo || null);
   };
 
   const getAvailabelSlots = async () => {
+    if (!styInfo) {
+      return;
+    }
+
     setStySlots([]);
+    const bookedSlots = styInfo.slots_booked || {};
 
     // Lấy ngày hiện tại
     let today = new Date();
@@ -75,8 +80,7 @@ const Appointment = () => {
         const slotTime = formattedTime;
 
         const isSlotAvailable =
-          styInfo.slots_booked[slotDate] &&
-          styInfo.slots_booked[slotDate].includes(slotTime)
+          bookedSlots[slotDate] && bookedSlots[slotDate].includes(slotTime)
             ? false
             : true;
 
@@ -138,7 +142,9 @@ const Appointment = () => {
   }, [stylists, styId]);
 
   useEffect(() => {
-    getAvailabelSlots();
+    if (styInfo) {
+      getAvailabelSlots();
+    }
   }, [styInfo]);
 
   useEffect(() => {
@@ -174,10 +180,10 @@ const Appointment = () => {
               </button>
             </div>
 
-            {/* Về Stylist */}
+            {/* Thông tin Stylist */}
             <div>
               <p className="flex items-center gap-1 text-sm font-medium text-gray-900 mt-3">
-                Về <img src={assets.info_icon} alt="" />
+                Thông tin nhà tạo mẫu <img src={assets.info_icon} alt="" />
               </p>
               <p className="text-sm text-gray-500 max-w-[700px] mt-1">
                 {styInfo.about}

@@ -25,7 +25,7 @@ const RelatedStylist = ({ speciality, docId }) => {
                         <img className='bg-[#EAEFFF]' src={item.image} alt="" />
                         <div className='p-4'>
                             <div className='flex items-center gap-2 text-sm text-center text-green-500'>
-                                <p className='w-2 h-2 bg-green-500 rounded-full'></p><p>Available</p>
+                                <p className='w-2 h-2 bg-green-500 rounded-full'></p><p>Hoạt động</p>
                             </div>
                             <p className='text-[#262626] text-lg font-medium'>{item.name}</p>
                             <p className='text-[#5C5C5C] text-sm'>{item.speciality}</p>

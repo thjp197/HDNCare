@@ -74,7 +74,7 @@ const Stylists = () => {
               <div className="p-4">
                 <div className="flex items-center gap-2 text-sm text-center text-green-500">
                   <p className="w-2 h-2 bg-green-500 rounded-full"></p>
-                  <p>Available</p>
+                  <p>Hoạt động</p>
                 </div>
                 <p className="text-lg font-medium text-black-900">
                   {item.name}
