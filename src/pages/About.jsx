@@ -9,8 +9,8 @@ const About = () => {
         <p>Về <span className='text-gray-700 font-semibold'>HDNCARE</span></p>
       </div>
 
-      <div className='my-10 flex flex-col md:flex-row gap-12'>
-        <img className='w-full md:max-w-[360px]' src={assets.logo} alt="" />
+      <div className='my-10 flex mr-20 flex-col md:flex-row gap-12'>
+        <img className='w-full md:max-w-[320px] object-contain' src={assets.logo} alt="" />
         <div className='flex flex-col justify-center gap-6 md:w-2/4 text-sm text-gray-600'>
           <p>Chào mừng bạn đến với HDNCARE, người bạn đồng hành đáng tin cậy trong hành trình chăm sóc sắc đẹp và phong cách của phái đẹp một cách tiện lợi và hiệu quả. Tại HDNCARE, chúng tôi thấu hiểu những khó khăn của phụ nữ hiện đại khi tìm kiếm một chuyên viên makeup phù hợp, stylist chuyên nghiệp hay các dịch vụ làm đẹp cá nhân hóa.</p>
           <p>HDNCARE cam kết mang đến sự xuất sắc trong lĩnh vực công nghệ làm đẹp. Chúng tôi không ngừng cải thiện nền tảng, cập nhật những xu hướng mới nhất nhằm nâng cao trải nghiệm người dùng và cung cấp dịch vụ chất lượng vượt trội. Dù bạn đang chuẩn bị cho lần trang điểm đầu tiên, một buổi makeover đặc biệt hay chăm sóc phong cách thường ngày, HDNCARE luôn sẵn sàng đồng hành cùng bạn ở mọi bước.</p>

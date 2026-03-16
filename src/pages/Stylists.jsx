@@ -47,14 +47,44 @@ const Stylists = () => {
     <div>
       <p className="text-gray-600">Tất cả chuyên viên</p>
       <div className="flex flex-col sm:flex-row items-start gap-5 mt-5">
-        <button onClick={() => setShowFilter(!showFilter)} className={`py-1 px-3 border rounded text-sm  transition-all sm:hidden ${showFilter ? 'bg-primary text-white' : ''}`}>Bộ lọc</button>
-        <div className={`flex-col gap-4 text-sm text-gray-600 ${showFilter ? 'flex' : 'hidden sm:flex'}`}>
+        <button
+          onClick={() => setShowFilter(!showFilter)}
+          className={`py-1 px-3 border rounded text-sm  transition-all sm:hidden ${showFilter ? "bg-primary text-white" : ""}`}
+        >
+          Bộ lọc
+        </button>
+        {/* <div className={`flex-col gap-4 text-sm text-gray-600 ${showFilter ? 'flex' : 'hidden sm:flex'}`}>
           <p onClick={() => handleSpecialityClick('Trang điểm')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Trang điểm') ? 'bg-indigo-100 text-black' : ''}`}>Trang điểm</p>
           <p onClick={() => handleSpecialityClick('Cắt tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Cắt tóc') ? 'bg-indigo-100 text-black' : ''}`}>Cắt tóc</p>
           <p onClick={() => handleSpecialityClick('Gội đầu thư giãn')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Gội đầu thư giãn') ? 'bg-indigo-100 text-black' : ''}`}>Gội đầu thư giãn</p>
           <p onClick={() => handleSpecialityClick('Chăm sóc cơ thể')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Chăm sóc cơ thể') ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc cơ thể</p>
           <p onClick={() => handleSpecialityClick('Chăm sóc da')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Chăm sóc da') ? 'bg-indigo-100 text-black' : ''}`}>Chăm sóc da</p>
           <p onClick={() => handleSpecialityClick('Uốn và Duỗi tóc')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 whitespace-nowrap rounded transition-all cursor-pointer ${isSpecialityActive('Uốn và Duỗi tóc') ? 'bg-indigo-100 text-black' : ''}`}>Uốn và Duỗi tóc</p>
+        </div> */}
+        <div
+          className={`flex-col gap-3 text-sm text-gray-700 ${showFilter ? "flex" : "hidden sm:flex"}`}
+        >
+          {[
+            "Trang điểm",
+            "Cắt tóc",
+            "Gội đầu thư giãn",
+            "Chăm sóc cơ thể",
+            "Chăm sóc da",
+            "Uốn và Duỗi tóc",
+          ].map((item) => (
+            <p
+              key={item}
+              onClick={() => handleSpecialityClick(item)}
+              className={`w-[94vw] sm:w-64 pl-4 py-2.5 pr-5 border rounded-lg transition-all duration-200 cursor-pointer shadow-sm
+        ${
+          isSpecialityActive(item)
+            ? "bg-primary text-white border-primary font-medium"
+            : "bg-white border-gray-200 hover:border-primary hover:bg-indigo-50 text-gray-600"
+        }`}
+            >
+              {item}
+            </p>
+          ))}
         </div>
         <div className="grid w-full gap-4 grid-cols-auto gap-y-6">
           {filteredStylists.map((item, index) => (
