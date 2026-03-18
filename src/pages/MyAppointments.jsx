@@ -3,11 +3,14 @@ import axios from "axios";
 import { AppContext } from "../context/AppContext";
 import { assets, stylists as localStylists } from "../assets/assets";
 import { toast } from "react-toastify";
+import { useSearchParams } from "react-router-dom";
 
 const MyAppointments = () => {
   const { backendUrl, token, stylists, getStylistsData } = useContext(AppContext);
+  const [searchParams] = useSearchParams();
 
   const [appointments, setAppointments] = useState([]);
+  const [paymentLoading, setPaymentLoading] = useState({});
 
   const months = [
     " ",
@@ -31,16 +34,6 @@ const MyAppointments = () => {
       dateArray[0] + " " + months[Number(dateArray[1])] + " " + dateArray[2]
     );
   };
-  // Mock data - thay sau với dữ liệu thực
-  // const mockAppointments = [
-  //   { stylistId: 'stylist1', date: '19/02/2026', time: '10:00 AM' },
-  //   { stylistId: 'stylist2', date: '20/02/2026', time: '02:00 PM' },
-  //   { stylistId: 'stylist3', date: '21/02/2026', time: '09:30 AM' },
-  // ]
-
-  // const handleCancel = (index) => {
-  //   alert('Hủy lịch hẹn thành công!')
-  // }
 
   const getUserAppointments = async () => {
     try {
@@ -60,6 +53,64 @@ const MyAppointments = () => {
     } catch (error) {
       console.log(error);
       toast.error("Không thể tải lịch hẹn của bạn");
+    }
+  };
+
+  const handlePayment = async (appointmentId) => {
+    try {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: true }));
+      
+      const { data } = await axios.post(
+        backendUrl + "/api/user/create-payment-url",
+        { appointmentId },
+        { headers: { token } }
+      );
+
+      if (data.success) {
+        // Redirect to VNPay payment page
+        window.location.href = data.paymentUrl;
+      } else {
+        toast.error(data.message || "Không thể tạo đường link thanh toán");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Lỗi khi tạo đường link thanh toán");
+    } finally {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: false }));
+    }
+  };
+
+  const verifyPaymentFromVNPay = async () => {
+    // Get payment information from URL params
+    const vnp_ResponseCode = searchParams.get("vnp_ResponseCode");
+    const vnp_TxnRef = searchParams.get("vnp_TxnRef");
+    const vnp_TransactionNo = searchParams.get("vnp_TransactionNo");
+    const vnp_Amount = searchParams.get("vnp_Amount");
+
+    if (vnp_ResponseCode === "00" && vnp_TxnRef) {
+      try {
+        const { data } = await axios.post(
+          backendUrl + "/api/user/verify-payment",
+          {
+            appointmentId: vnp_TxnRef,
+            vnp_TransactionNo,
+            vnp_Amount
+          },
+          { headers: { token } }
+        );
+
+        if (data.success) {
+          toast.success("Thanh toán thành công!");
+          getUserAppointments(); // Refresh to show updated payment status
+          // Clear URL parameters
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          toast.error(data.message || "Khoá thanh toán không thành công");
+        }
+      } catch (error) {
+        console.log(error);
+        toast.error("Lỗi khi xác nhận thanh toán");
+      }
     }
   };
 
@@ -83,16 +134,10 @@ const MyAppointments = () => {
     }
   };
 
-  // const handleCancel = (appointmentId) => {
-  //   setAppointments((prev) =>
-  //     prev.filter((item) => item._id !== appointmentId),
-  //   );
-  //   toast.info("Tính năng hủy lịch đang được cập nhật");
-  // };
-
   useEffect(() => {
     if (token) {
       getUserAppointments();
+      verifyPaymentFromVNPay();
     }
   }, [token]);
 
@@ -141,12 +186,26 @@ const MyAppointments = () => {
                   <span className="font-semibold">Thời gian:</span>{" "}
                   {slotDateFormat(item.slotDate)} | {item.slotTime}
                 </p>
+                <p className="text-sm mt-2">
+                  <span className="font-semibold">Chi phí:</span> {item.amount?.toLocaleString('vi-VN')} VND
+                </p>
               </div>
               <div className="flex flex-col gap-2 justify-center">
-                {!item.cancelled && <button className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition">
-                  Thanh toán trực tuyến
-                </button> }
-                {!item.cancelled && (
+                {!item.cancelled && !item.payment && (
+                  <button
+                    onClick={() => handlePayment(item._id)}
+                    disabled={paymentLoading[item._id]}
+                    className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán trực tuyến"}
+                  </button>
+                )}
+                {!item.cancelled && item.payment && (
+                  <button className="px-4 py-2 bg-green-500 text-white rounded cursor-default">
+                    ✓ Đã thanh toán
+                  </button>
+                )}
+                {!item.cancelled && !item.payment && (
                   <button
                     onClick={() => cancelAppointment(item._id)}
                     className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
@@ -154,7 +213,11 @@ const MyAppointments = () => {
                     Hủy lịch hẹn
                   </button>
                 )}
-                {item.cancelled && <button className="sm:min-w-48 py-2 border border-red-500 rounded text-red-500">Appointment cancelled</button>}
+                {item.cancelled && (
+                  <button className="sm:min-w-48 py-2 border border-red-500 rounded text-red-500 cursor-default">
+                    ✕ Đã hủy
+                  </button>
+                )}
               </div>
             </div>
           );

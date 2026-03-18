@@ -7,6 +7,8 @@ const AdminContextProvider = (props) => {
 
     const [aToken, setAToken] = useState(localStorage.getItem('aToken')?localStorage.getItem('aToken'):'')
     const [stylists, setStylists] = useState([])
+    const [appointments, setAppointments] = useState([])
+
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
 
@@ -47,12 +49,52 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    const getAllAppointments = async () => {
+
+        try {
+
+            const { data } = await axios.get(backendUrl + '/api/admin/appointments', { headers: { aToken } })
+            if (data.success) {
+                setAppointments(data.appointments.reverse())
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+
+    }
+
+     // Function to cancel appointment using API
+    const cancelAppointment = async (appointmentId) => {
+
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/admin/cancel-appointment', { appointmentId }, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getAllAppointments()
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+
+    }
+
     const value = {
         aToken, setAToken,
         backendUrl,
         getAllStylists,
         stylists,
-        changeAvailability
+        changeAvailability,
+        appointments, getAllAppointments, setAppointments, cancelAppointment
     }
 
     return (

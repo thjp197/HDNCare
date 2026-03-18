@@ -5,6 +5,7 @@ import userModel from "../models/userModel.js";
 import { v2 as cloudinary } from 'cloudinary'
 import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } from 'vnpay';
 
 // API to register user
 const registerUser = async (req, res) => {
@@ -249,4 +250,98 @@ const cancelAppointment = async (req, res) => {
     }
 
 }
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment }
+
+// API to create VNPay payment URL
+const createPaymentUrl = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { appointmentId } = req.body;
+
+        if (!appointmentId) {
+            return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
+        }
+
+        const appointmentData = await appointmentModel.findById(appointmentId);
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+        }
+
+        // Verify appointment belongs to user
+        if (String(appointmentData.userId) !== String(userId)) {
+            return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+        }
+
+        // If already paid
+        if (appointmentData.payment) {
+            return res.json({ success: false, message: "Lịch hẹn này đã được thanh toán" });
+        }
+
+        const vnpay = new VNPay({
+            tmnCode: process.env.VNPAY_TMN_CODE,
+            secureSecret: process.env.VNPAY_SECRET_KEY,
+            vnpayHost: process.env.VNPAY_HOST,
+            testMode: true,
+            hashAlgorithm: 'SHA512',
+            loggerFn: ignoreLogger
+        });
+
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const vnpayResponse = await vnpay.buildPaymentUrl({
+            vnp_Amount: appointmentData.amount,
+            vnp_IpAddr: req.ip || '127.0.0.1',
+            vnp_TxnRef: appointmentId, // Dùng appointmentId làm transaction reference
+            vnp_OrderInfo: `Thanh toán lịch hẹn - ${appointmentData.userData?.name || 'User'}`,
+            vnp_OrderType: ProductCode.Other,
+            vnp_ReturnUrl: `${process.env.FRONTEND_URL}/my-appointments`,
+            vnp_Locale: VnpLocale.VN,
+            vnp_CreateDate: dateFormat(new Date()),
+            vnp_ExpireDate: dateFormat(tomorrow)
+        });
+
+        res.json({ success: true, paymentUrl: vnpayResponse });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+// API to verify VNPay payment
+const verifyPayment = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { appointmentId, vnp_TransactionNo, vnp_Amount } = req.body;
+
+        if (!appointmentId) {
+            return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
+        }
+
+        const appointmentData = await appointmentModel.findById(appointmentId);
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+        }
+
+        // Verify appointment belongs to user
+        if (String(appointmentData.userId) !== String(userId)) {
+            return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+        }
+
+        // Update appointment payment status
+        await appointmentModel.findByIdAndUpdate(appointmentId, { 
+            payment: true,
+            paymentTransactionId: vnp_TransactionNo 
+        });
+
+        res.json({ success: true, message: "Thanh toán thành công" });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, createPaymentUrl, verifyPayment }

@@ -1,9 +1,54 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { assets } from '../../assets/assets'
+import { useContext } from 'react'
+import { AdminContext } from '../../context/AdminContext'
+import { AppContext } from '../../context/AppContext'
 
-const AllApointments = () => {
+const AllAppointments = () => {
+
+  const { aToken, appointments, cancelAppointment, getAllAppointments } = useContext(AdminContext)
+  const { slotDateFormat, calculateAge, currency } = useContext(AppContext)
+
+  useEffect(() => {
+    if (aToken) {
+      getAllAppointments()
+    }
+  }, [aToken])
+
   return (
-    <div>AllApointments</div>
+    <div className='w-full max-w-6xl m-5 '>
+
+      <p className='mb-3 text-lg font-medium'>Tất cả lịch hẹn</p>
+
+      <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
+        <div className='hidden sm:grid grid-cols-[0.5fr_3fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center py-3 px-6 border-b'>
+          <p>#</p>
+          <p>Người dùng</p>
+          <p>Tuổi</p>
+          <p>Ngày & Giờ</p>
+          <p>Chuyên viên</p>
+          <p>Phí</p>
+          <p>Hành động</p>
+        </div>
+        {appointments.map((item, index) => (
+          <div className='flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_3fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
+            <p className='max-sm:hidden'>{index+1}</p>
+            <div className='flex items-center gap-2'>
+              <img src={item.userData.image} className='w-8 rounded-full' alt="" /> <p>{item.userData.name}</p>
+            </div>
+            <p className='max-sm:hidden'>{calculateAge(item.userData.dob)}</p>
+            <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
+            <div className='flex items-center gap-2'>
+              <img src={item.styData.image} className='w-8 rounded-full bg-gray-200' alt="" /> <p>{item.styData.name}</p>
+            </div>
+            <p>{currency}{item.amount}</p>
+            {item.cancelled ? <p className='text-red-400 text-sm font-medium '>Đã Hủy</p> : item.isCompleted ? <p className='text-green-500 text-sm font-medium ml-4'>Hoàn thành</p> : <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="" />}
+          </div>
+        ))}
+      </div>
+
+    </div>
   )
 }
 
-export default AllApointments
+export default AllAppointments
