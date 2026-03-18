@@ -47,7 +47,7 @@ const Navbar = () => {
               <img className='w-8 rounded-full' src={userData.image} alt="" onClick={() => setShowProfile(!showProfile)}/>
               <img className='w-2.5' src={assets.dropdown_icon} alt="" onClick={() => setShowProfile(!showProfile)}/>
               {showProfile && (
-                <div className='absolute right-0 z-50 text-base font-medium text-gray-600 top-8 pt-14'>
+                <div className='absolute right-0 z-50 text-base font-medium text-gray-600 top-8 pt-2'>
                   <div className='flex flex-col gap-4 p-4 rounded min-w-48 bg-stone-100'>
                     <p onClick={()=>{navigate('my-profile'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Hồ sơ của tôi</p>
                     <p onClick={()=>{navigate('my-appointments'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
