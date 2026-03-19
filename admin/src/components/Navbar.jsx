@@ -1,18 +1,26 @@
 import React, { useContext } from 'react'
 import { AdminContext } from '../context/AdminContext'
+import { StylistContext } from '../context/StylistContext'
 import { assets } from '../assets/assets'
 import { useNavigate } from 'react-router-dom'
 
 const Navbar = () => {
 
     const {aToken, setAToken} = useContext(AdminContext)
+    const {sToken, setSToken} = useContext(StylistContext)
 
     const navigate = useNavigate()
 
     const logout = () => {
         navigate('/')
-        aToken && setAToken('')
-        aToken && localStorage.removeItem('aToken')
+        if (aToken) {
+            setAToken('')
+            localStorage.removeItem('aToken')
+        }
+        if (sToken) {
+            setSToken('')
+            localStorage.removeItem('sToken')
+        }
     }
 
   return (

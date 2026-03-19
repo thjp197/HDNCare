@@ -7,25 +7,36 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import { Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/Admin/Dashboard';
-import AllApointments from './pages/Admin/AllApointments';
+import AllAppointments from './pages/Admin/AllAppointments';
 import AddStylist from './pages/Admin/AddStylist';
 import StylistsList from './pages/Admin/StylistsList';
+import { StylistContext } from './context/StylistContext';
+import StylistDashboard from './pages/Stylist/StylistDashboard';
+import StylistAppointment from './pages/Stylist/StylistAppointment';
+import StylistProfile from './pages/Stylist/StylistProfile';
 
 const App = () => {
 
   const {aToken} = useContext(AdminContext)
-  return aToken ? (
+  const {sToken} = useContext(StylistContext)
+  return aToken || sToken ? (
     <div className='bg-[#F8F9FD]'>
       <ToastContainer/>
       <Navbar/>
       <div className='flex items-start'>
         <Sidebar/>
         <Routes>
+          {/* admin routes */}
           <Route path='/' element={<></>}/>  
           <Route path='/admin-dashboard' element={<Dashboard />}/>  
-          <Route path='/all-appointments' element={<AllApointments />}/>  
+          <Route path='/all-appointments' element={<AllAppointments />}/>  
           <Route path='/add-stylist' element={<AddStylist />}/>  
           <Route path='/stylists-list' element={<StylistsList />}/>  
+
+          {/* stylist routes */}
+          <Route path='/stylist-dashboard' element={<StylistDashboard />}/>  
+          <Route path='/stylist-appointments' element={<StylistAppointment />}/>  
+          <Route path='/stylist-profile' element={<StylistProfile />}/>  
         </Routes>
       </div>
     </div>

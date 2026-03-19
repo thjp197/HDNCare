@@ -4,6 +4,7 @@ import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";
 import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import userModel from "../models/userModel.js";
 
 //API for adding stylist
 const addStylist = async (req, res) => {
@@ -162,4 +163,27 @@ const appointmentCancel = async (req, res) => {
 
 }
 
-export { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel };
+// API to get dashboard data for admin panel
+const adminDashboard = async (req, res) => {
+    try {
+
+        const stylists = await stylistModel.find({})
+        const users = await userModel.find({})
+        const appointments = await appointmentModel.find({})
+
+        const dashData = {
+            stylists: stylists.length,
+            appointments: appointments.length,
+            users: users.length,
+            latestAppointments: appointments.reverse()
+        }
+
+        res.json({ success: true, dashData })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel, adminDashboard };
