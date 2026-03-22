@@ -75,4 +75,50 @@ const appointmentsStylist = async (req, res) => {
     }
 }
 
-export { changeAvailablity, stylistList, loginStylist, appointmentsStylist }
+// API to mark appointment as completed for stylist panel
+const appointmentComplete = async (req, res) => {
+    try {
+        const { appointmentId } = req.body
+        const styId = req.styId
+
+        const appointmentData = await appointmentModel.findById(appointmentId)
+        if (appointmentData && String(appointmentData.styId) === String(styId)) {
+            const updatedAppointment = await appointmentModel.findByIdAndUpdate(
+                appointmentId,
+                { isCompleted: true },
+                { new: true }
+            )
+            return res.json({ success: true, message: 'Cuộc hẹn đã hoàn thành', appointment: updatedAppointment })
+        } else {
+            return res.json({ success: false, message: 'Không tìm thấy cuộc hẹn' })
+        }
+    } catch (error) {
+         console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to cancel appointment for stylist panel
+const appointmentCancel = async (req, res) => {
+    try {
+        const { appointmentId } = req.body
+        const styId = req.styId
+
+        const appointmentData = await appointmentModel.findById(appointmentId)
+        if (appointmentData && String(appointmentData.styId) === String(styId)) {
+            const updatedAppointment = await appointmentModel.findByIdAndUpdate(
+                appointmentId,
+                { cancelled: true },
+                { new: true }
+            )
+            return res.json({ success: true, message: 'Hủy cuộc hẹn thành công', appointment: updatedAppointment })
+        } else {
+            return res.json({ success: false, message: 'Hủy cuộc hẹn thất bại' })
+        }
+    } catch (error) {
+         console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { changeAvailablity, stylistList, loginStylist, appointmentsStylist, appointmentCancel, appointmentComplete }
