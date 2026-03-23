@@ -18,7 +18,7 @@ const StylistAppointments = () => {
   return (
     <div className='w-full max-w-6xl m-5 '>
 
-      <p className='mb-3 text-lg font-medium'>Tất cả lịch hẹn</p>
+      <p className='mb-3 text-lg font-medium font-sans'>Tất cả lịch hẹn</p>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
         <div className='max-sm:hidden grid grid-cols-[0.5fr_2fr_1fr_1fr_3fr_1fr_1fr] gap-1 py-3 px-6 border-b'>
@@ -46,9 +46,9 @@ const StylistAppointments = () => {
             <p>{currency}{item.amount}</p>
             {
               item.cancelled 
-              ? <p className='text-red-400 text-xs font-medium'>Hủy hẹn</p>
+              ? <p className='text-red-400 text-xs font-medium font-sans'>Hủy hẹn</p>
               : item.isCompleted
-                ?<p className='text-green-500 text-xs font-medium'>Hoàn thành</p>
+                ?<p className='text-green-500 text-xs font-medium font-sans'>Hoàn thành</p>
                 :<div className='flex gap-2'>
               <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Cancel" />
               <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Complete" />

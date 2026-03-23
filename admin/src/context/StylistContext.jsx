@@ -10,6 +10,8 @@ const StylistContextProvider = (props) => {
 
     const [sToken, setSToken] = useState(localStorage.getItem('sToken') ? localStorage.getItem('sToken') : '')
     const [appointments, setAppointments] = useState([])
+    const [dashData, setDashData] = useState(false)
+    const [profileData, setProfileData] = useState(false)
 
     // Getting Stylist appointment data from Database using API
     const getAppointments = async () => {
@@ -72,8 +74,44 @@ const StylistContextProvider = (props) => {
 
     }
 
+    const getDashData = async () => {
+        try {
+            
+            const { data } = await axios.get(backendUrl + '/api/stylist/dashboard', { headers: { stoken: sToken } })
+            if (data.success) {
+                setDashData(data.dashData)
+                console.log(data.dashData);
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    const getProfileData = async () => {
+        try {
+            
+            const {data} = await axios.get(backendUrl + '/api/stylist/profile', { headers: { stoken: sToken } })
+            if (data.success) {
+                setProfileData(data.profileData)
+                console.log(data.profileData)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     const value = {
-        sToken, setSToken, backendUrl, appointments, getAppointments, setAppointments, completeAppointment, cancelAppointment
+        sToken, setSToken, backendUrl, 
+        appointments, getAppointments, 
+        setAppointments, completeAppointment,
+        cancelAppointment, 
+        dashData, setDashData, getDashData,
+        profileData, setProfileData, getProfileData
     }
 
     return (

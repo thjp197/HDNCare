@@ -19,7 +19,7 @@ const changeAvailablity = async (req, res) => {
     }
 }
 
-    // API to get all stylists list for Frontend
+// API to get all stylists list for Frontend
 const stylistList = async (req, res) => {
     try {
 
@@ -93,7 +93,7 @@ const appointmentComplete = async (req, res) => {
             return res.json({ success: false, message: 'Không tìm thấy cuộc hẹn' })
         }
     } catch (error) {
-         console.log(error)
+        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -116,9 +116,93 @@ const appointmentCancel = async (req, res) => {
             return res.json({ success: false, message: 'Hủy cuộc hẹn thất bại' })
         }
     } catch (error) {
-         console.log(error)
+        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
 
-export { changeAvailablity, stylistList, loginStylist, appointmentsStylist, appointmentCancel, appointmentComplete }
+// API to get dashboard data for stylist panel
+const stylistDashboard = async (req, res) => {
+
+    try {
+        const styId = req.styId
+
+        const appointments = await appointmentModel.find({ styId })
+
+        const earnings = appointments.reduce((sum, item) => {
+            if (item.isCompleted || item.payment) {
+                return sum + Number(item.amount || 0)
+            }
+            return sum
+        }, 0)
+
+        let users = []
+
+        appointments.map((item) => {
+            if (!users.includes(item.userId)) {
+                users.push(item.userId)
+            }
+        })
+
+        const dashData = {
+            earnings,
+            appointments: appointments.length,
+            users: users.length,
+            latestAppointments: appointments.reverse().slice(0, 5)
+        }
+
+        res.json({ success: true, dashData })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+
+// API to get stylist profile for Stylist panel 
+const stylistProfile = async (req, res) => {
+
+
+    try {
+
+        // const { styId } = req.body 
+        const styId = req.styId
+        const profileData = await stylistModel.findById(styId).select('-password')
+
+        res.json({ success: true, profileData })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+//API to update stylist profile data from Stylist Panel
+const updateStylistProfile = async (req, res) => {
+    try {
+
+        const styId = req.styId
+        const { fees, address, available } = req.body
+
+        await stylistModel.findByIdAndUpdate(styId, { fees, address, available })
+
+        res.json({ success: true, message: 'Hồ sơ đã được cập nhật' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export {
+    changeAvailablity,
+    stylistList,
+    loginStylist,
+    appointmentsStylist,
+    appointmentCancel,
+    appointmentComplete,
+    stylistDashboard,
+    stylistProfile,
+    updateStylistProfile
+}
