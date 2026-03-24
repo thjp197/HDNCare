@@ -34,9 +34,9 @@ const TopStylist = () => {
 
             {/* CONTENT */}
             <div className="flex flex-col gap-2 p-4">
-              <div className="flex items-center gap-2 text-sm text-green-600">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                Hoạt động
+              <div className="flex items-center gap-2 text-sm font-sans ${item.available ? 'text-green-500' : 'text-gray-500'}">
+                <p className={"w-2 h-2 " + (item.available ? "bg-green-500" : "bg-gray-500") + " rounded-full"}></p>
+                <p>{item.available ? "Hoạt động" : "Không hoạt động"}</p>
               </div>
 
               <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">

@@ -183,9 +183,9 @@ const updateStylistProfile = async (req, res) => {
     try {
 
         const styId = req.styId
-        const { fees, address, available } = req.body
+        const {address, available } = req.body
 
-        await stylistModel.findByIdAndUpdate(styId, { fees, address, available })
+        await stylistModel.findByIdAndUpdate(styId, { address, available })
 
         res.json({ success: true, message: 'Hồ sơ đã được cập nhật' })
 
