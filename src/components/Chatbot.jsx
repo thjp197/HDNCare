@@ -1,43 +1,47 @@
 import { useEffect, useRef, useState } from "react";
-import { companyInfo } from "../context/companyInfo";
+// ❌ Đã xóa import companyInfo vì Backend sẽ lo việc này
 import ChatbotIcon from "./ChatbotIcon";
 import ChatForm from "./ChatForm";
 import ChatMessage from "./ChatMessage";
 
 const Chatbot = () => {
-  const [chatHistory, setChatHistory] = useState([
-    {
-    hideInChat: true,
-    role: "model",
-    text: companyInfo
-    },
-]);
+  // 1. Khởi tạo mảng rỗng, không cần nhét companyInfo vào nữa
+  const [chatHistory, setChatHistory] = useState([]);
   const [showChatbot, setChatbot] = useState(false);
   const chatBodyRef = useRef();
 
-  const generateBotResponse = async (history) => {
-    //Helper function to update chat history
+  // 2. Thêm tham số currentMessage để tách bạch tin nhắn hiện tại và lịch sử
+  const generateBotResponse = async (history, currentMessage) => {
     const updateHistory = (text, isError = false) => {
       setChatHistory(prev => [...prev.filter(msg => msg.text !== "Thinking..."), { role: "model", text, isError }]);
     }
 
-    // Format chat history for API request
-    history = history.map(({role, text}) => ({role, parts: [{text}]}));
+    // Format lịch sử theo chuẩn của Gemini SDK (Gửi cho Backend)
+    const formattedHistory = history.map(({role, text}) => ({
+        role, 
+        parts: [{text}]
+    }));
 
+    // 3. Cấu hình gửi body xuống Backend (khớp với chatbotController.js)
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify ({contents: history})
+      body: JSON.stringify({
+          message: currentMessage, 
+          history: formattedHistory
+      })
     }
     
     try {
-      // Make the API call to get the bot's response
-      const response = await fetch(import.meta.env.VITE_API_URL, requestOptions);
+      // 4. Gọi API nội bộ của bạn (Cổng 4000)
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+      const response = await fetch(`${backendUrl}/api/chatbot/message`, requestOptions);
       const data = await response.json();
-      if(!response.ok) throw new Error(data.error.message || "Something went wrong!");
+      
+      if(!response.ok || !data.success) throw new Error(data.message || "Lỗi kết nối đến máy chủ!");
 
-      //Clean and update chat history with the bot's response
-      const apiResponseText = data.candidates[0].content.parts[0].text.replace(/\*\*(.*?)\*\*/g, '$1').trim();
+      // 5. Lấy kết quả trả về từ Backend (không cần parse lằng nhằng nữa)
+      const apiResponseText = data.reply.replace(/\*\*(.*?)\*\*/g, '$1').trim();
       updateHistory(apiResponseText);
     } catch (error) {
       updateHistory(error.message, true);
@@ -45,7 +49,6 @@ const Chatbot = () => {
   };
 
   useEffect(() => {
-    //Auto-scroll whenever chat history updates
     chatBodyRef.current.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "smooth" });
   }, [chatHistory]);
 
@@ -62,8 +65,7 @@ const Chatbot = () => {
             <ChatbotIcon />
             <h2 className="logo-text">Chatbot</h2>
           </div>
-          <button onClick={() => setChatbot(prev => !prev)} className="material-symbols-rounded">keyboard_arrow_down
-          </button>
+          <button onClick={() => setChatbot(prev => !prev)} className="material-symbols-rounded">keyboard_arrow_down</button>
         </div>
 
         {/* Chatbot Body */}
@@ -71,11 +73,10 @@ const Chatbot = () => {
           <div className="message bot-message">
           <ChatbotIcon />
           <p className="message-text">
-            Hey there! <br /> How can I help you today?
+            Chào bạn! <br /> HDNCare có thể giúp gì cho bạn hôm nay?
           </p>
           </div>
 
-          {/* Render the chat history dynamically */}
           {chatHistory.map((chat, index)=> (
             <ChatMessage key={index} chat={chat} />
           ))}

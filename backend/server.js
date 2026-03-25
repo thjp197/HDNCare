@@ -1,12 +1,13 @@
-import express from 'express'
 import cors from 'cors'
+import dns from 'dns'
 import 'dotenv/config'
-import connectDB from './config/mongodb.js'
+import express from 'express'
 import connectCloudinary from './config/cloudinary.js'
+import connectDB from './config/mongodb.js'
 import adminRouter from './routes/adminRoute.js'
+import chatbotRoute from './routes/chatbotRoute.js'; // <-- CHÍNH LÀ DÒNG BỊ SÓT NÀY ĐÂY
 import stylistRouter from './routes/stylistRoute.js'
 import userRoute from './routes/userRoute.js'
-import dns from 'dns'
 
 //Change DNS 
 dns.setServers(["1.1.1.1","8.8.8.8"]);  
@@ -25,6 +26,7 @@ app.use(express.json())
 app.use('/api/admin', adminRouter)
 app.use('/api/stylist', stylistRouter)
 app.use('/api/user', userRoute)
+app.use('/api/chatbot', chatbotRoute) // DÒNG THÊM MỚI 2
 
 app.get('/', (req, res) => {
   res.send('API works!')
