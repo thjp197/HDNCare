@@ -55,9 +55,8 @@ const AllAppointments = () => {
               />{" "}
               <p>{item.styData.name}</p>
             </div>
-            <p>
-              {currency}
-              {item.amount}
+            <p className="whitespace-nowrap">
+              {item.amount} {currency}
             </p>
             {item.cancelled ? (
               <p className="text-red-400 text-sm font-sans font-medium ">Đã Hủy</p>

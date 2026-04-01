@@ -215,7 +215,7 @@ const Appointment = () => {
               ))}
           </div>
 
-          <div className="flex items-center gap-3 w-full overflow-x-scroll mt-4">
+          <div className="flex items-center gap-3 w-full overflow-x-auto mt-4 pb-2 border-b-0 shadow-none">
             {stySlots.length &&
               stySlots[slotIndex].map((item, index) => (
                 <p

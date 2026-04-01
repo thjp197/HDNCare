@@ -19,7 +19,7 @@ const Dashboard = () => {
       <div className="m-5 space-y-6 font-sans">
         <div className="rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50 via-pink-50 to-amber-50 p-5 shadow-sm">
           <p className="text-sm text-rose-600/80 font-sans">
-            Bảng điều khiển quản trị
+            Bảng kiểm soát quản trị viên
           </p>
           <h2 className="mt-1 text-2xl font-bold font-sans text-gray-800">
             Tổng Quan Hoạt Động HDNCare

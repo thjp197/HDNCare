@@ -130,7 +130,7 @@ const stylistDashboard = async (req, res) => {
         const appointments = await appointmentModel.find({ styId })
 
         const earnings = appointments.reduce((sum, item) => {
-            if (item.isCompleted || item.payment) {
+            if (item.isCompleted) {
                 return sum + Number(item.amount || 0)
             }
             return sum

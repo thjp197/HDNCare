@@ -105,7 +105,7 @@ export const stylists = [
   {
     _id: "stylist5",
     name: "Võ Minh Khang",
-    image: "/sty5.jpg",
+    image: "/sty5.png",
     speciality: "Cắt tóc",
     degree: "Professional Hair Cutting & Styling Certificate",
     experience: "1 Year",
@@ -120,7 +120,7 @@ export const stylists = [
   {
     _id: "stylist6",
     name: "Nguyễn Linh Đan",
-    image: "/sty6.jpg",
+    image: "/sty6.png",
     speciality: "Cắt tóc",
     degree: "Professional Hair Cutting & Styling Certificate",
     experience: "1 Year",
@@ -135,7 +135,7 @@ export const stylists = [
   {
     _id: "stylist7",
     name: "Hồ Bảo Ngọc",
-    image: "/sty7.jpg",
+    image: "/sty7.png",
     speciality: "Cắt tóc",
     degree: "Professional Hair Cutting & Styling Certificate",
     experience: "1 Year",
@@ -152,7 +152,7 @@ export const stylists = [
   {
     _id: "stylist8",
     name: "Nguyễn Hữu Trung",
-    image: "/sty8.jpg",
+    image: "/sty8.png",
     speciality: "Gội đầu thư giãn",
     degree: "Relaxing Hair Wash & Scalp Care Certificate",
     experience: "1 Year",
@@ -167,7 +167,7 @@ export const stylists = [
   {
     _id: "stylist9",
     name: "Đặng Anh Hiếu",
-    image: "/sty9.jpg",
+    image: "/sty9.png",
     speciality: "Gội đầu thư giãn",
     degree: "Relaxing Hair Wash & Scalp Care Certificate",
     experience: "1 Year",
@@ -182,7 +182,7 @@ export const stylists = [
   {
     _id: "stylist10",
     name: "Lý Thanh Trúc",
-    image: "/sty10.jpg",
+    image: "/sty10.png",
     speciality: "Gội đầu thư giãn",
     degree: "Relaxing Hair Wash & Scalp Care Certificate",
     experience: "1 Year",
@@ -199,7 +199,7 @@ export const stylists = [
   {
     _id: "stylist11",
     name: "Phan Hoài An",
-    image: "/sty11.jpg",
+    image: "/sty11.png",
     speciality: "Chăm sóc cơ thể",
     degree: "Professional Body Care & Massage Certificate",
     experience: "1 Year",
@@ -214,7 +214,7 @@ export const stylists = [
   {
     _id: "stylist12",
     name: "Nguyễn Kim Ngân",
-    image: "/sty12.jpg",
+    image: "/sty12.png",
     speciality: "Chăm sóc cơ thể",
     degree: "Professional Body Care & Massage Certificate",
     experience: "1 Year",
@@ -229,7 +229,7 @@ export const stylists = [
   {
     _id: "stylist13",
     name: "Đỗ Mỹ Linh",
-    image: "/sty13.jpg",
+    image: "/sty13.png",
     speciality: "Chăm sóc cơ thể",
     degree: "Professional Body Care & Massage Certificate",
     experience: "1 Year",
