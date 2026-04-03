@@ -16,7 +16,7 @@ const StylistAppointments = () => {
   }, [sToken])
 
   return (
-    <div className='w-full max-w-6xl m-5 '>
+    <div className="w-full max-w-8xl m-5 ">
 
       <p className='mb-3 text-lg font-medium font-sans'>Tất cả lịch hẹn</p>
 

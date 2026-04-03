@@ -186,4 +186,30 @@ const adminDashboard = async (req, res) => {
     }
 }
 
-export { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel, adminDashboard };
+// API to update stylist info for admin panel
+const updateStylist = async (req, res) => {
+  try {
+    const { stylistId, name, speciality, degree, experience, about, fees, address, available } = req.body
+    const imageFile = req.file
+
+    if (!stylistId) {
+      return res.json({ success: false, message: "Thiếu ID nhân viên" })
+    }
+
+    const updateData = { name, speciality, degree, experience, about, fees, address: JSON.parse(address), available }
+
+    if (imageFile) {
+      const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" })
+      updateData.image = imageUpload.secure_url
+    }
+
+    await stylistModel.findByIdAndUpdate(stylistId, updateData)
+    res.json({ success: true, message: "Cập nhật thông tin thành công" })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+export { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel, adminDashboard, updateStylist };

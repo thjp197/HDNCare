@@ -1,28 +1,21 @@
-import React, { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { StylistContext } from '../../context/StylistContext'
 import { AppContext } from '../../context/AppContext'
-import { address } from 'framer-motion/client'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 
 const StylistProfile = () => {
-
-  const {sToken, profileData, setProfileData, getProfileData, backendUrl} = useContext(StylistContext)
-  const {currency } = useContext(AppContext)
-
+  const { sToken, profileData, setProfileData, getProfileData, backendUrl } = useContext(StylistContext)
+  const { currency } = useContext(AppContext)
   const [isEdit, setIsEdit] = useState(false)
 
   const updateProfile = async () => {
     try {
-      
       const updateData = {
         address: profileData.address,
-        // fees: profileData.fees,
         available: profileData.available
       }
-
       const { data } = await axios.post(backendUrl + '/api/stylist/update-profile', updateData, { headers: { stoken: sToken } })
-
       if (data.success) {
         toast.success(data.message)
         setIsEdit(false)
@@ -31,70 +24,105 @@ const StylistProfile = () => {
         toast.error(data.message)
       }
     } catch (error) {
-        toast.error(data.message)  
-        console.log(error)
-          
-}
+      console.log(error)
+      toast.error(error.message)
+    }
   }
 
   useEffect(() => {
-    
-    if (sToken) {
-      getProfileData()
-    }
+    if (sToken) getProfileData()
   }, [sToken])
 
   return profileData && (
-    <div>
+    <div className='m-5 w-full'>
+      <div className='bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden'>
 
-      <div className='flex flex-col gap-4 m-5 '>
+        {/* Header banner */}
+        <div className='h-32 bg-gradient-to-r from-rose-100 via-pink-50 to-amber-50' />
 
-        <div>
-          <img className='bg-primary/80 w-full sm:max-w-64 rounded-lg' src={profileData.image} alt="Profile" />
-        </div>
-
-        <div className='font-sans flex-1 border-stone-100 rounded-lg p-8 py-7 bg-white'>
-
-          {/* Stylist info: name, degree, experience */}
-          <p className='flex items-center gap-2 text-3xl font-medium font-sans text-gray-700'>{profileData.name}</p>
-          <div className='flex items-center gap-2 mt-1 text-gray-600 font-sans'>
-            <p>{profileData.degree} - {profileData.speciality}</p>
-            <button className='py-0.5 px-2 border text-xs rounded-full'>{profileData.experience}</button>
+        {/* Avatar + name row */}
+        <div className='px-8 pb-6'>
+          <div className='flex flex-col sm:flex-row items-start sm:items-end gap-5 -mt-16'>
+            <img
+              className='w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-md'
+              src={profileData.image} alt="Profile"
+            />
+            <div className='pb-1'>
+              <p className='text-2xl font-bold text-gray-800'>{profileData.name}</p>
+              <div className='flex items-center gap-2 mt-1 text-gray-500 text-sm'>
+                <span>{profileData.degree} · {profileData.speciality}</span>
+                <span className='px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs'>{profileData.experience}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Stylist About */}
-          <div>
-            <p className='flex items-center gap-1 text-sm font-medium font-sans text-neutral-800 mt-3'>Về nhà tạo mẫu: </p>
-            <p className='text-sm text-gray-600 max-w-[700px] mt-1 font-sans'>
-              {profileData.about}
-            </p>
+          {/* Divider */}
+          <hr className='my-6 border-gray-100' />
+
+          {/* Info grid */}
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+
+            {/* About */}
+            <div className='lg:col-span-2'>
+              <p className='text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1'>Về nhà tạo mẫu</p>
+              <p className='text-sm text-gray-600 leading-relaxed'>{profileData.about}</p>
+            </div>
+
+            {/* Fees */}
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1'>Phí dịch vụ</p>
+              <p className='text-lg font-semibold text-gray-800'>{profileData.fees?.toLocaleString('vi-VN')} {currency}</p>
+            </div>
+
+            {/* Address */}
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1'>Địa chỉ</p>
+              {isEdit ? (
+                <div className='flex flex-col gap-2'>
+                  <input
+                    className='border rounded-lg px-3 py-2 text-sm w-full'
+                    value={profileData.address.line1}
+                    onChange={e => setProfileData(prev => ({ ...prev, address: { ...prev.address, line1: e.target.value } }))}
+                  />
+                  <input
+                    className='border rounded-lg px-3 py-2 text-sm w-full'
+                    value={profileData.address.line2}
+                    onChange={e => setProfileData(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))}
+                  />
+                </div>
+              ) : (
+                <p className='text-sm text-gray-600'>
+                  {profileData.address.line1}<br />{profileData.address.line2}
+                </p>
+              )}
+            </div>
+
+            {/* Available */}
+            <div className='flex items-center gap-2'>
+              <input
+                type='checkbox'
+                id='available'
+                checked={profileData.available}
+                onChange={() => isEdit && setProfileData(prev => ({ ...prev, available: !prev.available }))}
+                className='w-4 h-4 accent-green-600'
+              />
+              <label htmlFor='available' className='text-sm text-gray-600'>Đang hoạt động</label>
+            </div>
           </div>
 
-          <p className='text-gray-600 font-medium font-sans mt-4'>
-            Giá tiền: <span className='text-gray-800 '> {profileData.fees} {currency}</span>
-          </p>
-          
-          <div className='flex gap-4 py-4  font-sans'>
-            <p className='font-sans'>Địa chỉ: </p>
-            <p className='text-sm font-sans'>
-              {isEdit ? <input type='text' onChange={(e)=> setProfileData(prev => ({...prev, address: {...prev.address, line1: e.target.value}}))} value={profileData.address.line1}/>: profileData.address.line1}
-              <br />
-              {isEdit ? <input type='text' onChange={(e)=> setProfileData(prev => ({...prev, address: {...prev.address, line2: e.target.value}}))} value={profileData.address.line2}/>: profileData.address.line2}
-            </p>
+          {/* Actions */}
+          <div className='flex gap-3 mt-8'>
+            {isEdit ? (
+              <>
+                <button onClick={updateProfile} className='px-8 py-2.5 bg-primary text-white rounded-full text-sm font-medium hover:opacity-90 transition-all'>Lưu thay đổi</button>
+                <button onClick={() => { setIsEdit(false); getProfileData() }} className='px-8 py-2.5 border border-gray-300 rounded-full text-sm text-gray-600 hover:bg-gray-50 transition-all'>Hủy</button>
+              </>
+            ) : (
+              <button onClick={() => setIsEdit(true)} className='px-8 py-2.5 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all'>Chỉnh sửa</button>
+            )}
           </div>
-
-          <div className='flex gap-1 pt-2'>
-            <input onChange={() => isEdit && setProfileData(prev => ({...prev, available: !prev.available}))} checked={profileData.available} type="checkbox" />
-            <label htmlFor="">Hoạt động</label>
-          </div>
-           {
-              isEdit
-              ?  <button onClick={updateProfile} className='px-8 py-2 mt-5 border font-sans border-primary text-primary hover:bg-primary hover:text-white transition-all rounded-full'>Lưu</button>
-              :  <button onClick={() => setIsEdit(true)} className='px-8 py-2 mt-5 border font-sans border-primary text-primary hover:bg-primary hover:text-white transition-all rounded-full'>Chỉnh sửa</button>
-           }
         </div>
       </div>
-      
     </div>
   )
 }

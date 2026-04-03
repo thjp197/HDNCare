@@ -56,11 +56,11 @@ const Appointment = () => {
       // setting hours
       if (today.getDate() === currentDate.getDate()) {
         currentDate.setHours(
-          currentDate.getHours() > 10 ? currentDate.getHours() + 1 : 10,
-        ); // from 10 AM
-        currentDate.setMinutes(currentDate.getMinutes() > 30 ? 30 : 0);
+          currentDate.getHours() > 9 ? currentDate.getHours() + 1 : 9,
+        ); // from 9 AM
+        currentDate.setMinutes(currentDate.getMinutes() > 30 ? 0 : 0);
       } else {
-        currentDate.setHours(10); // from 10 AM
+        currentDate.setHours(9); // from 9 AM
         currentDate.setMinutes(0);
       }
 
@@ -92,8 +92,8 @@ const Appointment = () => {
           });
         }
 
-        // Increment by 30 minutes
-        currentDate.setMinutes(currentDate.getMinutes() + 30);
+        // Increment by 60 minutes
+        currentDate.setMinutes(currentDate.getMinutes() + 60);
       }
 
       setStySlots((prev) => [...prev, timeSlots]);
@@ -201,7 +201,7 @@ const Appointment = () => {
         {/* Booking Slots */}
         <div className="sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]">
           <p>Chọn thời gian</p>
-          <div className="flex gap-3 items-center w-full overflow-x-scroll mt-4">
+          <div className="flex gap-3 items-center w-full mt-4">
             {stySlots.length &&
               stySlots.map((item, index) => (
                 <div
