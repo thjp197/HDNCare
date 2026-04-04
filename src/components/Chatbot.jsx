@@ -1,46 +1,52 @@
-import { useEffect, useRef, useState } from "react";
-// ❌ Đã xóa import companyInfo vì Backend sẽ lo việc này
+import { useContext, useEffect, useRef, useState } from "react";
+import { AppContext } from "../context/AppContext"; // Kéo AppContext vào để lấy data user
 import ChatbotIcon from "./ChatbotIcon";
 import ChatForm from "./ChatForm";
 import ChatMessage from "./ChatMessage";
 
 const Chatbot = () => {
-  // 1. Khởi tạo mảng rỗng, không cần nhét companyInfo vào nữa
   const [chatHistory, setChatHistory] = useState([]);
   const [showChatbot, setChatbot] = useState(false);
   const chatBodyRef = useRef();
 
-  // 2. Thêm tham số currentMessage để tách bạch tin nhắn hiện tại và lịch sử
+  // 1. Lấy token và thông tin user từ Context (để biết họ đã đăng nhập chưa)
+  // LƯU Ý: Nếu biến của bạn tên là 'user' thay vì 'userData', hãy sửa lại cho khớp nhé!
+  const { token, userData } = useContext(AppContext); 
+
   const generateBotResponse = async (history, currentMessage) => {
     const updateHistory = (text, isError = false) => {
       setChatHistory(prev => [...prev.filter(msg => msg.text !== "Thinking..."), { role: "model", text, isError }]);
     }
 
-    // Format lịch sử theo chuẩn của Gemini SDK (Gửi cho Backend)
     const formattedHistory = history.map(({role, text}) => ({
         role, 
         parts: [{text}]
     }));
 
-    // 3. Cấu hình gửi body xuống Backend (khớp với chatbotController.js)
+    // 2. Đóng gói thông tin user hiện tại (nếu có)
+    const currentUserInfo = (token && userData) ? {
+        name: userData.name,
+        phone: userData.phone
+    } : null;
+
+    // 3. Gửi kèm currentUser xuống Backend
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
           message: currentMessage, 
-          history: formattedHistory
+          history: formattedHistory,
+          currentUser: currentUserInfo // Backend sẽ dùng cái này để phân luồng
       })
     }
     
     try {
-      // 4. Gọi API nội bộ của bạn (Cổng 4000)
       const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
       const response = await fetch(`${backendUrl}/api/chatbot/message`, requestOptions);
       const data = await response.json();
       
       if(!response.ok || !data.success) throw new Error(data.message || "Lỗi kết nối đến máy chủ!");
 
-      // 5. Lấy kết quả trả về từ Backend (không cần parse lằng nhằng nữa)
       const apiResponseText = data.reply.replace(/\*\*(.*?)\*\*/g, '$1').trim();
       updateHistory(apiResponseText);
     } catch (error) {
