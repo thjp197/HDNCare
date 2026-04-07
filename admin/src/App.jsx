@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AdminContext } from './context/AdminContext';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/Admin/Dashboard';
 import AllAppointments from './pages/Admin/AllAppointments';
 import AddStylist from './pages/Admin/AddStylist';
@@ -20,6 +20,8 @@ const App = () => {
 
   const {aToken} = useContext(AdminContext)
   const {sToken} = useContext(StylistContext)
+  const defaultDashboardPath = aToken ? '/admin-dashboard' : '/stylist-dashboard'
+
   return aToken || sToken ? (
     <div className='bg-[#F8F9FD]'>
       <ToastContainer/>
@@ -29,7 +31,7 @@ const App = () => {
         <div className='flex-1 overflow-auto'>
         <Routes>
           {/* admin routes */}
-          <Route path='/' element={<></>}/>  
+          <Route path='/' element={<Navigate to={defaultDashboardPath} replace />}/>  
           <Route path='/admin-dashboard' element={<Dashboard />}/>  
           <Route path='/all-appointments' element={<AllAppointments />}/>  
           <Route path='/add-stylist' element={<AddStylist />}/>  
@@ -40,6 +42,8 @@ const App = () => {
           <Route path='/stylist-dashboard' element={<StylistDashboard />}/>  
           <Route path='/stylist-appointments' element={<StylistAppointment />}/>  
           <Route path='/stylist-profile' element={<StylistProfile />}/>  
+
+          <Route path='*' element={<Navigate to={defaultDashboardPath} replace />}/>
         </Routes>
         </div>
       </div>

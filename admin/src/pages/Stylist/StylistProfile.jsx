@@ -8,6 +8,13 @@ const StylistProfile = () => {
   const { sToken, profileData, setProfileData, getProfileData, backendUrl } = useContext(StylistContext)
   const { currency } = useContext(AppContext)
   const [isEdit, setIsEdit] = useState(false)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
 
   const updateProfile = async () => {
     try {
@@ -32,6 +39,63 @@ const StylistProfile = () => {
   useEffect(() => {
     if (sToken) getProfileData()
   }, [sToken])
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target
+    setPasswordData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const closePasswordForm = () => {
+    setShowPasswordForm(false)
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    })
+  }
+
+  const submitChangePassword = async () => {
+    try {
+      if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        toast.error('Vui lòng nhập đầy đủ thông tin')
+        return
+      }
+
+      if (passwordData.newPassword.length < 8) {
+        toast.error('Mật khẩu mới phải có ít nhất 8 ký tự')
+        return
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        toast.error('Xác nhận mật khẩu mới không khớp')
+        return
+      }
+
+      if (passwordData.currentPassword === passwordData.newPassword) {
+        toast.error('Mật khẩu mới phải khác mật khẩu cũ')
+        return
+      }
+
+      setIsChangingPassword(true)
+      const { data } = await axios.post(
+        backendUrl + '/api/stylist/change-password',
+        passwordData,
+        { headers: { stoken: sToken } }
+      )
+
+      if (data.success) {
+        toast.success(data.message)
+        closePasswordForm()
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      console.log(error)
+      toast.error(error.message)
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
 
   return profileData && (
     <div className='m-5 w-full'>
@@ -118,11 +182,57 @@ const StylistProfile = () => {
                 <button onClick={() => { setIsEdit(false); getProfileData() }} className='px-8 py-2.5 border border-gray-300 rounded-full text-sm text-gray-600 hover:bg-gray-50 transition-all'>Hủy</button>
               </>
             ) : (
-              <button onClick={() => setIsEdit(true)} className='px-8 py-2.5 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all'>Chỉnh sửa</button>
+              <>
+                <button onClick={() => setIsEdit(true)} className='px-8 py-2.5 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary hover:text-white transition-all'>Chỉnh sửa</button>
+                <button onClick={() => setShowPasswordForm(true)} className='px-8 py-2.5 border border-[#7b1e3a] text-[#7b1e3a] rounded-full text-sm font-medium hover:bg-[#7b1e3a] hover:text-white transition-all'>Đổi mật khẩu</button>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {showPasswordForm && (
+        <div className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4'>
+          <div className='w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-2xl p-6'>
+            <p className='text-xl font-semibold text-gray-800'>Đổi mật khẩu</p>
+            <p className='text-sm text-gray-500 mt-1'>Mật khẩu mới cần có ít nhất 8 ký tự.</p>
+
+            <div className='mt-5 space-y-3'>
+              <input
+                name='currentPassword'
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                type='password'
+                placeholder='Mật khẩu hiện tại'
+                className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40'
+              />
+              <input
+                name='newPassword'
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                type='password'
+                placeholder='Mật khẩu mới'
+                className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40'
+              />
+              <input
+                name='confirmPassword'
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                type='password'
+                placeholder='Xác nhận mật khẩu mới'
+                className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40'
+              />
+            </div>
+
+            <div className='mt-6 flex justify-end gap-3'>
+              <button onClick={closePasswordForm} className='px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50'>Hủy</button>
+              <button onClick={submitChangePassword} disabled={isChangingPassword} className='px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 disabled:opacity-60'>
+                {isChangingPassword ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

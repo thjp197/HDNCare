@@ -123,6 +123,52 @@ const updateProfile = async (req, res) => {
     }
 }
 
+// API to change user password
+const changePassword = async (req, res) => {
+    try {
+        const userId = req.userId
+        const { currentPassword, newPassword, confirmPassword } = req.body
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.json({ success: false, message: "Vui lòng nhập đầy đủ thông tin" })
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.json({ success: false, message: "Xác nhận mật khẩu mới không khớp" })
+        }
+
+        if (newPassword.length < 8) {
+            return res.json({ success: false, message: "Mật khẩu mới phải có ít nhất 8 ký tự" })
+        }
+
+        if (currentPassword === newPassword) {
+            return res.json({ success: false, message: "Mật khẩu mới phải khác mật khẩu cũ" })
+        }
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.json({ success: false, message: "Không tìm thấy người dùng" })
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password)
+
+        if (!isMatch) {
+            return res.json({ success: false, message: "Mật khẩu hiện tại không đúng" })
+        }
+
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(newPassword, salt)
+
+        await userModel.findByIdAndUpdate(userId, { password: hashedPassword })
+
+        res.json({ success: true, message: "Đổi mật khẩu thành công" })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 //API to book appointment
 const bookAppointment = async (req, res) => {
     try {
@@ -350,4 +396,4 @@ const verifyPayment = async (req, res) => {
     }
 }
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, createPaymentUrl, verifyPayment }
+export { registerUser, loginUser, getProfile, updateProfile, changePassword, bookAppointment, listAppointment, cancelAppointment, createPaymentUrl, verifyPayment }

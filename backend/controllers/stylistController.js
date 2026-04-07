@@ -195,6 +195,52 @@ const updateStylistProfile = async (req, res) => {
     }
 }
 
+// API to change stylist password
+const changeStylistPassword = async (req, res) => {
+    try {
+        const styId = req.styId
+        const { currentPassword, newPassword, confirmPassword } = req.body
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.json({ success: false, message: 'Vui lòng nhập đầy đủ thông tin' })
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.json({ success: false, message: 'Xác nhận mật khẩu mới không khớp' })
+        }
+
+        if (newPassword.length < 8) {
+            return res.json({ success: false, message: 'Mật khẩu mới phải có ít nhất 8 ký tự' })
+        }
+
+        if (currentPassword === newPassword) {
+            return res.json({ success: false, message: 'Mật khẩu mới phải khác mật khẩu cũ' })
+        }
+
+        const stylist = await stylistModel.findById(styId)
+
+        if (!stylist) {
+            return res.json({ success: false, message: 'Không tìm thấy stylist' })
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, stylist.password)
+
+        if (!isMatch) {
+            return res.json({ success: false, message: 'Mật khẩu hiện tại không đúng' })
+        }
+
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(newPassword, salt)
+
+        await stylistModel.findByIdAndUpdate(styId, { password: hashedPassword })
+
+        res.json({ success: true, message: 'Đổi mật khẩu thành công' })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 export {
     changeAvailablity,
     stylistList,
@@ -204,5 +250,6 @@ export {
     appointmentComplete,
     stylistDashboard,
     stylistProfile,
-    updateStylistProfile
+    updateStylistProfile,
+    changeStylistPassword
 }
