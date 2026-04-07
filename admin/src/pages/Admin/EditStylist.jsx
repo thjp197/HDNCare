@@ -100,7 +100,7 @@ const EditStylist = () => {
                 <option value='Trang điểm'>Trang điểm</option>
                 <option value='Cắt tóc'>Cắt tóc</option>
                 <option value='Uốn và Duỗi tóc'>Uốn và Duỗi tóc</option>
-                <option value='Chăm sóc da'>Chăm sóc da</option>
+                <option value='Nhuộm tóc'>Nhuộm tóc</option>
                 <option value='Chăm sóc cơ thể'>Chăm sóc cơ thể</option>
               </select>
             </div>

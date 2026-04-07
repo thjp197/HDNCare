@@ -29,8 +29,8 @@ export const specialityData = [
     image: "/hair-curler.png",
   },
   {
-    speciality: "Chăm sóc da",
-    image: "/skincare.png",
+    speciality: "Nhuộm tóc",
+    image: "/hair-dye.png",
   },
   {
     speciality: "Chăm sóc cơ thể",
@@ -242,16 +242,16 @@ export const stylists = [
     },
   },
 
-  // ===== CHĂM SÓC DA =====
+  // ===== NHUỘM TÓC =====
   {
     _id: "stylist14",
     name: "Nguyễn Tuấn Kiệt",
-    image: "/sty14.jpg",
-    speciality: "Chăm sóc da",
-    degree: "Advanced Skincare & Facial Treatment Certification",
+    image: "/sty14.png",
+    speciality: "Nhuộm tóc",
+    degree: "Advanced Hair Coloring & Dyeing Certification",
     experience: "1 Year",
     about:
-      "Nguyễn Tuấn Kiệt là chuyên viên chăm sóc da với định hướng cải thiện làn da khỏe mạnh từ bên trong. Cô tư vấn kỹ về tình trạng da, kết hợp các liệu trình cơ bản giúp làm sạch, cân bằng và mang lại làn da tươi sáng, mịn màng.",
+      "Nguyễn Tuấn Kiệt là chuyên viên nhuộm tóc chuyên nghiệp với định hướng bảo vệ và nâng cao chất lượng tóc. Cô tư vấn kỹ về màu sắc phù hợp với tông da, kết hợp các kỹ thuật nhuộm hiện đại giúp tóc bóng mượt, khỏe mạnh và thể hiện phong cách riêng của khách hàng.",
     fees: 600000,
     address: {
       line1: "37th Cross, Richmond",
@@ -261,12 +261,12 @@ export const stylists = [
   {
     _id: "stylist15",
     name: "Hoàng Yến Nhi",
-    image: "/sty15.jpg",
-    speciality: "Chăm sóc da",
-    degree: "Advanced Skincare & Facial Treatment Certification",
+    image: "/sty15.png",
+    speciality: "Nhuộm tóc",
+    degree: "Advanced Hair Coloring & Dyeing Certification",
     experience: "1 Year",
     about:
-      "Hoàng Yến Nhi chuyên chăm sóc da mặt với các phương pháp nhẹ nhàng, an toàn. Cô luôn chú trọng việc tư vấn quy trình phù hợp cho từng loại da, giúp khách hàng duy trì làn da khỏe mạnh và cải thiện vẻ ngoài một cách tự nhiên.",
+      "Hoàng Yến Nhi chuyên nhuộm tóc vuông vắn với các phương pháp an toàn, bảo vệ tóc. Cô luôn chú trọng việc tư vấn màu sắc phù hợp cho từng khách hàng, giúp họ duy trì tóc khỏe mạnh và thể hiện phong cách đẹp tự nhiên mà không làm hỏng cấu trúc tóc.",
     fees: 520000,
     address: {
       line1: "37th Cross, Richmond",
@@ -276,12 +276,12 @@ export const stylists = [
   {
     _id: "stylist16",
     name: "Trần Khánh Ly",
-    image: "/sty16.jpg",
-    speciality: "Chăm sóc da",
-    degree: "Advanced Skincare & Facial Treatment Certification",
+    image: "/sty16.png",
+    speciality: "Nhuộm tóc",
+    degree: "Advanced Hair Coloring & Dyeing Certification",
     experience: "1 Year",
     about:
-      "Trần Khánh Ly tập trung vào các liệu trình chăm sóc da cơ bản và phục hồi. Cô giúp khách hàng hiểu rõ làn da của mình, xây dựng thói quen chăm sóc phù hợp và mang lại cảm giác thư giãn trong suốt quá trình điều trị.",
+      "Trần Khánh Ly tập trung vào các kỹ thuật nhuộm tóc cơ bản và chăm sóc màu sắc. Cô giúp khách hàng hiểu rõ nhu cầu của tóc, xây dựng thói quen chăm sóc tóc nhuộm phù hợp và mang lại cảm giác tự tin khi sở hữu mái tóc với màu sắc yêu thích.",
     fees: 450000,
     address: {
       line1: "37th Cross, Richmond",

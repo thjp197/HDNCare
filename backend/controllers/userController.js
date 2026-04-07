@@ -204,7 +204,7 @@ const cancelAppointment = async (req, res) => {
 
     try {
         const userId = req.userId
-        const { appointmentId } = req.body
+        const { appointmentId, cancellationReasons, cancellationDetails } = req.body
 
         if (!userId) {
             return res.json({ success: false, message: "Vui lòng đăng nhập lại" })
@@ -225,7 +225,13 @@ const cancelAppointment = async (req, res) => {
             return res.json({ success: false, message: "Vui lòng đăng nhập lại" })
         }
 
-        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+        const updateData = { 
+            cancelled: true,
+            cancellationReasons: cancellationReasons || [],
+            cancellationDetails: cancellationDetails || ""
+        };
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, updateData, { returnDocument: 'after' })
 
         //releasing stylist slot
         const { styId, slotDate, slotTime } = appointmentData

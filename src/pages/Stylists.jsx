@@ -69,7 +69,7 @@ const Stylists = () => {
             "Cắt tóc",
             "Gội đầu thư giãn",
             "Chăm sóc cơ thể",
-            "Chăm sóc da",
+            "Nhuộm tóc",
             "Uốn và Duỗi tóc",
           ].map((item) => (
             <p

@@ -8,7 +8,7 @@ AVAILABLE SERVICES
 2. Trang điểm (Makeup)
 3. Cắt tóc (Haircut)
 4. Uốn & Duỗi tóc (Hair Perm & Straightening)
-5. Chăm sóc da (Skincare)
+5. Nhuộm tóc (Hair Dyeing)
 6. Chăm sóc cơ thể (Body Care & Massage)
 
 ==============================
@@ -46,7 +46,7 @@ CHĂM SÓC CƠ THỂ (Body Care)
 → Price range: 380000 – 500000
 → Lowest price: Đỗ Mỹ Linh (380000)
 
-CHĂM SÓC DA (Skincare)
+NHUỘM TÓC (Hair Dyeing)
 - Nguyễn Tuấn Kiệt – 1 Year – 600000 VND
 - Hoàng Yến Nhi – 1 Year – 520000 VND
 - Trần Khánh Ly – 1 Year – 450000 VND

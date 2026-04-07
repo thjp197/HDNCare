@@ -86,7 +86,7 @@ const appointmentComplete = async (req, res) => {
             const updatedAppointment = await appointmentModel.findByIdAndUpdate(
                 appointmentId,
                 { isCompleted: true },
-                { new: true }
+                { returnDocument: 'after' }
             )
             return res.json({ success: true, message: 'Cuộc hẹn đã hoàn thành', appointment: updatedAppointment })
         } else {
@@ -109,7 +109,7 @@ const appointmentCancel = async (req, res) => {
             const updatedAppointment = await appointmentModel.findByIdAndUpdate(
                 appointmentId,
                 { cancelled: true },
-                { new: true }
+                { returnDocument: 'after' }
             )
             return res.json({ success: true, message: 'Hủy cuộc hẹn thành công', appointment: updatedAppointment })
         } else {

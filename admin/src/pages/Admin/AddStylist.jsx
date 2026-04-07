@@ -177,7 +177,7 @@ const AddStylist = () => {
                 <option value="Cắt tóc">Cắt tóc</option>
                 <option value="Gội đầu thư giãn">Gội đầu thư giãn</option>
                 <option value="Chăm sóc cơ thể">Chăm sóc cơ thể</option>
-                <option value="Chăm sóc da">Chăm sóc da</option>
+                <option value="Nhuộm tóc">Nhuộm tóc</option>
                 <option value="Uốn và Duỗi tóc">Uốn và Duỗi tóc</option>
               </select>
             </div>
