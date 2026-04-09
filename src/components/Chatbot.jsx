@@ -10,7 +10,6 @@ const Chatbot = () => {
   const chatBodyRef = useRef();
 
   // 1. Lấy token và thông tin user từ Context (để biết họ đã đăng nhập chưa)
-  // LƯU Ý: Nếu biến của bạn tên là 'user' thay vì 'userData', hãy sửa lại cho khớp nhé!
   const { token, userData } = useContext(AppContext); 
 
   const generateBotResponse = async (history, currentMessage) => {
@@ -54,9 +53,18 @@ const Chatbot = () => {
     }
   };
 
+  // Cuộn xuống cuối mỗi khi có tin nhắn mới
   useEffect(() => {
     chatBodyRef.current.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "smooth" });
   }, [chatHistory]);
+
+  // THÊM MỚI: Tự động xoá lịch sử chat và đóng popup khi Đăng xuất
+  useEffect(() => {
+    if (!token) {
+      setChatHistory([]); // Reset về mảng rỗng
+      setChatbot(false);  // Đóng khung chat lại cho gọn
+    }
+  }, [token]);
 
   return (
     <div className={`container ${showChatbot ? "show-chatbot" : ""}`}>

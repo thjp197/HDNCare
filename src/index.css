@@ -29,8 +29,6 @@
     background: #9ca3af;
 }
 
-
-
 * {
   margin: 0;
   padding: 0;
@@ -48,6 +46,7 @@ body {
   position: fixed;
   bottom: 30px;
   right: 35px;
+  z-index: 9999; /* Đã thêm z-index để nổi lên trên cùng */
   width: 50px;
   height: 50px;
   border: none;
@@ -81,6 +80,7 @@ body {
 
 .chatbot-popup {
   position: fixed;
+  z-index: 9999; /* Đã thêm z-index để Popup không bị che khuất */
   opacity: 0;
   pointer-events: none;
   bottom: 90px;
@@ -269,6 +269,7 @@ body {
   #chatbot-toggler {
     right: 20px;
     bottom: 20px;
+    /* Không cần thêm z-index ở đây vì nó sẽ kế thừa từ trên */
   }
 
   .chatbot-popup {
@@ -277,6 +278,7 @@ body {
     bottom: 0;
     height: 100%;
     border-radius: 0;
+    /* Không cần thêm z-index ở đây vì nó sẽ kế thừa từ trên */
   }
 
   .chatbot-popup .chat-header {
