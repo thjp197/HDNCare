@@ -1,9 +1,8 @@
-import React, { useContext, useState } from "react";
-import { assets } from "../assets/assets";
-import { AppContext } from "../context/AppContext";
 import axios from "axios";
-import { toast } from "react-toastify";
 import { Camera } from "lucide-react";
+import { useContext, useState } from "react";
+import { toast } from "react-toastify";
+import { AppContext } from "../context/AppContext";
 
 const MyProfile = () => {
   const { userData, setUserData, token, backendUrl, loadUserProfileData } =
@@ -19,7 +18,19 @@ const MyProfile = () => {
     confirmPassword: "",
   });
 
+  // State lưu thông báo lỗi cho validation
+  const [errors, setErrors] = useState({
+    phone: '',
+    dob: ''
+  });
+
   const updateUserProfileData = async () => {
+    // Chặn không cho lưu nếu đang có lỗi
+    if (errors.phone || errors.dob) {
+      toast.error("Vui lòng sửa các lỗi nhập liệu trước khi lưu");
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("name", userData.name);
@@ -128,6 +139,43 @@ const MyProfile = () => {
     });
   };
 
+  // Hàm xử lý nhập Số điện thoại
+  const handlePhoneChange = (e) => {
+    // Loại bỏ tất cả ký tự không phải là số
+    const value = e.target.value.replace(/\D/g, '');
+    setUserData((prev) => ({ ...prev, phone: value }));
+
+    // Kiểm tra độ dài
+    if (value.length > 0 && (value.length < 10 || value.length > 11)) {
+      setErrors((prev) => ({ ...prev, phone: 'Số điện thoại phải từ 10 đến 11 số' }));
+    } else {
+      setErrors((prev) => ({ ...prev, phone: '' }));
+    }
+  };
+
+  // Hàm xử lý nhập Ngày sinh
+  const handleDobChange = (e) => {
+    const value = e.target.value;
+    setUserData((prev) => ({ ...prev, dob: value }));
+
+    if (!value) {
+      setErrors((prev) => ({ ...prev, dob: '' }));
+      return;
+    }
+
+    const selectedDate = new Date(value);
+    const today = new Date();
+    const minDate = new Date('1900-01-01');
+
+    if (selectedDate > today) {
+      setErrors((prev) => ({ ...prev, dob: 'Ngày sinh không thể lớn hơn ngày hiện tại' }));
+    } else if (selectedDate < minDate || selectedDate.getFullYear() > 2100) {
+      setErrors((prev) => ({ ...prev, dob: 'Năm sinh không hợp lệ' }));
+    } else {
+      setErrors((prev) => ({ ...prev, dob: '' }));
+    }
+  };
+
   return userData ? (
     <div className="mx-4 sm:mx-[10%] py-8">
       <div className="rounded-3xl border border-[#ead6dc] bg-gradient-to-br from-[#fff8fa] via-white to-[#fdf3f6] shadow-[0_20px_60px_rgba(97,21,43,0.12)] overflow-hidden">
@@ -166,7 +214,7 @@ const MyProfile = () => {
               </p>
               {isEdit ? (
                 <input
-                  className="mt-2 bg-white text-2xl font-semibold w-full sm:w-64 px-3 py-1.5 border border-[#e8c9bc] rounded-xl text-[#1d1d1d]"
+                  className="mt-2 bg-white text-2xl font-semibold w-full sm:w-64 px-3 py-1.5 border border-[#e8c9bc] rounded-xl text-[#1d1d1d] focus:outline-none focus:ring-1 focus:ring-[#7b1e3a]"
                   type="text"
                   onChange={(e) =>
                     setUserData((prev) => ({ ...prev, name: e.target.value }))
@@ -216,17 +264,18 @@ const MyProfile = () => {
               <div>
                 <p className="text-[#8e6d62] mb-1">Số điện thoại</p>
                 {isEdit ? (
-                  <input
-                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc]"
-                    type="text"
-                    onChange={(e) =>
-                      setUserData((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
-                    }
-                    value={userData.phone}
-                  />
+                  <div className="flex flex-col gap-1">
+                    <input
+                      className={`w-full px-3 py-2 border rounded-lg bg-[#fffdfc] focus:outline-none focus:ring-1 ${
+                        errors.phone ? "border-red-500 focus:ring-red-500" : "border-[#e6d2ca] focus:ring-[#7b1e3a]"
+                      }`}
+                      type="tel"
+                      placeholder="Ví dụ: 0912345678"
+                      onChange={handlePhoneChange}
+                      value={userData.phone || ""}
+                    />
+                    {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
+                  </div>
                 ) : (
                   <p className="text-[#2f2a28] font-medium">{userData.phone}</p>
                 )}
@@ -236,8 +285,9 @@ const MyProfile = () => {
                 <p className="text-[#8e6d62] mb-1">Địa chỉ 1</p>
                 {isEdit ? (
                   <input
-                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc]"
+                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc] focus:outline-none focus:ring-1 focus:ring-[#7b1e3a]"
                     type="text"
+                    placeholder="Số nhà, Tên đường..."
                     onChange={(e) =>
                       setUserData((prev) => ({
                         ...prev,
@@ -257,8 +307,9 @@ const MyProfile = () => {
                 <p className="text-[#8e6d62] mb-1">Địa chỉ 2</p>
                 {isEdit ? (
                   <input
-                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc]"
+                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc] focus:outline-none focus:ring-1 focus:ring-[#7b1e3a]"
                     type="text"
+                    placeholder="Phường/Xã, Quận/Huyện..."
                     onChange={(e) =>
                       setUserData((prev) => ({
                         ...prev,
@@ -285,7 +336,7 @@ const MyProfile = () => {
                 <p className="text-[#8e6d62] mb-1">Giới tính</p>
                 {isEdit ? (
                   <select
-                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc]"
+                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc] focus:outline-none focus:ring-1 focus:ring-[#7b1e3a]"
                     onChange={(e) =>
                       setUserData((prev) => ({
                         ...prev,
@@ -306,16 +357,21 @@ const MyProfile = () => {
               </div>
 
               <div>
-                <p className="text-[#8e6d62] mb-1">Sinh nhật</p>
+                <p className="text-[#8e6d62] mb-1">Ngày sinh</p>
                 {isEdit ? (
-                  <input
-                    className="w-full px-3 py-2 border border-[#e6d2ca] rounded-lg bg-[#fffdfc]"
-                    type="date"
-                    onChange={(e) =>
-                      setUserData((prev) => ({ ...prev, dob: e.target.value }))
-                    }
-                    value={userData.dob}
-                  />
+                  <div className="flex flex-col gap-1">
+                    <input
+                      className={`w-full px-3 py-2 border rounded-lg bg-[#fffdfc] focus:outline-none focus:ring-1 ${
+                        errors.dob ? "border-red-500 focus:ring-red-500" : "border-[#e6d2ca] focus:ring-[#7b1e3a]"
+                      }`}
+                      type="date"
+                      max={new Date().toISOString().split("T")[0]}
+                      min="1900-01-01"
+                      onChange={handleDobChange}
+                      value={userData.dob || ""}
+                    />
+                    {errors.dob && <p className="text-xs text-red-500">{errors.dob}</p>}
+                  </div>
                 ) : (
                   <p className="text-[#2f2a28] font-medium">{userData.dob}</p>
                 )}
