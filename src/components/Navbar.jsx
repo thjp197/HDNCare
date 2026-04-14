@@ -39,6 +39,10 @@ const Navbar = () => {
               <li className='py-1'>LIÊN HỆ</li>
               <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
+            <NavLink to='/ar-makeup'>
+              <li className='py-1'>AR Makeup</li>
+              <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
+            </NavLink>
         </ul>
         <div className='flex items-center gap-4'>
           {
@@ -70,7 +74,7 @@ const Navbar = () => {
             <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded full inline-block'>TRANG CHỦ</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/stylists' ><p className='px-4 py-2 rounded full inline-block'>TẤT CẢ CHUYÊN VIÊN</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/about' ><p className='px-4 py-2 rounded full inline-block'>VỀ HDNCARE</p></NavLink>
-            <NavLink onClick={() => setShowMenu(false)} to='/contact' ><p className='px-4 py-2 rounded full inline-block'>LIÊN HỆ</p></NavLink>
+            <NavLink onClick={() => setShowMenu(false)} to='/ar-makeup' ><p className='px-4 py-2 rounded full inline-block'>AR Makeup</p></NavLink>
           </ul>
         </div>
         </div>
