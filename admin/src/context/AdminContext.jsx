@@ -11,7 +11,10 @@ const AdminContextProvider = (props) => {
     const [dashData, setDashData] = useState(false)
 
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL
+    const backendUrl =
+        import.meta.env.VITE_API_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        'http://localhost:4000'
 
      // Getting all stylist data from Database using API
     const getAllStylists = async () => {

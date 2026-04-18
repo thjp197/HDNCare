@@ -6,7 +6,10 @@ export const StylistContext = createContext();
 
 const StylistContextProvider = (props) => {
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL
+    const backendUrl =
+        import.meta.env.VITE_API_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        'http://localhost:4000'
 
     const [sToken, setSToken] = useState(localStorage.getItem('sToken') ? localStorage.getItem('sToken') : '')
     const [appointments, setAppointments] = useState([])

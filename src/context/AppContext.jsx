@@ -6,7 +6,10 @@ export const AppContext = createContext();
 
 const AppContextProvider = (props) => {
   const currencySymbol = "VND";
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl =
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_BACKEND_URL ||
+    "http://localhost:4000";
   const [stylists, setStylists] = useState([]);
   const [token, setToken] = useState(
     localStorage.getItem("token") ? localStorage.getItem("token") : false,

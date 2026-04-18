@@ -4,7 +4,7 @@ const ArMakeup = () => {
   const [hasLoadError, setHasLoadError] = useState(false)
 
   const filterUrl = useMemo(
-    () => import.meta.env.VITE_AR_MAKEUP_URL || 'http://127.0.0.1:8090',
+    () => import.meta.env.VITE_AR_URL || '/filter/index.html',
     []
   )
 
@@ -18,7 +18,7 @@ const ArMakeup = () => {
 
       {hasLoadError && (
         <div className='mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
-          Không thể tải AR Makeup từ {filterUrl}. Vui lòng chạy module filter tại src/filter bằng npm run dev.
+          Không thể tải AR Makeup từ {filterUrl}. Hãy kiểm tra thư mục public/filter và thử tải lại trang.
         </div>
       )}
 

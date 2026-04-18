@@ -5,14 +5,23 @@ import appointmentModel from '../models/appointmentModel.js';
 import stylistModel from '../models/stylistModel.js';
 import userModel from '../models/userModel.js';
 
-// DÒNG NÀY ĐỂ DEBUG LỖI 403: Kiểm tra xem Node.js có đọc được Key không
-console.log("=== KIỂM TRA API KEY TRONG CONTROLLER ===", process.env.GEMINI_API_KEY ? "Đã có Key" : "KEY BỊ TRỐNG (UNDEFINED)");
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const getGeminiClient = () => {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+    if (!apiKey) return null;
+    return new GoogleGenerativeAI(apiKey);
+};
 
 export const handleChatbotMessage = async (req, res) => {
     try {
         const { message, history, currentUser } = req.body;
+
+        const genAI = getGeminiClient();
+        if (!genAI) {
+            return res.status(500).json({
+                success: false,
+                message: 'Thiếu cấu hình Gemini API key trên server.'
+            });
+        }
 
         // 1. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG (DYNAMIC INSTRUCTION)
         let customInstruction = companyInfo;
@@ -136,6 +145,12 @@ export const handleChatbotMessage = async (req, res) => {
 
                     return res.json({ success: true, reply: finalResult.response.text() });
                 }
+
+                const fallbackResult = await chat.sendMessage([{
+                    functionResponse: { name: "createBooking", response: { success: false, message: "Không tìm thấy nhân viên để tạo lịch." } }
+                }]);
+
+                return res.json({ success: true, reply: fallbackResult.response.text() });
             }
         }
 

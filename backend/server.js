@@ -18,8 +18,13 @@ const port = process.env.PORT || 4000
 connectDB()
 connectCloudinary()
 
+const corsOptions = {
+  origin: true,
+  credentials: true,
+}
+
 // middlewares
-app.use(cors())
+app.use(cors(corsOptions))
 app.use(express.json())
 
 // api endpoints
@@ -27,6 +32,7 @@ app.use('/api/admin', adminRouter)
 app.use('/api/stylist', stylistRouter)
 app.use('/api/user', userRoute)
 app.use('/api/chatbot', chatbotRoute) // DÒNG THÊM MỚI 2
+app.use('/api/gemini', chatbotRoute)
 
 app.get('/', (req, res) => {
   res.send('API works!')

@@ -40,8 +40,11 @@ const Chatbot = () => {
     }
     
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
-      const response = await fetch(`${backendUrl}/api/chatbot/message`, requestOptions);
+      const backendUrl =
+        import.meta.env.VITE_API_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        "http://localhost:4000";
+      const response = await fetch(`${backendUrl}/api/gemini/chat`, requestOptions);
       const data = await response.json();
       
       if(!response.ok || !data.success) throw new Error(data.message || "Lỗi kết nối đến máy chủ!");

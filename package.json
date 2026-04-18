@@ -4,10 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n WEB,FILTER \"npm:dev:web\" \"npm:dev:filter\"",
-    "dev:web": "vite",
-    "dev:filter": "npm --prefix src/filter run dev",
-    "build": "vite build",
+    "dev:web": "vite --host 0.0.0.0 --port 5173",
+    "dev:admin": "npm --prefix admin run dev -- --host 0.0.0.0 --port 5174",
+    "dev:filter": "node -e \"console.log('AR Filter is served by Client at /filter/index.html')\"",
+    "dev:backend": "npm --prefix backend run start",
+    "dev": "concurrently -n \"WEB,ADMIN,FILTER,BACKEND\" -c \"cyan,blue,magenta,green\" \"npm run dev:web\" \"npm run dev:admin\" \"npm run dev:filter\" \"npm run dev:backend\"",
+    "build:web": "vite build --outDir dist/web",
+    "build:admin": "npm --prefix admin run build -- --outDir ../dist/admin",
+    "build": "npm run build:web && npm run build:admin",
     "lint": "eslint .",
     "preview": "vite preview"
   },
