@@ -201,19 +201,31 @@ const Appointment = () => {
         {/* Booking Slots */}
         <div className="sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]">
           <p>Chọn thời gian</p>
-          <div className="flex gap-3 items-center w-full mt-4">
-            {stySlots.length &&
-              stySlots.map((item, index) => (
-                <div
-                  onClick={() => setSlotIndex(index)}
-                  key={index}
-                  className={`text-center py-6 min-w-16 rounded-full cursor-pointer ${slotIndex === index ? "bg-primary text-white" : "border border-[#DDDDDD]"}`}
-                >
-                  <p>{item[0] && dayOfWeek[item[0].datetime.getDay()]}</p>
-                  <p>{item[0] && item[0].datetime.getDate()}</p>
-                </div>
-              ))}
-          </div>
+          <div className="flex gap-3 items-center w-full mt-4 overflow-x-auto">
+  {stySlots.length &&
+    stySlots.map((item, index) => (
+      <div
+        onClick={() => setSlotIndex(index)}
+        key={index}
+        /* - Thay đổi: w-20 h-20 (hoặc w-16 h-16) để tạo hình vuông cân đối.
+           - flex-shrink-0: Đảm bảo ô không bị méo khi hàng quá dài.
+           - flex flex-col justify-center: Để căn chữ vào đúng tâm hình tròn.
+        */
+        className={`flex flex-col items-center justify-center w-20 h-20 flex-shrink-0 rounded-full cursor-pointer transition-all ${
+          slotIndex === index 
+            ? "bg-primary text-white border-primary shadow-lg" 
+            : "border border-[#DDDDDD] text-[#565656]"
+        }`}
+      >
+        <p className="text-sm font-medium">
+          {item[0] && dayOfWeek[item[0].datetime.getDay()]}
+        </p>
+        <p className="text-lg font-bold">
+          {item[0] && item[0].datetime.getDate()}
+        </p>
+      </div>
+    ))}
+</div>
 
           <div className="flex items-center gap-3 w-full overflow-x-auto mt-4 pb-2 border-b-0 shadow-none">
             {stySlots.length &&

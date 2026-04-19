@@ -5,7 +5,6 @@ export default {
   data: () => ({ ...stores }),
   computed: {
     features: ({
-      background,
       brows,
       eyelashes,
       eyes,
@@ -14,28 +13,11 @@ export default {
       lipstick,
       lipstickParams,
       look,
-      lut,
-      morphs,
       faceMakeup,
       skin,
       softlight,
-      teethWhitening,
     }) => {
       const features = []
-
-      for (const [name, morph] of Object.entries(morphs))
-        if (morph.strength > 0)
-          features.push({
-            group: "Retouch",
-            name: morph.title,
-            clear: () => morphs.reset(name),
-          })
-      if (teethWhitening.strength > 0)
-        features.push({
-          group: "Retouch",
-          name: teethWhitening.title,
-          clear: () => teethWhitening.reset(),
-        })
 
       for (const [name, region] of Object.entries(faceMakeup))
         if (region.enabled)
@@ -138,20 +120,6 @@ export default {
           clear: () => look.reset(),
         })
 
-      if (background.texture)
-        features.push({
-          group: "Other",
-          name: "Background",
-          clear: () => background.reset(),
-        })
-
-      if (lut.texture)
-        features.push({
-          group: "Other",
-          name: `LUT "${lut.title}"`,
-          clear: () => lut.reset(),
-        })
-
       return features
     },
     empty: (vm) => vm.features.length === 0,
@@ -160,7 +128,6 @@ export default {
   methods: {
     serialize() {
       const {
-        background,
         brows,
         eyelashes,
         eyes,
@@ -169,24 +136,12 @@ export default {
         lipstick,
         lipstickParams,
         look,
-        lut,
-        morphs,
         faceMakeup,
         skin,
         softlight,
-        teethWhitening,
       } = this
 
       const dump = {}
-
-      if (background.texture) {
-        dump.background = {}
-        dump.background.texture = background.texture.name || background.texture
-        dump.background.contentMode = background.contentMode
-        dump.background.transparency = background.transparency
-        dump.background.rotation = background.rotation
-        dump.background.scale = background.scale
-      }
 
       if (brows.enabled) dump.brows = brows.color
 
@@ -208,11 +163,6 @@ export default {
 
       if (look.texture) dump.look = look.texture
 
-      if (lut.texture) dump.lut = lut.texture
-
-      for (const [name, { strength }] of Object.entries(morphs))
-        if (strength > 0) (dump.morphs ??= {})[name] = strength
-
       for (const [name, { enabled, color }] of Object.entries(faceMakeup))
         if (enabled) (dump.faceMakeup ??= {})[name] = color
 
@@ -220,8 +170,6 @@ export default {
         if (enabled || strength > 0) (dump.skin ??= {})[name] = color || strength
 
       if (softlight.strength > 0) dump.softlight = softlight.strength
-
-      if (teethWhitening.strength > 0) dump.teethWhitening = teethWhitening.strength
 
       return dump
     },

@@ -11,7 +11,7 @@ import Login from './pages/Login'
 import MyAppointments from './pages/MyAppointments'
 import MyProfile from './pages/MyProfile'
 import Stylists from './pages/Stylists'
-import ArMakeup from './pages/ArMakeup'
+import AiMakeup from './pages/AiMakeup'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -31,7 +31,7 @@ const App = () => {
         <Route path='/my-profile' element={<MyProfile />}/>
         <Route path='/my-appointments' element={<MyAppointments />}/>
         <Route path='/appointment/:styId' element={<Appointments />}/>
-        <Route path='/ar-makeup' element={<ArMakeup />}/>
+        <Route path='/ai-makeup' element={<AiMakeup />}/>
       </Routes>
       <Footer />
       <Chatbot />

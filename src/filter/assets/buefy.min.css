@@ -4252,11 +4252,11 @@ a.tag:hover {
 }
 
 .breadcrumb.has-bullet-separator li+li::before {
-    content: "•"
+    content: "ï¿½"
 }
 
 .breadcrumb.has-dot-separator li+li::before {
-    content: "·"
+    content: "ï¿½"
 }
 
 .breadcrumb.has-succeeds-separator li+li::before {
@@ -14421,7 +14421,7 @@ div.b-colorpicker-square .colorpicker-square-slider-sl .sl-range-thumb:active {
 }
 
 .b-skeleton>.b-skeleton-item::after {
-    content: " "
+    content: "ï¿½"
 }
 
 .b-skeleton>.b-skeleton-item+.b-skeleton-item {
@@ -17614,7 +17614,7 @@ div.b-colorpicker-square .colorpicker-square-slider-sl .sl-range-thumb:active {
     border-bottom-right-radius: 9999px
 }
 
-@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+@media screen and (forced-colors: active), screen and (forced-colors: none) {
     .upload input[type=file] {
         z-index: auto
     }
