@@ -10,6 +10,8 @@ const StylistAppointments = () => {
   const { slotDateFormat, calculateAge, currency } = useContext(AppContext)
   const [cancelReasonModalOpen, setCancelReasonModalOpen] = useState(false);
   const [selectedCancellationData, setSelectedCancellationData] = useState(null);
+  const [hoverPreview, setHoverPreview] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   useEffect(() => {
     if (sToken) {
@@ -30,23 +32,32 @@ const StylistAppointments = () => {
     setSelectedCancellationData(null);
   };
 
+  const handlePreviewMouseMove = (event, imageUrl) => {
+    setHoverPreview({
+      url: imageUrl,
+      x: event.clientX + 16,
+      y: event.clientY - 24,
+    });
+  };
+
   return (
     <div className="w-full max-w-8xl m-5 ">
 
       <p className='mb-3 text-lg font-medium font-sans'>Tất cả lịch hẹn</p>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-        <div className='max-sm:hidden grid grid-cols-[0.5fr_2fr_1fr_1fr_3fr_1fr_1fr] gap-1 py-3 px-6 border-b'>
+        <div className='max-sm:hidden grid grid-cols-[0.5fr_2fr_1fr_1fr_2fr_1.2fr_1fr_1fr] gap-1 py-3 px-6 border-b'>
           <p>#</p>
           <p>Người dùng</p>
           <p>Thanh toán</p>
           <p>Tuổi</p>
           <p>Ngày & Giờ</p>
+          <p>Ảnh tham khảo</p>
           <p>Phí</p>
           <p>Hành động</p>
         </div>
-        {appointments.reverse().map((item, index) => (
-          <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_2fr_1fr_1fr_3fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
+        {[...appointments].reverse().map((item, index) => (
+          <div className='relative flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_2fr_1fr_1fr_2fr_1.2fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
             <p className='max-sm:hidden'>{index}</p>
             <div className='flex items-center gap-2'>
               <img src={item.userData.image} className='w-8 rounded-full' alt="" /> <p>{item.userData.name}</p>
@@ -58,6 +69,23 @@ const StylistAppointments = () => {
             </div>
             <p className='max-sm:hidden'>{calculateAge(item.userData.dob)}</p>
             <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
+
+            {item.selectedStyleImage ? (
+              <div className='relative'>
+                <img
+                  src={item.selectedStyleImage}
+                  className='h-10 w-10 rounded-lg object-contain border border-[#e6ced6] cursor-pointer'
+                  alt='Ảnh tham khảo'
+                  onMouseEnter={(event) => handlePreviewMouseMove(event, item.selectedStyleImage)}
+                  onMouseMove={(event) => handlePreviewMouseMove(event, item.selectedStyleImage)}
+                  onMouseLeave={() => setHoverPreview(null)}
+                  onClick={() => setLightboxImage(item.selectedStyleImage)}
+                />
+              </div>
+            ) : (
+              <p className='text-xs text-gray-400'>Không có</p>
+            )}
+
             <p>{currency}{item.amount}</p>
             {
               item.cancelled 
@@ -121,6 +149,42 @@ const StylistAppointments = () => {
               <button
                 onClick={closeCancellationReasonModal}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hoverPreview?.url && (
+        <div
+          className='fixed z-[9999] pointer-events-none rounded-xl border border-[#ead5dd] bg-white p-2 shadow-2xl'
+          style={{ left: hoverPreview.x, top: hoverPreview.y }}
+        >
+          <img
+            src={hoverPreview.url}
+            className='h-52 w-52 rounded-lg object-contain'
+            alt='Preview ảnh tham khảo'
+          />
+        </div>
+      )}
+
+      {lightboxImage && (
+        <div
+          className='fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px] flex items-center justify-center p-4'
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className='max-w-3xl w-full' onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightboxImage}
+              alt='Ảnh tham khảo full-size'
+              className='w-full max-h-[85vh] object-contain rounded-2xl border border-white/20 shadow-2xl'
+            />
+            <div className='mt-3 flex justify-center'>
+              <button
+                onClick={() => setLightboxImage(null)}
+                className='rounded-xl bg-white px-4 py-2 text-sm font-medium text-gray-800'
               >
                 Đóng
               </button>

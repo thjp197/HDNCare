@@ -25,12 +25,13 @@ const corsOptions = {
 
 // middlewares
 app.use(cors(corsOptions))
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 
 // api endpoints
 app.use('/api/admin', adminRouter)
 app.use('/api/stylist', stylistRouter)
 app.use('/api/user', userRoute)
+app.use('/api/users', userRoute)
 app.use('/api/chatbot', chatbotRoute) // DÒNG THÊM MỚI 2
 app.use('/api/gemini', chatbotRoute)
 

@@ -8,7 +8,14 @@ import axios from "axios";
 
 const Appointment = () => {
   const { styId } = useParams();
-  const { stylists, currencySymbol, backendUrl, token, getStylistsData } =
+  const {
+    stylists,
+    currencySymbol,
+    backendUrl,
+    token,
+    getStylistsData,
+    userData,
+  } =
     useContext(AppContext);
   const dayOfWeek = [
     "Chủ nhật",
@@ -26,6 +33,8 @@ const Appointment = () => {
   const [stySlots, setStySlots] = useState([]);
   const [slotIndex, setSlotIndex] = useState(0);
   const [slotTime, setSlotTime] = useState("");
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedStyleImage, setSelectedStyleImage] = useState(null);
 
   const fetchStyInfo = () => {
     const styInfo = stylists.find((sty) => sty._id === styId);
@@ -117,7 +126,7 @@ const Appointment = () => {
 
       const { data } = await axios.post(
         backendUrl + "/api/user/book-appointment",
-        { styId, slotDate, slotTime },
+        { styId, slotDate, slotTime, selectedStyleImage },
         { headers: { token } },
       );
       if (data.success) {
@@ -200,7 +209,16 @@ const Appointment = () => {
 
         {/* Booking Slots */}
         <div className="sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]">
-          <p>Chọn thời gian</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p>Chọn thời gian</p>
+
+            <button
+              onClick={() => setShowImageModal(true)}
+              className="rounded-xl border border-[#d7b3be] bg-[#fff6f9] px-4 py-2 text-sm text-[#7b1e3a] hover:bg-[#feeef4] transition-all"
+            >
+              Chia sẻ hình ảnh của bạn
+            </button>
+          </div>
           <div className="flex gap-3 items-center w-full mt-4 overflow-x-auto">
   {stySlots.length &&
     stySlots.map((item, index) => (
@@ -246,7 +264,96 @@ const Appointment = () => {
           >
             Đặt lịch
           </button>
+
+          {selectedStyleImage && (
+            <div className="mb-4 flex items-center gap-2 text-sm text-[#7b1e3a]">
+              <span>Ảnh đã chọn:</span>
+              <img
+                src={selectedStyleImage}
+                alt="Ảnh phong cách đã chọn"
+                className="h-10 w-10 rounded-lg object-cover border border-[#e6ced6]"
+              />
+              <button
+                onClick={() => setSelectedStyleImage(null)}
+                className="text-xs underline"
+              >
+                Bỏ chọn
+              </button>
+            </div>
+          )}
         </div>
+
+        {showImageModal && (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl rounded-2xl border border-[#ecd5dc] bg-white p-6 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xl font-semibold text-[#2f211c]">
+                    Chọn ảnh chia sẻ với stylist
+                  </p>
+                  <p className="text-sm text-[#8a6960] mt-1">
+                    Chọn tối đa 1 ảnh để stylist tham khảo phong cách makeup bạn muốn.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowImageModal(false)}
+                  className="rounded-lg border border-[#e6ced6] px-3 py-1.5 text-sm text-[#7b1e3a]"
+                >
+                  Đóng
+                </button>
+              </div>
+
+              {Array.isArray(userData?.personalImages) &&
+              userData.personalImages.length > 0 ? (
+                <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[55vh] overflow-y-auto pr-1">
+                  {userData.personalImages.map((imgUrl) => {
+                    const isSelected = selectedStyleImage === imgUrl;
+                    return (
+                      <button
+                        key={imgUrl}
+                        onClick={() => setSelectedStyleImage(imgUrl)}
+                        className={`relative overflow-hidden rounded-xl border-2 transition-all ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-[#ead5dd]"}`}
+                      >
+                        <img
+                          src={imgUrl}
+                          alt="Ảnh makeup cá nhân"
+                          className="h-36 w-full object-cover"
+                        />
+                        {isSelected && (
+                          <span className="absolute top-2 right-2 h-6 w-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-xl border border-dashed border-[#ead5dd] bg-[#fff8fb] p-8 text-center text-[#8a6960]">
+                  Bạn chưa có ảnh trong thư viện. Vui lòng vào trang AI Makeup để lưu ảnh trước.
+                </div>
+              )}
+
+              <div className="mt-5 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setSelectedStyleImage(null);
+                    setShowImageModal(false);
+                  }}
+                  className="rounded-xl border border-[#e6ced6] px-4 py-2 text-sm text-[#7b1e3a]"
+                >
+                  Không chia sẻ ảnh
+                </button>
+                <button
+                  onClick={() => setShowImageModal(false)}
+                  className="rounded-xl bg-primary px-4 py-2 text-sm text-white"
+                >
+                  Xác nhận chọn
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Listing related stylists */}
         <RelatedStylist speciality={styInfo.speciality} docId={styId} />
       </div>

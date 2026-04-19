@@ -9,6 +9,7 @@ const appointmentSchema = new mongoose.Schema({
     styData: {type: Object, required: true},
     amount: {type: Number, required: true},
     date: {type: Number, required: true},
+    selectedStyleImage: {type: String, default: null},
     cancelled: {type: Boolean, default: false},
     cancellationReasons: {type: Array, default: []},
     cancellationDetails: {type: String, default: ""},

@@ -7,6 +7,27 @@ import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } from 'vnpay';
 
+const PERSONAL_LIBRARY_FOLDER = "hdn_care/personal_library";
+
+const getCloudinaryPublicIdFromUrl = (imageUrl) => {
+    if (!imageUrl || typeof imageUrl !== "string") return null;
+    const marker = "/upload/";
+    const markerIndex = imageUrl.indexOf(marker);
+
+    if (markerIndex === -1) return null;
+
+    let publicIdWithExt = imageUrl.slice(markerIndex + marker.length);
+    publicIdWithExt = publicIdWithExt.split("?")[0];
+
+    // Strip optional version segment: v1234567890/
+    publicIdWithExt = publicIdWithExt.replace(/^v\d+\//, "");
+
+    const lastDotIndex = publicIdWithExt.lastIndexOf(".");
+    if (lastDotIndex === -1) return publicIdWithExt;
+
+    return publicIdWithExt.slice(0, lastDotIndex);
+};
+
 // API to register user
 const registerUser = async (req, res) => {
 
@@ -174,9 +195,18 @@ const bookAppointment = async (req, res) => {
     try {
         
         const userId = req.userId
-        const {styId, slotDate, slotTime} = req.body
+        const {styId, slotDate, slotTime, selectedStyleImage = null} = req.body
 
         const styData = await stylistModel.findById(styId).select('-password')
+        const userData = await userModel.findById(userId).select('-password')
+
+        if (!userData) {
+            return res.json({ success: false, message: "User not found" })
+        }
+
+        if (selectedStyleImage && !(userData.personalImages || []).includes(selectedStyleImage)) {
+            return res.json({ success: false, message: "Selected image is invalid" })
+        }
         
         if(!styData.available){
             return res.json({ success: false, message: "Stylist not available at the selected time" })
@@ -196,8 +226,6 @@ const bookAppointment = async (req, res) => {
             slots_booked[slotDate].push(slotTime)
         }
 
-        const userData = await userModel.findById(userId).select('-password')
-
         delete styData.slots_booked
 
         const appointmentData = {
@@ -208,7 +236,8 @@ const bookAppointment = async (req, res) => {
             amount: styData.fees,
             slotTime,
             slotDate,
-            date: Date.now()
+            date: Date.now(),
+            selectedStyleImage: selectedStyleImage || null,
         }
 
         const newAppointment = new appointmentModel(appointmentData)
@@ -222,6 +251,73 @@ const bookAppointment = async (req, res) => {
     } catch (error) {
         console.log(error)
         res.json({ success: false, message: error.message })
+    }
+}
+
+// API to add or remove personal makeup library images
+const updatePersonalImages = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { action, imageData, imageUrl } = req.body;
+        const imageFile = req.file;
+
+        if (!["add", "remove"].includes(action)) {
+            return res.json({ success: false, message: "Invalid action" });
+        }
+
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if (action === "add") {
+            if (!imageFile && (!imageData || typeof imageData !== "string")) {
+                return res.json({ success: false, message: "Missing image data" });
+            }
+
+            const uploaded = imageFile
+                ? await cloudinary.uploader.upload(imageFile.path, {
+                    folder: PERSONAL_LIBRARY_FOLDER,
+                    resource_type: "image",
+                })
+                : await cloudinary.uploader.upload(imageData, {
+                    folder: PERSONAL_LIBRARY_FOLDER,
+                    resource_type: "image",
+                });
+
+            const secureUrl = uploaded.secure_url;
+            user.personalImages = [...new Set([...(user.personalImages || []), secureUrl])];
+            await user.save();
+
+            return res.json({
+                success: true,
+                message: "Saved image to personal library",
+                personalImages: user.personalImages,
+                imageUrl: secureUrl,
+            });
+        }
+
+        // action === "remove"
+        if (!imageUrl || typeof imageUrl !== "string") {
+            return res.json({ success: false, message: "Missing image URL" });
+        }
+
+        user.personalImages = (user.personalImages || []).filter((url) => url !== imageUrl);
+        await user.save();
+
+        const publicId = getCloudinaryPublicIdFromUrl(imageUrl);
+        if (publicId) {
+            await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+        }
+
+        return res.json({
+            success: true,
+            message: "Removed image from personal library",
+            personalImages: user.personalImages,
+        });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
     }
 }
 
@@ -396,4 +492,16 @@ const verifyPayment = async (req, res) => {
     }
 }
 
-export { registerUser, loginUser, getProfile, updateProfile, changePassword, bookAppointment, listAppointment, cancelAppointment, createPaymentUrl, verifyPayment }
+export {
+    registerUser,
+    loginUser,
+    getProfile,
+    updateProfile,
+    changePassword,
+    bookAppointment,
+    listAppointment,
+    cancelAppointment,
+    createPaymentUrl,
+    verifyPayment,
+    updatePersonalImages,
+}

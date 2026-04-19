@@ -16,6 +16,30 @@ const AppContextProvider = (props) => {
   );
   const [userData, setUserData] = useState(false);
 
+  const patchPersonalImages = async (payload) => {
+    if (!token) {
+      return { success: false, message: "Vui lòng đăng nhập" };
+    }
+
+    try {
+      const { data } = await axios.patch(
+        backendUrl + "/api/users/personal-images",
+        payload,
+        { headers: { token } },
+      );
+
+      if (data.success && Array.isArray(data.personalImages)) {
+        setUserData((prev) =>
+          prev ? { ...prev, personalImages: data.personalImages } : prev,
+        );
+      }
+
+      return data;
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  };
+
   const loadUserProfileData = async () => {
     try {
       const { data } = await axios.get(backendUrl + "/api/user/get-profile", {
@@ -65,6 +89,7 @@ const AppContextProvider = (props) => {
     token,setToken,
     userData,setUserData,
     loadUserProfileData,
+    patchPersonalImages,
   };
 
   return (
