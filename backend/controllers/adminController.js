@@ -88,7 +88,7 @@ const loginAdmin = async (req, res) => {
       res.json({ success: true, token })
 
     } else {
-      res.json({ success: false, message: "Invalid credentials" })
+      res.json({ success: false, message: "Thông tin đăng nhập không đúng" })
     }
 
   } catch (error) {

@@ -24,10 +24,10 @@ const Navbar = () => {
         <div className='flex items-center gap-2 text-xs'>
             <img className='max-w-[250px] max-h-[120px] object-contain cursor-pointer' src={assets.admin_logo} alt="" /> 
             {/* max-w-[207px] max-h-[49px] object-contain */}
-            <p className='border px-2.5 py-0.5 rounded-full border-gray-500 text-gray-600'>{aToken ? 'Admin' : 'Stylist'}</p>
+            <p className='border px-2.5 py-0.5 rounded-full border-gray-500 text-gray-600'>{aToken ? 'Quản trị viên' : 'Chuyên viên'}</p>
         </div>
         <button className='bg-primary text-white text-sm px-10 py-2 rounded-full' onClick={logout}>
-            Logout
+            Đăng xuất
         </button>
     </div>
   )

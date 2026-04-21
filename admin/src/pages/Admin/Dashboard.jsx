@@ -34,7 +34,7 @@ const Dashboard = () => {
                 <img
                   className="w-12 font-sans"
                   src={assets.stylist_icon}
-                  alt="Chuyen vien"
+                  alt="Chuyên viên"
                 />
               </div>
               <div>
@@ -53,7 +53,7 @@ const Dashboard = () => {
                 <img
                   className="w-12 font-sans"
                   src={assets.appointments_icon}
-                  alt="Lich hen"
+                  alt="Lịch hẹn"
                 />
               </div>
               <div>
@@ -74,7 +74,7 @@ const Dashboard = () => {
                 <img
                   className="w-12 font-sans"
                   src={assets.customers_icon}
-                  alt="Khach hang"
+                  alt="Khách hàng"
                 />
               </div>
               <div>
@@ -89,7 +89,7 @@ const Dashboard = () => {
 
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 py-4">
-            <img src={assets.list_icon} alt="Danh sach lich hen" />
+            <img src={assets.list_icon} alt="Danh sách lịch hẹn" />
             <p className="text-base font-semibold text-gray-800">
               Lịch Hẹn Mới Nhất
             </p>
@@ -104,7 +104,7 @@ const Dashboard = () => {
                 <img
                   className="w-10 rounded-full ring-2 ring-white"
                   src={item.styData.image}
-                  alt="Anh chuyen vien"
+                  alt="Ảnh chuyên viên"
                 />
                 <div className="flex-1 text-sm">
                   <p className="font-medium font-sans text-gray-800">

@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import { useSearchParams } from "react-router-dom";
 
 const MyAppointments = () => {
-  const { backendUrl, token, stylists, getStylistsData } =
+  const { backendUrl, token, stylists, getStylistsData, loadUserProfileData, userData } =
     useContext(AppContext);
   const [searchParams] = useSearchParams();
 
@@ -81,6 +81,31 @@ const MyAppointments = () => {
     } catch (error) {
       console.log(error);
       toast.error("Lỗi khi tạo đường link thanh toán");
+    } finally {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: false }));
+    }
+  };
+
+  const payWithWallet = async (appointmentId) => {
+    try {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: true }));
+
+      const { data } = await axios.post(
+        backendUrl + "/api/user/wallet/pay-appointment",
+        { appointmentId },
+        { headers: { token } },
+      );
+
+      if (data.success) {
+        toast.success(data.message || "Thanh toán bằng ví thành công");
+        await loadUserProfileData();
+        await getUserAppointments();
+      } else {
+        toast.error(data.message || "Không thể thanh toán bằng ví");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error.message || "Không thể thanh toán bằng ví");
     } finally {
       setPaymentLoading((prev) => ({ ...prev, [appointmentId]: false }));
     }
@@ -254,6 +279,19 @@ const MyAppointments = () => {
                       : "Thanh toán trực tuyến"}
                   </button>
                 )}
+                {!item.cancelled && !item.payment && !item.isCompleted && (
+                  <button
+                    onClick={() => payWithWallet(item._id)}
+                    disabled={paymentLoading[item._id] || (userData?.walletBalance || 0) < (item.amount || 0)}
+                    className="px-4 py-2 border border-rose-500 text-rose-600 rounded hover:bg-rose-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {paymentLoading[item._id]
+                      ? "Đang xử lý..."
+                      : (userData?.walletBalance || 0) >= (item.amount || 0)
+                        ? "Thanh toán bằng ví"
+                        : "Không đủ số dư"}
+                  </button>
+                )}
                 {!item.cancelled && item.payment && !item.isCompleted && (
                   <button className="px-4 py-2 bg-green-500 text-white rounded cursor-default">
                     ✓ Đã thanh toán
@@ -273,7 +311,7 @@ const MyAppointments = () => {
                   </button>
                 )}
 
-                {item.isCompleted && <button className="sm:min-w-48 py-2 border border-green-500 rounded text-green-500">Completed</button>}
+                {item.isCompleted && <button className="sm:min-w-48 py-2 border border-green-500 rounded text-green-500">Hoàn thành</button>}
               </div>
             </div>
           );

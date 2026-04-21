@@ -53,14 +53,15 @@ const Navbar = () => {
               {showProfile && (
                 <div className='absolute right-0 z-50 text-base font-medium text-gray-600 top-8 pt-2'>
                   <div className='flex flex-col gap-4 p-4 rounded min-w-48 bg-stone-100'>
-                    <p onClick={()=>{navigate('my-profile'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Hồ sơ của tôi</p>
-                    <p onClick={()=>{navigate('my-appointments'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
+                    <p onClick={()=>{navigate('/my-profile'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Hồ sơ của tôi</p>
+                    <p onClick={()=>{navigate('/my-appointments'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
+                    <p onClick={()=>{navigate('/my-wallet'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Ví của tôi</p>
                     <p onClick={()=>{logout()}} className='cursor-pointer hover:text-black'>Đăng xuất</p>
                   </div>
                 </div>
               )}
             </div>
-            :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-primary md:block'>Create account</button>
+            :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-primary md:block'>Tạo tài khoản</button>
           }
           <img onClick={() => setShowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
 

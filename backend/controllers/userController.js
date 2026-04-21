@@ -79,7 +79,7 @@ const loginUser = async (req, res) => {
         const user = await userModel.findOne({ email })
 
         if (!user) {
-            return res.json({ success: false, message: "User does not exist" })
+            return res.json({ success: false, message: "Người dùng không tồn tại" })
         }
 
         const isMatch = await bcrypt.compare(password, user.password)
@@ -89,7 +89,7 @@ const loginUser = async (req, res) => {
             res.json({ success: true, token })
         }
         else {
-            res.json({ success: false, message: "Invalid credentials" })
+            res.json({ success: false, message: "Thông tin đăng nhập không đúng" })
         }
     } catch (error) {
         console.log(error)
@@ -327,13 +327,319 @@ const listAppointment = async (req, res) => {
         const userId = req.userId
 
         if (!userId) {
-            return res.json({ success: false, message: "Not Authorized Login Again" })
+            return res.json({ success: false, message: "Bạn chưa được xác thực. Vui lòng đăng nhập lại." })
         }
 
         const appointments = await appointmentModel.find({ userId }).sort({ date: -1 })
 
         res.json({ success: true, appointments })
 
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// mywallet
+const getWalletData = async (req, res) => {
+    try {
+        const userId = req.userId
+
+        if (!userId) {
+            return res.json({ success: false, message: "Bạn chưa được xác thực. Vui lòng đăng nhập lại." })
+        }
+
+        const user = await userModel.findById(userId).select('-password')
+
+        if (!user) {
+            return res.json({ success: false, message: "Không tìm thấy người dùng" })
+        }
+
+        const walletTransactions = Array.isArray(user.walletTransactions)
+            ? [...user.walletTransactions].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+            : []
+
+        res.json({
+            success: true,
+            walletBalance: user.walletBalance || 0,
+            walletTransactions,
+            userData: user,
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+const createWalletTopupUrl = async (req, res) => {
+    let walletRef = null
+    try {
+        const userId = req.userId
+        const amount = Number(req.body.amount)
+
+        if (!userId) {
+            return res.json({ success: false, message: "Bạn chưa được xác thực. Vui lòng đăng nhập lại." })
+        }
+
+        if (!Number.isFinite(amount) || amount < 10000) {
+            return res.json({ success: false, message: "Số tiền nạp không hợp lệ" })
+        }
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.json({ success: false, message: "Không tìm thấy người dùng" })
+        }
+
+        walletRef = `wallet_${userId}_${Date.now()}`
+        const nextTransactions = [
+            ...(user.walletTransactions || []),
+            {
+                reference: walletRef,
+                type: 'topup',
+                amount,
+                status: 'pending',
+                description: `Nạp tiền ví ${amount.toLocaleString('vi-VN')} VND`,
+                createdAt: new Date(),
+            },
+        ]
+
+        await userModel.findByIdAndUpdate(userId, {
+            walletTransactions: nextTransactions,
+        })
+
+        const vnpay = new VNPay({
+            tmnCode: process.env.VNPAY_TMN_CODE,
+            secureSecret: process.env.VNPAY_SECRET_KEY,
+            vnpayHost: process.env.VNPAY_HOST,
+            testMode: true,
+            hashAlgorithm: 'SHA512',
+            loggerFn: ignoreLogger,
+        })
+
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+
+        const vnpayResponse = await vnpay.buildPaymentUrl({
+            vnp_Amount: amount,
+            vnp_IpAddr: req.ip || '127.0.0.1',
+            vnp_TxnRef: walletRef,
+            vnp_OrderInfo: `Nạp tiền ví - ${user.name || 'User'}`,
+            vnp_OrderType: ProductCode.Other,
+            vnp_ReturnUrl: `${process.env.FRONTEND_URL}/my-wallet`,
+            vnp_Locale: VnpLocale.VN,
+            vnp_CreateDate: dateFormat(new Date()),
+            vnp_ExpireDate: dateFormat(tomorrow),
+        })
+
+        res.json({ success: true, paymentUrl: vnpayResponse, walletRef })
+    } catch (error) {
+        console.log(error)
+        if (walletRef && req?.userId) {
+            await userModel.findByIdAndUpdate(req.userId, {
+                $pull: { walletTransactions: { reference: walletRef } },
+            })
+        }
+        res.json({ success: false, message: error.message })
+    }
+}
+
+const verifyWalletTopup = async (req, res) => {
+    try {
+        const userId = req.userId
+        const { walletRef, vnp_TransactionNo } = req.body
+
+        if (!userId) {
+            return res.json({ success: false, message: "Bạn chưa được xác thực. Vui lòng đăng nhập lại." })
+        }
+
+        if (!walletRef) {
+            return res.json({ success: false, message: "Thiếu mã giao dịch ví" })
+        }
+
+        const user = await userModel.findOne({ _id: userId, "walletTransactions.reference": walletRef })
+
+        if (!user) {
+            return res.json({ success: false, message: "Không tìm thấy giao dịch ví" })
+        }
+
+        const transactionIndex = (user.walletTransactions || []).findIndex((item) => item.reference === walletRef)
+
+        if (transactionIndex === -1) {
+            return res.json({ success: false, message: "Không tìm thấy giao dịch ví" })
+        }
+
+        const transaction = user.walletTransactions[transactionIndex]
+
+        if (transaction.status === 'success') {
+            return res.json({ success: true, message: "Ví đã được cập nhật trước đó" })
+        }
+
+        const updatedTransactions = [...user.walletTransactions]
+        updatedTransactions[transactionIndex] = {
+            ...transaction,
+            status: 'success',
+            vnp_TransactionNo: vnp_TransactionNo || null,
+            verifiedAt: new Date(),
+        }
+
+        await userModel.findByIdAndUpdate(userId, {
+            walletBalance: (user.walletBalance || 0) + Number(transaction.amount || 0),
+            walletTransactions: updatedTransactions,
+        })
+
+        res.json({ success: true, message: "Nạp ví thành công" })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+const payAppointmentWithWallet = async (req, res) => {
+    try {
+        const userId = req.userId
+        const { appointmentId } = req.body
+
+        if (!userId) {
+            return res.json({ success: false, message: "Bạn chưa được xác thực. Vui lòng đăng nhập lại." })
+        }
+
+        if (!appointmentId) {
+            return res.json({ success: false, message: "Thiếu mã lịch hẹn" })
+        }
+
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: "Không tìm thấy lịch hẹn" })
+        }
+
+        if (String(appointmentData.userId) !== String(userId)) {
+            return res.json({ success: false, message: "Vui lòng đăng nhập lại" })
+        }
+
+        if (appointmentData.cancelled) {
+            return res.json({ success: false, message: "Lịch hẹn đã bị hủy" })
+        }
+
+        if (appointmentData.payment) {
+            return res.json({ success: true, message: "Lịch hẹn này đã được thanh toán" })
+        }
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.json({ success: false, message: "Không tìm thấy người dùng" })
+        }
+
+        const appointmentAmount = Number(appointmentData.amount || 0)
+        const walletBalance = Number(user.walletBalance || 0)
+
+        if (walletBalance < appointmentAmount) {
+            return res.json({ success: false, message: "Số dư ví không đủ để thanh toán" })
+        }
+
+        const previousBalance = walletBalance
+        let walletReference = `wallet_pay_${appointmentId}_${Date.now()}`
+        const nextTransactions = [
+            ...(user.walletTransactions || []),
+            {
+                reference: walletReference,
+                type: 'appointment_payment',
+                amount: -appointmentAmount,
+                status: 'success',
+                description: `Thanh toán lịch hẹn ${appointmentId}`,
+                createdAt: new Date(),
+            },
+        ]
+
+        await userModel.findByIdAndUpdate(userId, {
+            walletBalance: walletBalance - appointmentAmount,
+            walletTransactions: nextTransactions,
+        })
+
+        try {
+            await appointmentModel.findByIdAndUpdate(appointmentId, {
+                payment: true,
+                paymentTransactionId: walletReference,
+                paymentMethod: 'wallet',
+            })
+        } catch (appointmentError) {
+            await userModel.findByIdAndUpdate(userId, {
+                walletBalance: previousBalance,
+                $pull: { walletTransactions: { reference: walletReference } },
+            })
+            throw appointmentError
+        }
+
+        res.json({ success: true, message: "Thanh toán bằng ví thành công" })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// withdraw from wallet
+const withdrawFromWallet = async (req, res) => {
+    try {
+        const userId = req.userId
+        const { amount, cardHolderName, cardNumber, bankName } = req.body
+
+        if (!userId) {
+            return res.json({ success: false, message: "Bạn chưa được xác thực. Vui lòng đăng nhập lại." })
+        }
+
+        const withdrawAmount = Number(amount)
+        if (!Number.isFinite(withdrawAmount) || withdrawAmount < 10000) {
+            return res.json({ success: false, message: "Số tiền rút tối thiểu là 10.000 VND" })
+        }
+
+        if (!cardHolderName || !cardNumber || !bankName) {
+            return res.json({ success: false, message: "Vui lòng nhập đầy đủ thông tin thẻ" })
+        }
+
+        const normalizedCardNumber = String(cardNumber).replace(/\s+/g, "")
+        if (!/^\d{12,19}$/.test(normalizedCardNumber)) {
+            return res.json({ success: false, message: "Số thẻ không hợp lệ" })
+        }
+
+        const user = await userModel.findById(userId)
+        if (!user) {
+            return res.json({ success: false, message: "Không tìm thấy người dùng" })
+        }
+
+        const currentBalance = Number(user.walletBalance || 0)
+        if (currentBalance < withdrawAmount) {
+            return res.json({ success: false, message: "Số dư ví không đủ để rút tiền" })
+        }
+
+        const cardLast4 = normalizedCardNumber.slice(-4)
+        const withdrawReference = `wallet_withdraw_${userId}_${Date.now()}`
+        const nextTransactions = [
+            ...(user.walletTransactions || []),
+            {
+                reference: withdrawReference,
+                type: 'withdrawal',
+                amount: -withdrawAmount,
+                status: 'success',
+                description: `Rút tiền về thẻ ****${cardLast4} (${bankName})`,
+                cardHolderName,
+                cardLast4,
+                bankName,
+                createdAt: new Date(),
+            },
+        ]
+
+        await userModel.findByIdAndUpdate(userId, {
+            walletBalance: currentBalance - withdrawAmount,
+            walletTransactions: nextTransactions,
+        })
+
+        res.json({
+            success: true,
+            message: "Rút tiền thành công",
+            walletBalance: currentBalance - withdrawAmount,
+        })
     } catch (error) {
         console.log(error)
         res.json({ success: false, message: error.message })
@@ -481,7 +787,8 @@ const verifyPayment = async (req, res) => {
         // Update appointment payment status
         await appointmentModel.findByIdAndUpdate(appointmentId, { 
             payment: true,
-            paymentTransactionId: vnp_TransactionNo 
+            paymentTransactionId: vnp_TransactionNo,
+            paymentMethod: "vnpay"
         });
 
         res.json({ success: true, message: "Thanh toán thành công" });
@@ -503,5 +810,10 @@ export {
     cancelAppointment,
     createPaymentUrl,
     verifyPayment,
+    getWalletData,
+    createWalletTopupUrl,
+    verifyWalletTopup,
+    payAppointmentWithWallet,
+    withdrawFromWallet,
     updatePersonalImages,
 }

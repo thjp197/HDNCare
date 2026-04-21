@@ -10,6 +10,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import MyAppointments from './pages/MyAppointments'
 import MyProfile from './pages/MyProfile'
+import MyWallet from './pages/MyWallet'
 import Stylists from './pages/Stylists'
 import AiMakeup from './pages/AiMakeup'
 import { ToastContainer } from 'react-toastify';
@@ -30,6 +31,7 @@ const App = () => {
         <Route path='/contact' element={<Contact />}/>
         <Route path='/my-profile' element={<MyProfile />}/>
         <Route path='/my-appointments' element={<MyAppointments />}/>
+        <Route path='/my-wallet' element={<MyWallet />}/>
         <Route path='/appointment/:styId' element={<Appointments />}/>
         <Route path='/ai-makeup' element={<AiMakeup />}/>
       </Routes>

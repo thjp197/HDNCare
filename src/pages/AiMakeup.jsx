@@ -87,7 +87,7 @@ const AiMakeup = () => {
   return (
     <section className='my-6'>
       <div className='mb-4'>
-        <h1 className='text-2xl font-semibold text-center text-gray-800'>AI Makeup</h1>
+        <h1 className='text-2xl font-semibold text-center text-gray-800'>Trang điểm AI</h1>
         <p className='mt-1 text-md text-center font-semibold italic text-gray-600'>
             "Lưu giữ phong cách, kết nối chuyên gia: Hãy tự tay thiết kế diện mạo bạn yêu thích và chia sẻ trực tiếp với stylist để mỗi liệu trình làm đẹp đều trở nên thấu hiểu và hoàn hảo."        </p>
       </div>
@@ -101,7 +101,7 @@ const AiMakeup = () => {
       <div className='relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm'>
         <iframe
           ref={iframeRef}
-          title='AI Makeup Filter'
+          title='Bộ lọc trang điểm AI'
           src={filterUrl}
           className='h-[78vh] w-full'
           onError={() => setHasLoadError(true)}

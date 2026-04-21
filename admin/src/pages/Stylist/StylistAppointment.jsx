@@ -64,7 +64,7 @@ const StylistAppointments = () => {
             </div>
             <div>
               <p className='text-xs inline border border-primary px-2 rounded-full'>
-                {item.payment?'Online':'CASH'}
+                {item.payment ? 'Trực tuyến' : 'Tiền mặt'}
               </p>
             </div>
             <p className='max-sm:hidden'>{calculateAge(item.userData.dob)}</p>
@@ -103,8 +103,8 @@ const StylistAppointments = () => {
               : item.isCompleted
                 ?<p className='text-green-500 text-xs font-medium font-sans'>Hoàn thành</p>
                 :<div className='flex gap-2'>
-              <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Cancel" />
-              <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Complete" />
+              <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
+              <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Hoàn thành" />
             </div>
             }
             

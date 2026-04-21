@@ -111,7 +111,7 @@ const Appointment = () => {
 
   const bookAppointment = async () => {
     if (!token) {
-      toast.warn("Login to book appointment");
+      toast.warn("Vui lòng đăng nhập để đặt lịch hẹn");
       return navigate("/login");
     }
 

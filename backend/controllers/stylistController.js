@@ -42,7 +42,7 @@ const loginStylist = async (req, res) => {
         const user = await stylistModel.findOne({ email })
 
         if (!user) {
-            return res.json({ success: false, message: "Invalid credentials" })
+            return res.json({ success: false, message: "Thông tin đăng nhập không đúng" })
         }
 
         const isMatch = await bcrypt.compare(password, user.password)
@@ -51,7 +51,7 @@ const loginStylist = async (req, res) => {
             const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
             res.json({ success: true, token })
         } else {
-            res.json({ success: false, message: "Invalid credentials" })
+            res.json({ success: false, message: "Thông tin đăng nhập không đúng" })
         }
 
     } catch (error) {
