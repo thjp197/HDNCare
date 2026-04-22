@@ -426,7 +426,7 @@ const createWalletTopupUrl = async (req, res) => {
             vnp_TxnRef: walletRef,
             vnp_OrderInfo: `Nạp tiền ví - ${user.name || 'User'}`,
             vnp_OrderType: ProductCode.Other,
-            vnp_ReturnUrl: `${process.env.FRONTEND_URL}/my-wallet`,
+            vnp_ReturnUrl: process.env.VNPAY_RETURN_URL || `${process.env.FRONTEND_URL}/my-wallet`,
             vnp_Locale: VnpLocale.VN,
             vnp_CreateDate: dateFormat(new Date()),
             vnp_ExpireDate: dateFormat(tomorrow),
@@ -749,7 +749,7 @@ const createPaymentUrl = async (req, res) => {
             vnp_TxnRef: appointmentId, // Dùng appointmentId làm transaction reference
             vnp_OrderInfo: `Thanh toán lịch hẹn - ${appointmentData.userData?.name || 'User'}`,
             vnp_OrderType: ProductCode.Other,
-            vnp_ReturnUrl: `${process.env.FRONTEND_URL}/my-appointments`,
+            vnp_ReturnUrl: process.env.VNPAY_APPOINTMENT_RETURN_URL || `${process.env.FRONTEND_URL}/my-appointments`,
             vnp_Locale: VnpLocale.VN,
             vnp_CreateDate: dateFormat(new Date()),
             vnp_ExpireDate: dateFormat(tomorrow)
