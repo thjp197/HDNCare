@@ -63,7 +63,17 @@ const StylistAppointments = () => {
               <img src={item.userData.image} className='w-8 rounded-full' alt="" /> <p>{item.userData.name}</p>
             </div>
             <div>
-              <p className='text-xs inline border border-primary px-2 rounded-full'>
+              <p
+                className={`text-xs inline px-2 py-0.5 rounded-full border font-medium ${
+                  item.cancelled
+                    ? 'bg-red-100 text-red-700 border-red-300'
+                    : item.isCompleted
+                    ? 'bg-green-100 text-green-700 border-green-300'
+                    : item.payment
+                    ? 'bg-blue-100 text-blue-700 border-blue-300'
+                    : 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                }`}
+              >
                 {item.payment ? 'Trực tuyến' : 'Tiền mặt'}
               </p>
             </div>
@@ -96,12 +106,12 @@ const StylistAppointments = () => {
                       item.cancellationDetails
                     )
                   }
-                  className='text-red-400 text-xs font-medium font-sans cursor-pointer hover:underline'
+                  className='inline-flex w-fit justify-self-start items-center rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-medium font-sans text-red-700 cursor-pointer hover:bg-red-200'
                 >
-                  Xem lý do hủy
+                  Đã hủy
                 </p>
               : item.isCompleted
-                ?<p className='text-green-500 text-xs font-medium font-sans'>Hoàn thành</p>
+                ?<p className='inline-flex w-fit justify-self-start items-center rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-medium font-sans text-green-700'>Hoàn thành</p>
                 :<div className='flex gap-2'>
               <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
               <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Hoàn thành" />

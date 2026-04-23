@@ -16,6 +16,10 @@ const appointmentSchema = new mongoose.Schema({
     payment: {type: Boolean, required: false},
     paymentTransactionId: {type: String, default: null},
     paymentMethod: {type: String, default: null},
+    depositPaid: {type: Boolean, default: false},
+    depositAmount: {type: Number, default: 0},
+    depositTransactionId: {type: String, default: null},
+    depositMethod: {type: String, default: null},
     isCompleted: {type: Boolean, default: false}
 })
 

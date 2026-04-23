@@ -28,6 +28,12 @@ const getCloudinaryPublicIdFromUrl = (imageUrl) => {
   return publicIdWithExt.slice(0, lastDotIndex);
 };
 
+const calculateDepositAmount = (amount) => {
+  const numericAmount = Number(amount || 0);
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) return 0;
+  return Math.round(numericAmount * 0.2);
+};
+
 // API to register user
 const registerUser = async (req, res) => {
   try {
@@ -597,9 +603,23 @@ const payAppointmentWithWallet = async (req, res) => {
     }
 
     const appointmentAmount = Number(appointmentData.amount || 0);
+    const paidDeposit = Number(appointmentData.depositPaid ? appointmentData.depositAmount || 0 : 0);
+    const payableAmount = Math.max(appointmentAmount - paidDeposit, 0);
     const walletBalance = Number(user.walletBalance || 0);
 
-    if (walletBalance < appointmentAmount) {
+    if (payableAmount <= 0) {
+      await appointmentModel.findByIdAndUpdate(appointmentId, {
+        payment: true,
+        paymentMethod: appointmentData.depositMethod || "wallet",
+      });
+
+      return res.json({
+        success: true,
+        message: "Lịch hẹn đã được thanh toán đầy đủ",
+      });
+    }
+
+    if (walletBalance < payableAmount) {
       return res.json({
         success: false,
         message: "Số dư ví không đủ để thanh toán",
@@ -613,15 +633,15 @@ const payAppointmentWithWallet = async (req, res) => {
       {
         reference: walletReference,
         type: "appointment_payment",
-        amount: -appointmentAmount,
+        amount: -payableAmount,
         status: "success",
-        description: `Thanh toán lịch hẹn ${appointmentId}`,
+        description: `Thanh toán lịch hẹn ${appointmentId}${paidDeposit > 0 ? " (phần còn lại)" : ""}`,
         createdAt: new Date(),
       },
     ];
 
     await userModel.findByIdAndUpdate(userId, {
-      walletBalance: walletBalance - appointmentAmount,
+      walletBalance: walletBalance - payableAmount,
       walletTransactions: nextTransactions,
     });
 
@@ -640,6 +660,102 @@ const payAppointmentWithWallet = async (req, res) => {
     }
 
     res.json({ success: true, message: "Thanh toán bằng ví thành công" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const payAppointmentDepositWithWallet = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { appointmentId } = req.body;
+
+    if (!userId) {
+      return res.json({
+        success: false,
+        message: "Bạn chưa được xác thực. Vui lòng đăng nhập lại.",
+      });
+    }
+
+    if (!appointmentId) {
+      return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
+    }
+
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (!appointmentData) {
+      return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+    }
+
+    if (String(appointmentData.userId) !== String(userId)) {
+      return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    if (appointmentData.cancelled) {
+      return res.json({ success: false, message: "Lịch hẹn đã bị hủy" });
+    }
+
+    if (appointmentData.payment) {
+      return res.json({ success: false, message: "Lịch hẹn đã thanh toán đầy đủ" });
+    }
+
+    if (appointmentData.depositPaid) {
+      return res.json({ success: true, message: "Lịch hẹn đã được thanh toán cọc" });
+    }
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    const depositAmount = calculateDepositAmount(appointmentData.amount);
+
+    if (depositAmount <= 0) {
+      return res.json({ success: false, message: "Số tiền cọc không hợp lệ" });
+    }
+
+    const walletBalance = Number(user.walletBalance || 0);
+    if (walletBalance < depositAmount) {
+      return res.json({ success: false, message: "Số dư ví không đủ để thanh toán cọc" });
+    }
+
+    const previousBalance = walletBalance;
+    const walletReference = `wallet_deposit_${appointmentId}_${Date.now()}`;
+    const nextTransactions = [
+      ...(user.walletTransactions || []),
+      {
+        reference: walletReference,
+        type: "appointment_deposit",
+        amount: -depositAmount,
+        status: "success",
+        description: `Thanh toán cọc lịch hẹn ${appointmentId}`,
+        createdAt: new Date(),
+      },
+    ];
+
+    await userModel.findByIdAndUpdate(userId, {
+      walletBalance: walletBalance - depositAmount,
+      walletTransactions: nextTransactions,
+    });
+
+    try {
+      await appointmentModel.findByIdAndUpdate(appointmentId, {
+        depositPaid: true,
+        depositAmount,
+        depositTransactionId: walletReference,
+        depositMethod: "wallet",
+      });
+    } catch (appointmentError) {
+      await userModel.findByIdAndUpdate(userId, {
+        walletBalance: previousBalance,
+        $pull: { walletTransactions: { reference: walletReference } },
+      });
+      throw appointmentError;
+    }
+
+    res.json({ success: true, message: "Thanh toán cọc bằng ví thành công" });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -814,6 +930,18 @@ const createPaymentUrl = async (req, res) => {
       });
     }
 
+    const depositAmount = Number(appointmentData.depositPaid ? appointmentData.depositAmount || 0 : 0);
+    const payableAmount = Math.max(Number(appointmentData.amount || 0) - depositAmount, 0);
+
+    if (payableAmount <= 0) {
+      await appointmentModel.findByIdAndUpdate(appointmentId, {
+        payment: true,
+        paymentMethod: appointmentData.depositMethod || "vnpay",
+      });
+
+      return res.json({ success: true, alreadyPaid: true, message: "Lịch hẹn đã được thanh toán đầy đủ" });
+    }
+
     const vnpay = new VNPay({
       tmnCode: process.env.VNPAY_TMN_CODE,
       secureSecret: process.env.VNPAY_SECRET_KEY,
@@ -827,7 +955,7 @@ const createPaymentUrl = async (req, res) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const vnpayResponse = await vnpay.buildPaymentUrl({
-      vnp_Amount: appointmentData.amount,
+      vnp_Amount: payableAmount,
       vnp_IpAddr: req.ip || "127.0.0.1",
       vnp_TxnRef: appointmentId, // Dùng appointmentId làm transaction reference
       vnp_OrderInfo: `Thanh toán lịch hẹn - ${appointmentData.userData?.name || "User"}`,
@@ -841,6 +969,78 @@ const createPaymentUrl = async (req, res) => {
     });
 
     res.json({ success: true, paymentUrl: vnpayResponse });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const createDepositPaymentUrl = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { appointmentId } = req.body;
+
+    if (!appointmentId) {
+      return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
+    }
+
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (!appointmentData) {
+      return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+    }
+
+    if (String(appointmentData.userId) !== String(userId)) {
+      return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    if (appointmentData.cancelled) {
+      return res.json({ success: false, message: "Lịch hẹn đã bị hủy" });
+    }
+
+    if (appointmentData.payment) {
+      return res.json({ success: false, message: "Lịch hẹn đã thanh toán đầy đủ" });
+    }
+
+    if (appointmentData.depositPaid) {
+      return res.json({ success: true, message: "Lịch hẹn đã được thanh toán cọc" });
+    }
+
+    const depositAmount = calculateDepositAmount(appointmentData.amount);
+
+    if (depositAmount <= 0) {
+      return res.json({ success: false, message: "Số tiền cọc không hợp lệ" });
+    }
+
+    const depositRef = `dep_${appointmentId}_${Date.now()}`;
+
+    const vnpay = new VNPay({
+      tmnCode: process.env.VNPAY_TMN_CODE,
+      secureSecret: process.env.VNPAY_SECRET_KEY,
+      vnpayHost: process.env.VNPAY_HOST,
+      testMode: true,
+      hashAlgorithm: "SHA512",
+      loggerFn: ignoreLogger,
+    });
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const vnpayResponse = await vnpay.buildPaymentUrl({
+      vnp_Amount: depositAmount,
+      vnp_IpAddr: req.ip || "127.0.0.1",
+      vnp_TxnRef: depositRef,
+      vnp_OrderInfo: `Thanh toán cọc lịch hẹn - ${appointmentData.userData?.name || "User"}`,
+      vnp_OrderType: ProductCode.Other,
+      vnp_ReturnUrl:
+        process.env.VNPAY_APPOINTMENT_RETURN_URL ||
+        `${process.env.FRONTEND_URL}/my-appointments`,
+      vnp_Locale: VnpLocale.VN,
+      vnp_CreateDate: dateFormat(new Date()),
+      vnp_ExpireDate: dateFormat(tomorrow),
+    });
+
+    res.json({ success: true, paymentUrl: vnpayResponse, depositAmount, depositRef });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -882,6 +1082,56 @@ const verifyPayment = async (req, res) => {
   }
 };
 
+const verifyDepositPayment = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { depositRef, vnp_TransactionNo } = req.body;
+
+    if (!depositRef) {
+      return res.json({ success: false, message: "Thiếu mã giao dịch cọc" });
+    }
+
+    if (!depositRef.startsWith("dep_")) {
+      return res.json({ success: false, message: "Mã giao dịch cọc không hợp lệ" });
+    }
+
+    const parts = depositRef.split("_");
+    const appointmentId = parts[1];
+
+    if (!appointmentId) {
+      return res.json({ success: false, message: "Mã lịch hẹn không hợp lệ" });
+    }
+
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (!appointmentData) {
+      return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+    }
+
+    if (String(appointmentData.userId) !== String(userId)) {
+      return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    if (appointmentData.depositPaid) {
+      return res.json({ success: true, message: "Lịch hẹn đã được thanh toán cọc" });
+    }
+
+    const depositAmount = calculateDepositAmount(appointmentData.amount);
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      depositPaid: true,
+      depositAmount,
+      depositTransactionId: vnp_TransactionNo || depositRef,
+      depositMethod: "vnpay",
+    });
+
+    res.json({ success: true, message: "Thanh toán cọc thành công" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 export {
   registerUser,
   loginUser,
@@ -893,10 +1143,13 @@ export {
   cancelAppointment,
   createPaymentUrl,
   verifyPayment,
+  createDepositPaymentUrl,
+  verifyDepositPayment,
   getWalletData,
   createWalletTopupUrl,
   verifyWalletTopup,
   payAppointmentWithWallet,
+  payAppointmentDepositWithWallet,
   withdrawFromWallet,
   updatePersonalImages,
 };

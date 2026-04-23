@@ -12,6 +12,9 @@ const MyAppointments = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [paymentLoading, setPaymentLoading] = useState({});
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [appointmentToPay, setAppointmentToPay] = useState(null);
+  const [paymentModalType, setPaymentModalType] = useState("full");
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
   const [selectedReasons, setSelectedReasons] = useState([]);
@@ -72,15 +75,44 @@ const MyAppointments = () => {
         { headers: { token } },
       );
 
-      if (data.success) {
+      if (data.success && data.paymentUrl) {
         // Redirect to VNPay payment page
         window.location.href = data.paymentUrl;
+      } else if (data.success) {
+        toast.success(data.message || "Lịch hẹn đã được thanh toán");
+        await getUserAppointments();
       } else {
         toast.error(data.message || "Không thể tạo đường link thanh toán");
       }
     } catch (error) {
       console.log(error);
       toast.error("Lỗi khi tạo đường link thanh toán");
+    } finally {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: false }));
+    }
+  };
+
+  const handleDepositPayment = async (appointmentId) => {
+    try {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: true }));
+
+      const { data } = await axios.post(
+        backendUrl + "/api/user/create-deposit-payment-url",
+        { appointmentId },
+        { headers: { token } },
+      );
+
+      if (data.success && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      } else if (data.success) {
+        toast.success(data.message || "Lịch hẹn đã được thanh toán cọc");
+        await getUserAppointments();
+      } else {
+        toast.error(data.message || "Không thể tạo đường link thanh toán cọc");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Lỗi khi tạo đường link thanh toán cọc");
     } finally {
       setPaymentLoading((prev) => ({ ...prev, [appointmentId]: false }));
     }
@@ -111,6 +143,31 @@ const MyAppointments = () => {
     }
   };
 
+  const payDepositWithWallet = async (appointmentId) => {
+    try {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: true }));
+
+      const { data } = await axios.post(
+        backendUrl + "/api/user/wallet/pay-appointment-deposit",
+        { appointmentId },
+        { headers: { token } },
+      );
+
+      if (data.success) {
+        toast.success(data.message || "Thanh toán cọc bằng ví thành công");
+        await loadUserProfileData();
+        await getUserAppointments();
+      } else {
+        toast.error(data.message || "Không thể thanh toán cọc bằng ví");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error.message || "Không thể thanh toán cọc bằng ví");
+    } finally {
+      setPaymentLoading((prev) => ({ ...prev, [appointmentId]: false }));
+    }
+  };
+
   const verifyPaymentFromVNPay = async () => {
     // Get payment information from URL params
     const vnp_ResponseCode = searchParams.get("vnp_ResponseCode");
@@ -120,19 +177,31 @@ const MyAppointments = () => {
 
     if (vnp_ResponseCode === "00" && vnp_TxnRef) {
       try {
-        const { data } = await axios.post(
-          backendUrl + "/api/user/verify-payment",
-          {
-            appointmentId: vnp_TxnRef,
-            vnp_TransactionNo,
-            vnp_Amount,
-          },
-          { headers: { token } },
-        );
+        const isDepositPayment = vnp_TxnRef.startsWith("dep_");
+        const verifyEndpoint = isDepositPayment
+          ? "/api/user/verify-deposit-payment"
+          : "/api/user/verify-payment";
+
+        const payload = isDepositPayment
+          ? {
+              depositRef: vnp_TxnRef,
+              vnp_TransactionNo,
+              vnp_Amount,
+            }
+          : {
+              appointmentId: vnp_TxnRef,
+              vnp_TransactionNo,
+              vnp_Amount,
+            };
+
+        const { data } = await axios.post(backendUrl + verifyEndpoint, payload, {
+          headers: { token },
+        });
 
         if (data.success) {
-          toast.success("Thanh toán thành công!");
+          toast.success(isDepositPayment ? "Thanh toán cọc thành công!" : "Thanh toán thành công!");
           getUserAppointments(); // Refresh to show updated payment status
+          loadUserProfileData();
           // Clear URL parameters
           window.history.replaceState(
             {},
@@ -202,6 +271,38 @@ const MyAppointments = () => {
     setCancellationReason("");
   };
 
+  const openPaymentModal = (appointmentId, type = "full") => {
+    setAppointmentToPay(appointmentId);
+    setPaymentModalType(type);
+    setPaymentModalOpen(true);
+  };
+
+  const closePaymentModal = () => {
+    setPaymentModalOpen(false);
+    setAppointmentToPay(null);
+    setPaymentModalType("full");
+  };
+
+  const handlePayOnlineFromModal = async () => {
+    if (!appointmentToPay) return;
+    if (paymentModalType === "deposit") {
+      await handleDepositPayment(appointmentToPay);
+    } else {
+      await handlePayment(appointmentToPay);
+    }
+    closePaymentModal();
+  };
+
+  const handlePayWithWalletFromModal = async () => {
+    if (!appointmentToPay) return;
+    if (paymentModalType === "deposit") {
+      await payDepositWithWallet(appointmentToPay);
+    } else {
+      await payWithWallet(appointmentToPay);
+    }
+    closePaymentModal();
+  };
+
   const handleConfirmCancel = () => {
     if (selectedReasons.length === 0 && cancellationReason.trim() === "") {
       toast.error("Vui lòng chọn lý do hoặc nhập chi tiết hủy lịch");
@@ -216,6 +317,18 @@ const MyAppointments = () => {
       verifyPaymentFromVNPay();
     }
   }, [token]);
+
+  const selectedAppointment = appointments.find((appt) => appt._id === appointmentToPay);
+  const walletBalance = Number(userData?.walletBalance || 0);
+  const selectedAppointmentAmount = Number(selectedAppointment?.amount || 0);
+  const selectedDepositAmount = Math.round(selectedAppointmentAmount * 0.2);
+  const selectedRemainingAmount = Math.max(
+    selectedAppointmentAmount - Number(selectedAppointment?.depositPaid ? selectedAppointment?.depositAmount || 0 : 0),
+    0,
+  );
+  const paymentTargetAmount = paymentModalType === "deposit" ? selectedDepositAmount : selectedRemainingAmount;
+  const modalWalletSufficient = walletBalance >= paymentTargetAmount;
+  const paymentModalLoading = appointmentToPay ? paymentLoading[appointmentToPay] : false;
 
   return (
     <div className="mx-4 sm:mx-[10%]">
@@ -270,26 +383,27 @@ const MyAppointments = () => {
               <div className="flex flex-col gap-2 justify-center">
                 {!item.cancelled && !item.payment && !item.isCompleted && (
                   <button
-                    onClick={() => handlePayment(item._id)}
+                    onClick={() => openPaymentModal(item._id, "full")}
                     disabled={paymentLoading[item._id]}
                     className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {paymentLoading[item._id]
-                      ? "Đang xử lý..."
-                      : "Thanh toán trực tuyến"}
+                    {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán"}
                   </button>
                 )}
-                {!item.cancelled && !item.payment && !item.isCompleted && (
+                {!item.cancelled && !item.payment && !item.isCompleted && !item.depositPaid && (
                   <button
-                    onClick={() => payWithWallet(item._id)}
-                    disabled={paymentLoading[item._id] || (userData?.walletBalance || 0) < (item.amount || 0)}
-                    className="px-4 py-2 border border-rose-500 text-rose-600 rounded hover:bg-rose-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => openPaymentModal(item._id, "deposit")}
+                    disabled={paymentLoading[item._id]}
+                    className="px-4 py-2 border border-emerald-600 text-emerald-700 rounded hover:bg-emerald-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {paymentLoading[item._id]
                       ? "Đang xử lý..."
-                      : (userData?.walletBalance || 0) >= (item.amount || 0)
-                        ? "Thanh toán bằng ví"
-                        : "Không đủ số dư"}
+                      : `Thanh toán cọc (20%) - ${Math.round((item.amount || 0) * 0.2).toLocaleString("vi-VN")} VND`}
+                  </button>
+                )}
+                {!item.cancelled && !item.payment && item.depositPaid && !item.isCompleted && (
+                  <button className="px-4 py-2 border border-emerald-500 text-emerald-600 rounded cursor-default">
+                    ✓ Đã cọc {Number(item.depositAmount || Math.round((item.amount || 0) * 0.2)).toLocaleString("vi-VN")} VND
                   </button>
                 )}
                 {!item.cancelled && item.payment && !item.isCompleted && (
@@ -401,6 +515,55 @@ const MyAppointments = () => {
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {cancelLoading ? "Đang hủy..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paymentModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <h2 className="text-xl font-bold mb-2 text-gray-800">
+              {paymentModalType === "deposit" ? "Xác nhận thanh toán cọc" : "Xác nhận thanh toán"}
+            </h2>
+            <p className="text-sm text-gray-600 mb-1">Vui lòng chọn phương thức thanh toán.</p>
+            <p className="text-sm font-semibold text-gray-900 mb-5">
+              Số tiền: {paymentTargetAmount.toLocaleString("vi-VN")} VND
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={handlePayOnlineFromModal}
+                disabled={paymentModalLoading}
+                className="w-full px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {paymentModalLoading ? "Đang xử lý..." : "Thanh toán trực tuyến"}
+              </button>
+
+              <button
+                onClick={handlePayWithWalletFromModal}
+                disabled={paymentModalLoading || !modalWalletSufficient}
+                className="w-full px-4 py-2 border border-rose-500 text-rose-600 rounded hover:bg-rose-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {paymentModalLoading
+                  ? "Đang xử lý..."
+                  : modalWalletSufficient
+                    ? "Thanh toán bằng ví"
+                    : "Không đủ số dư"}
+              </button>
+
+              <p className="text-xs text-gray-500">
+                Số dư ví hiện tại: {walletBalance.toLocaleString("vi-VN")} VND
+              </p>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={closePaymentModal}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              >
+                Đóng
               </button>
             </div>
           </div>

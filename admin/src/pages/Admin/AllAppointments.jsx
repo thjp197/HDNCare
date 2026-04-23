@@ -35,9 +35,10 @@ const AllAppointments = () => {
       <p className="mb-3 text-lg font-medium font-sans">Tất cả lịch hẹn</p>
 
       <div className="bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll">
-        <div className="hidden sm:grid grid-cols-[0.5fr_3fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center py-3 px-6 border-b">
+        <div className="hidden sm:grid grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center py-3 px-6 border-b">
           <p>#</p>
           <p>Người dùng</p>
+          <p>Thanh toán</p>
           <p>Tuổi</p>
           <p>Ngày & Giờ</p>
           <p>Chuyên viên</p>
@@ -46,7 +47,7 @@ const AllAppointments = () => {
         </div>
         {appointments.map((item, index) => (
           <div
-            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_3fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
+            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
             key={index}
           >
             <p className="max-sm:hidden">{index + 1}</p>
@@ -57,6 +58,27 @@ const AllAppointments = () => {
                 alt=""
               />{" "}
               <p>{item.userData.name}</p>
+            </div>
+            <div>
+              <p
+                className={`text-xs inline px-2 py-0.5 rounded-full border font-medium ${
+                  item.cancelled
+                    ? "bg-red-100 text-red-700 border-red-300"
+                    : item.isCompleted
+                    ? "bg-green-100 text-green-700 border-green-300"
+                    : item.depositPaid && !item.payment
+                    ? "bg-purple-100 text-purple-700 border-purple-300"
+                    : item.payment
+                    ? "bg-blue-100 text-blue-700 border-blue-300"
+                    : "bg-yellow-100 text-yellow-800 border-yellow-300"
+                }`}
+              >
+                {item.depositPaid && !item.payment
+                  ? `Đã cọc - ${(Number(item.depositAmount) || Math.round(Number(item.amount || 0) * 0.2)).toLocaleString("vi-VN")} ${currency}`
+                  : item.payment
+                  ? "Trực tuyến"
+                  : "Tiền mặt"}
+              </p>
             </div>
             <p className="max-sm:hidden">{calculateAge(item.userData.dob)}</p>
             <p>
@@ -81,12 +103,12 @@ const AllAppointments = () => {
                     item.cancellationDetails
                   )
                 }
-                className="text-red-400 text-sm font-sans font-medium cursor-pointer hover:underline"
+                className="inline-flex w-fit justify-self-start items-center rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-medium font-sans text-red-700 cursor-pointer hover:bg-red-200"
               >
                 Xem lý do hủy
               </p>
             ) : item.isCompleted ? (
-              <p className="text-green-500 text-sm font-sans font-medium ">Hoàn thành</p>
+              <p className="inline-flex w-fit justify-self-start items-center rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-medium font-sans text-green-700">Hoàn thành</p>
             ) : (
               <img
                 onClick={() => cancelAppointment(item._id)}
