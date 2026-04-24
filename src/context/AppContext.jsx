@@ -16,6 +16,24 @@ const AppContextProvider = (props) => {
   );
   const [userData, setUserData] = useState(false);
 
+  const resetUserSession = () => {
+    setToken(false);
+    setUserData(false);
+    localStorage.removeItem("token");
+  };
+
+  const isAuthOrBannedMessage = (message = "") => {
+    const normalizedMessage = String(message).toLowerCase();
+    return (
+      normalizedMessage.includes("bị khóa") ||
+      normalizedMessage.includes("vi phạm") ||
+      normalizedMessage.includes("chưa được xác thực") ||
+      normalizedMessage.includes("đăng nhập lại") ||
+      normalizedMessage.includes("jwt") ||
+      normalizedMessage.includes("token")
+    );
+  };
+
   const patchPersonalImages = async (payload) => {
     if (!token) {
       return { success: false, message: "Vui lòng đăng nhập" };
@@ -48,10 +66,16 @@ const AppContextProvider = (props) => {
       if (data.success) {
         setUserData(data.userData);
       } else {
+        if (isAuthOrBannedMessage(data.message)) {
+          resetUserSession();
+        }
         toast.error(data.message);
       }
     } catch (error) {
       console.log(error);
+      if (isAuthOrBannedMessage(error.message)) {
+        resetUserSession();
+      }
       toast.error(error.message);
     }
   };

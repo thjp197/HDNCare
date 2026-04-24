@@ -6,6 +6,7 @@ import { v2 as cloudinary } from "cloudinary";
 import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } from "vnpay";
+import { applyUserPenalty, isWithinHoursToAppointment } from "../utils/penaltyUtils.js";
 
 const PERSONAL_LIBRARY_FOLDER = "hdn_care/personal_library";
 
@@ -89,6 +90,13 @@ const loginUser = async (req, res) => {
 
     if (!user) {
       return res.json({ success: false, message: "Người dùng không tồn tại" });
+    }
+
+    if (user.isBanned) {
+      return res.json({
+        success: false,
+        message: "Tài khoản của bạn đã bị khóa do vi phạm chính sách hủy lịch nhiều lần.",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -862,6 +870,10 @@ const cancelAppointment = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
     }
 
+    if (appointmentData.cancelled) {
+      return res.json({ success: false, message: "Lịch hẹn này đã được hủy trước đó" });
+    }
+
     // verify appointment user
     if (String(appointmentData.userId) !== String(userId)) {
       return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
@@ -894,7 +906,30 @@ const cancelAppointment = async (req, res) => {
       await stylistModel.findByIdAndUpdate(styId, { slots_booked });
     }
 
-    res.json({ success: true, message: "Lịch hẹn đã được hủy" });
+    const shouldPenalize = isWithinHoursToAppointment(appointmentData, 2);
+    let penaltyResult = null;
+
+    if (shouldPenalize) {
+      penaltyResult = await applyUserPenalty(userId, {
+        appointmentId,
+        source: "user",
+        reason: "Người dùng hủy lịch sát giờ hẹn (trong vòng 2 tiếng)",
+      });
+    }
+
+    const message = penaltyResult?.applied
+      ? penaltyResult.isBanned
+        ? "Lịch hẹn đã được hủy. Bạn bị phạt 1 lần và tài khoản đã bị khóa vì đủ 5 lần vi phạm."
+        : `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5).`
+      : "Lịch hẹn đã được hủy";
+
+    res.json({
+      success: true,
+      message,
+      penaltyApplied: Boolean(penaltyResult?.applied),
+      penaltyCount: penaltyResult?.penaltyCount || null,
+      userBanned: Boolean(penaltyResult?.isBanned),
+    });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });

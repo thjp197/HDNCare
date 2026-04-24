@@ -10,6 +10,8 @@ const StylistAppointments = () => {
   const { slotDateFormat, calculateAge, currency } = useContext(AppContext)
   const [cancelReasonModalOpen, setCancelReasonModalOpen] = useState(false);
   const [selectedCancellationData, setSelectedCancellationData] = useState(null);
+  const [cancelConfirmModalOpen, setCancelConfirmModalOpen] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState(null);
   const [hoverPreview, setHoverPreview] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
 
@@ -30,6 +32,22 @@ const StylistAppointments = () => {
   const closeCancellationReasonModal = () => {
     setCancelReasonModalOpen(false);
     setSelectedCancellationData(null);
+  };
+
+  const openCancelConfirmModal = (appointmentId) => {
+    setAppointmentToCancel(appointmentId);
+    setCancelConfirmModalOpen(true);
+  };
+
+  const closeCancelConfirmModal = () => {
+    setCancelConfirmModalOpen(false);
+    setAppointmentToCancel(null);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!appointmentToCancel) return;
+    await cancelAppointment(appointmentToCancel, { penalizeUser: true });
+    closeCancelConfirmModal();
   };
 
   const handlePreviewMouseMove = (event, imageUrl) => {
@@ -108,12 +126,12 @@ const StylistAppointments = () => {
                   }
                   className='inline-flex w-fit justify-self-start items-center rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-medium font-sans text-red-700 cursor-pointer hover:bg-red-200'
                 >
-                  Đã hủy
+                  Xem lý do hủy
                 </p>
               : item.isCompleted
                 ?<p className='inline-flex w-fit justify-self-start items-center rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-medium font-sans text-green-700'>Hoàn thành</p>
                 :<div className='flex gap-2'>
-              <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
+              <img onClick={() => openCancelConfirmModal(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
               <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Hoàn thành" />
             </div>
             }
@@ -161,6 +179,30 @@ const StylistAppointments = () => {
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cancelConfirmModalOpen && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'>
+          <div className='w-full max-w-md rounded-lg bg-white p-6 shadow-lg'>
+            <h2 className='mb-3 text-xl font-bold text-gray-800'>Xác nhận hủy đơn</h2>
+            <p className='text-gray-600'>Bạn có muốn hủy đơn và phạt người dùng này 1 lần không?</p>
+
+            <div className='mt-6 flex justify-end gap-3'>
+              <button
+                onClick={closeCancelConfirmModal}
+                className='rounded-lg bg-gray-200 px-4 py-2 text-gray-800 transition hover:bg-gray-300'
+              >
+                Đóng
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                className='rounded-lg bg-red-600 px-4 py-2 text-white transition hover:bg-red-700'
+              >
+                Xác nhận
               </button>
             </div>
           </div>
