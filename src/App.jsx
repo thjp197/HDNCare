@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import Chatbot from './components/Chatbot'
 import Footer from './components/Footer'
 import Navbar from './components/Navbar'
+import GlobalBannedAccountModal from './components/GlobalBannedAccountModal'
 import './index.css'
 import About from './pages/About'
 import Appointments from './pages/Appointment'
@@ -20,6 +21,7 @@ const App = () => {
   
   return (
     <div className='mx-4 sm:mx-[10%]'>
+      <GlobalBannedAccountModal />
       <ToastContainer />
       <Navbar/>
       <Routes>

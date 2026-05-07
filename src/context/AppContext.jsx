@@ -15,6 +15,7 @@ const AppContextProvider = (props) => {
     localStorage.getItem("token") ? localStorage.getItem("token") : false,
   );
   const [userData, setUserData] = useState(false);
+  const [showBannedAccountModal, setShowBannedAccountModal] = useState(false);
 
   const resetUserSession = () => {
     setToken(false);
@@ -65,6 +66,10 @@ const AppContextProvider = (props) => {
       });
       if (data.success) {
         setUserData(data.userData);
+        // Kiểm tra nếu user bị khóa
+        if (data.userData && data.userData.isBanned) {
+          setShowBannedAccountModal(true);
+        }
       } else {
         if (isAuthOrBannedMessage(data.message)) {
           resetUserSession();
@@ -114,6 +119,7 @@ const AppContextProvider = (props) => {
     userData,setUserData,
     loadUserProfileData,
     patchPersonalImages,
+    showBannedAccountModal, setShowBannedAccountModal,
   };
 
   return (

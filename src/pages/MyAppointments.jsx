@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import { useSearchParams } from "react-router-dom";
 
 const MyAppointments = () => {
-  const { backendUrl, token, stylists, getStylistsData, loadUserProfileData, userData } =
+  const { backendUrl, token, stylists, getStylistsData, loadUserProfileData, userData, setShowBannedAccountModal } =
     useContext(AppContext);
   const [searchParams] = useSearchParams();
 
@@ -236,8 +236,14 @@ const MyAppointments = () => {
         setAppointmentToCancel(null);
         setSelectedReasons([]);
         setCancellationReason("");
-        getUserAppointments(); // Refresh the appointments list
-        getStylistsData(); // Refresh stylist data to update available slots
+        
+        // Kiểm tra nếu tài khoản bị khóa
+        if (data.userBanned) {
+          setShowBannedAccountModal(true);
+        } else {
+          getUserAppointments(); // Refresh the appointments list
+          getStylistsData(); // Refresh stylist data to update available slots
+        }
       } else {
         toast.error(data.message || "Không thể hủy lịch hẹn");
       }
@@ -569,8 +575,8 @@ const MyAppointments = () => {
           </div>
         </div>
       )}
-    </div>
-  );
+      </div>
+    );
 };
 
 export default MyAppointments;

@@ -6,7 +6,7 @@ import { v2 as cloudinary } from "cloudinary";
 import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } from "vnpay";
-import { applyUserPenalty, isWithinHoursToAppointment } from "../utils/penaltyUtils.js";
+import { applyUserPenalty, isWithinHoursToAppointment, processRefund } from "../utils/penaltyUtils.js";
 
 const PERSONAL_LIBRARY_FOLDER = "hdn_care/personal_library";
 
@@ -908,6 +908,7 @@ const cancelAppointment = async (req, res) => {
 
     const shouldPenalize = isWithinHoursToAppointment(appointmentData, 2);
     let penaltyResult = null;
+    let refundResult = null;
 
     if (shouldPenalize) {
       penaltyResult = await applyUserPenalty(userId, {
@@ -915,13 +916,25 @@ const cancelAppointment = async (req, res) => {
         source: "user",
         reason: "Người dùng hủy lịch sát giờ hẹn (trong vòng 2 tiếng)",
       });
+    } else {
+      // Xử lý hoàn tiền nếu hủy lịch hợp lệ (không vi phạm chính sách)
+      refundResult = await processRefund(userId, appointmentData);
     }
 
-    const message = penaltyResult?.applied
-      ? penaltyResult.isBanned
-        ? "Lịch hẹn đã được hủy. Bạn bị phạt 1 lần và tài khoản đã bị khóa vì đủ 5 lần vi phạm."
-        : `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5).`
-      : "Lịch hẹn đã được hủy";
+    // Xây dựng thông báo
+    let message = "";
+    
+    if (penaltyResult?.applied) {
+      if (penaltyResult.isBanned) {
+        message = "Lịch hẹn đã được hủy. Bạn bị phạt 1 lần và tài khoản đã bị khóa vì đủ 5 lần vi phạm. Không có tiền hoàn lại.";
+      } else {
+        message = `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5). Không có tiền hoàn lại.`;
+      }
+    } else if (refundResult?.success && refundResult.amount > 0) {
+      message = `Lịch hẹn đã được hủy. ${refundResult.message}`;
+    } else {
+      message = "Lịch hẹn đã được hủy";
+    }
 
     res.json({
       success: true,
@@ -929,6 +942,9 @@ const cancelAppointment = async (req, res) => {
       penaltyApplied: Boolean(penaltyResult?.applied),
       penaltyCount: penaltyResult?.penaltyCount || null,
       userBanned: Boolean(penaltyResult?.isBanned),
+      refundProcessed: refundResult?.success && refundResult.amount > 0,
+      refundAmount: refundResult?.amount || 0,
+      refundMessage: refundResult?.message || null,
     });
   } catch (error) {
     console.log(error);
