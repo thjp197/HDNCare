@@ -5,7 +5,7 @@ import { AppContext } from '../../context/AppContext'
 
 const StylistDashboard = () => {
 
-  const { sToken, dashData, setDashData, getDashData, completeAppointment, cancelAppointment } = useContext(StylistContext)
+  const { sToken, dashData, getDashData, completeAppointment, cancelAppointment } = useContext(StylistContext)
   const {currency, slotDateFormat} = useContext(AppContext)
 
   useEffect(() => {
@@ -13,6 +13,13 @@ const StylistDashboard = () => {
       getDashData()
     }
   }, [sToken])
+
+  const handleCancelAppointment = async (appointmentId) => {
+    const shouldCancel = window.confirm('Bạn có muốn hủy đơn và phạt người dùng này 1 lần không?')
+    if (!shouldCancel) return
+    await cancelAppointment(appointmentId, { penalizeUser: true })
+    getDashData()
+  }
 
   return dashData && (
     <div className='m-5 mt-3'>
@@ -85,7 +92,7 @@ const StylistDashboard = () => {
                                  : item.isCompleted
                                    ?<p className='text-green-500 text-xs font-medium font-sans'>Hoàn thành</p>
                                    :<div className='flex gap-2'>
-                                 <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
+                                 <img onClick={() => handleCancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
                                  <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Hoàn thành" />
                                </div>
                                }

@@ -15,6 +15,25 @@ const AppContextProvider = (props) => {
     localStorage.getItem("token") ? localStorage.getItem("token") : false,
   );
   const [userData, setUserData] = useState(false);
+  const [showBannedAccountModal, setShowBannedAccountModal] = useState(false);
+
+  const resetUserSession = () => {
+    setToken(false);
+    setUserData(false);
+    localStorage.removeItem("token");
+  };
+
+  const isAuthOrBannedMessage = (message = "") => {
+    const normalizedMessage = String(message).toLowerCase();
+    return (
+      normalizedMessage.includes("bị khóa") ||
+      normalizedMessage.includes("vi phạm") ||
+      normalizedMessage.includes("chưa được xác thực") ||
+      normalizedMessage.includes("đăng nhập lại") ||
+      normalizedMessage.includes("jwt") ||
+      normalizedMessage.includes("token")
+    );
+  };
 
   const patchPersonalImages = async (payload) => {
     if (!token) {
@@ -47,11 +66,21 @@ const AppContextProvider = (props) => {
       });
       if (data.success) {
         setUserData(data.userData);
+        // Kiểm tra nếu user bị khóa
+        if (data.userData && data.userData.isBanned) {
+          setShowBannedAccountModal(true);
+        }
       } else {
+        if (isAuthOrBannedMessage(data.message)) {
+          resetUserSession();
+        }
         toast.error(data.message);
       }
     } catch (error) {
       console.log(error);
+      if (isAuthOrBannedMessage(error.message)) {
+        resetUserSession();
+      }
       toast.error(error.message);
     }
   };
@@ -90,6 +119,7 @@ const AppContextProvider = (props) => {
     userData,setUserData,
     loadUserProfileData,
     patchPersonalImages,
+    showBannedAccountModal, setShowBannedAccountModal,
   };
 
   return (

@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 
 const Login = () => {
 
-  const { backendUrl, token, setToken } = useContext(AppContext)
+  const { backendUrl, token, setToken, setShowBannedAccountModal } = useContext(AppContext)
   const navigate = useNavigate()
 
   const [state, setState] = useState('Sign Up')
@@ -40,7 +40,12 @@ const Login = () => {
           setToken(data.token)
           navigate('/')
         } else {
-          toast.error(data.message)
+          // Kiểm tra nếu tài khoản bị khóa
+          if (data.message && data.message.toLowerCase().includes('bị khóa')) {
+            setShowBannedAccountModal(true)
+          } else {
+            toast.error(data.message)
+          }
         }
 
       }

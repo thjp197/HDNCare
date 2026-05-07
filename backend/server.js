@@ -18,11 +18,22 @@ const port = process.env.PORT || 4000
 connectDB()
 connectCloudinary()
 
+// const corsOptions = {
+//   origin: true,
+//   credentials: true,
+// }
+
 const corsOptions = {
-  origin: true,
+  origin: [
+    'https://hdncare.onrender.com',
+    'https://hdncare-admin.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174'
+  ],
   credentials: true,
 }
-
 // middlewares
 app.use(cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))

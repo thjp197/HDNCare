@@ -8,10 +8,10 @@ import './stylesbanner.css';
 
 const slides = [
   '/bannerslide/banner1.png',
-  '/bannerslide/banner3.png',
   '/bannerslide/banner2.png',
-  '/bannerslide/banner4.png',
+  '/bannerslide/banner3.png',
   '/bannerslide/banner5.png',
+  '/bannerslide/banner4.png',
 ]
 
 const Banner = () => {
@@ -28,7 +28,7 @@ const Banner = () => {
         >
           {slides.map((src, i) => (
             <SwiperSlide key={i} onClick={() => navigate('/login')} style={{ cursor: 'pointer' }}>
-              <img src={src} alt={`Banner ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={src} alt={`Banner ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'full' }} />
             </SwiperSlide>
           ))}
         </Swiper>

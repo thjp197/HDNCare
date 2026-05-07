@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import Login from './pages/Login'
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AdminContext } from './context/AdminContext';
 import Navbar from './components/Navbar';
@@ -11,6 +11,7 @@ import AllAppointments from './pages/Admin/AllAppointments';
 import AddStylist from './pages/Admin/AddStylist';
 import StylistsList from './pages/Admin/StylistsList';
 import EditStylist from './pages/Admin/EditStylist';
+import PenalizedUsers from './pages/Admin/PenalizedUsers';
 import { StylistContext } from './context/StylistContext';
 import StylistDashboard from './pages/Stylist/StylistDashboard';
 import StylistAppointment from './pages/Stylist/StylistAppointment';
@@ -36,6 +37,7 @@ const App = () => {
           <Route path='/all-appointments' element={<AllAppointments />}/>  
           <Route path='/add-stylist' element={<AddStylist />}/>  
           <Route path='/stylists-list' element={<StylistsList />}/>  
+          <Route path='/penalized-users' element={<PenalizedUsers />}/>
           <Route path='/edit-stylist/:stylistId' element={<EditStylist />}/>
 
           {/* stylist routes */}

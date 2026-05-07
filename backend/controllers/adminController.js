@@ -5,6 +5,9 @@ import jwt from "jsonwebtoken";
 import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import userModel from "../models/userModel.js";
+import { applyUserPenalty } from "../utils/penaltyUtils.js";
+
+const MAX_USER_PENALTY_COUNT = 5;
 
 //API for adding stylist
 const addStylist = async (req, res) => {
@@ -124,7 +127,7 @@ const appointmentsAdmin = async (req, res) => {
 const appointmentCancel = async (req, res) => {
 
     try {
-        const { appointmentId } = req.body
+    const { appointmentId, penalizeUser = false } = req.body
 
         if (!appointmentId) {
             return res.json({ success: false, message: "Thiếu mã lịch hẹn" })
@@ -136,8 +139,21 @@ const appointmentCancel = async (req, res) => {
             return res.json({ success: false, message: "Không tìm thấy lịch hẹn" })
         }
 
+        if (appointmentData.cancelled) {
+          return res.json({ success: false, message: "Lịch hẹn này đã được hủy trước đó" })
+        }
 
-        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+
+        const cancellationReasons = ["Hủy bởi quản trị viên/chuyên viên"]
+        const cancellationDetails = penalizeUser
+          ? "Đơn đã bị hủy và người dùng bị phạt 1 lần."
+          : "Đơn đã bị hủy bởi quản trị viên/chuyên viên."
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, {
+          cancelled: true,
+          cancellationReasons,
+          cancellationDetails,
+        })
 
         //releasing stylist slot
         const { styId, slotDate, slotTime } = appointmentData
@@ -154,7 +170,29 @@ const appointmentCancel = async (req, res) => {
             await stylistModel.findByIdAndUpdate(styId, { slots_booked })
         }
 
-        res.json({ success: true, message: "Lịch hẹn đã được hủy" })
+          let penaltyResult = null
+
+          if (penalizeUser) {
+            penaltyResult = await applyUserPenalty(appointmentData.userId, {
+              appointmentId,
+              source: "admin",
+              reason: "Lịch hẹn bị hủy bởi quản trị viên hoặc chuyên viên",
+            })
+          }
+
+          const message = penaltyResult?.applied
+            ? penaltyResult.isBanned
+              ? "Lịch hẹn đã được hủy. Người dùng đã bị phạt và tài khoản đã bị khóa vì đủ 5 lần vi phạm."
+              : `Lịch hẹn đã được hủy và người dùng đã bị phạt ${penaltyResult.penaltyCount}/5 lần.`
+            : "Lịch hẹn đã được hủy"
+
+          res.json({
+            success: true,
+            message,
+            penaltyApplied: Boolean(penaltyResult?.applied),
+            penaltyCount: penaltyResult?.penaltyCount || null,
+            userBanned: Boolean(penaltyResult?.isBanned),
+          })
 
     } catch (error) {
         console.log(error)
@@ -162,6 +200,118 @@ const appointmentCancel = async (req, res) => {
     }
 
 }
+
+      const penalizedUsers = async (req, res) => {
+        try {
+          const users = await userModel
+            .find({ penaltyCount: { $gt: 0 } })
+            .select("name email phone penaltyCount isBanned lastPenaltyAt")
+            .sort({ penaltyCount: -1, lastPenaltyAt: -1 })
+
+          res.json({ success: true, users })
+        } catch (error) {
+          console.log(error)
+          res.json({ success: false, message: error.message })
+        }
+      }
+
+const resetUserPenalty = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu mã người dùng" });
+    }
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    await userModel.findByIdAndUpdate(userId, {
+      penaltyCount: 0,
+      isBanned: false,
+      lastPenaltyAt: null,
+      penaltyLogs: [],
+    });
+
+    res.json({ success: true, message: "Đã tạo lại tài khoản và đặt số lần phạt về 0" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const updateUserPenalty = async (req, res) => {
+  try {
+    const { userId, penaltyCount } = req.body;
+    if (penaltyCount === undefined || penaltyCount === null || penaltyCount === "") {
+      return res.json({ success: false, message: "Số lần phạt không được để trống" });
+    }
+
+    const isNumericString =
+      typeof penaltyCount === "string" && /^\d+$/.test(penaltyCount.trim());
+    const isNumericInteger =
+      typeof penaltyCount === "number" && Number.isInteger(penaltyCount);
+
+    if (!isNumericString && !isNumericInteger) {
+      return res.json({ success: false, message: "Số lần phạt chỉ được nhập bằng số" });
+    }
+
+    const normalizedPenaltyCount = Number(
+      typeof penaltyCount === "string" ? penaltyCount.trim() : penaltyCount,
+    );
+
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu mã người dùng" });
+    }
+
+    if (!Number.isInteger(normalizedPenaltyCount) || normalizedPenaltyCount < 0 || normalizedPenaltyCount > MAX_USER_PENALTY_COUNT) {
+      return res.json({ success: false, message: `Số lần phạt chỉ được phép từ 0 đến ${MAX_USER_PENALTY_COUNT}` });
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    const isBanned = normalizedPenaltyCount >= MAX_USER_PENALTY_COUNT;
+
+    if (normalizedPenaltyCount === 0) {
+      await userModel.findByIdAndUpdate(userId, {
+        penaltyCount: 0,
+        isBanned: false,
+        lastPenaltyAt: null,
+        penaltyLogs: [],
+      });
+    } else {
+      await userModel.findByIdAndUpdate(userId, {
+        penaltyCount: normalizedPenaltyCount,
+        isBanned,
+        lastPenaltyAt: new Date(),
+        $push: {
+          penaltyLogs: {
+            source: "admin",
+            reason: `Admin cập nhật số lần phạt thành ${normalizedPenaltyCount}`,
+            createdAt: new Date(),
+            penaltyCountAfter: normalizedPenaltyCount,
+          },
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Cập nhật số lần phạt thành công",
+      penaltyCount: normalizedPenaltyCount,
+      isBanned,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
 
 // API to get dashboard data for admin panel
 const adminDashboard = async (req, res) => {
@@ -212,4 +362,15 @@ const updateStylist = async (req, res) => {
   }
 }
 
-export { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel, adminDashboard, updateStylist };
+export {
+  addStylist,
+  loginAdmin,
+  allStylists,
+  appointmentsAdmin,
+  appointmentCancel,
+  adminDashboard,
+  updateStylist,
+  penalizedUsers,
+  resetUserPenalty,
+  updateUserPenalty,
+};
