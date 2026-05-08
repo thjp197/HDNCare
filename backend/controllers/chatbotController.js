@@ -15,6 +15,13 @@ export const handleChatbotMessage = async (req, res) => {
     try {
         const { message, history, currentUser } = req.body;
 
+        if (!message || typeof message !== 'string') {
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu nội dung tin nhắn.'
+            });
+        }
+
         const genAI = getGeminiClient();
         if (!genAI) {
             return res.status(500).json({
@@ -39,7 +46,7 @@ export const handleChatbotMessage = async (req, res) => {
 
         // 2. KHỞI TẠO MODEL VỚI LỜI DẶN DÒ MỚI
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash", 
+            model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
             systemInstruction: customInstruction,
             tools: bookingTools,
         });
