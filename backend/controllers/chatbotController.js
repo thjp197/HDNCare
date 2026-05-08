@@ -256,7 +256,8 @@ export const handleChatbotMessage = async (req, res) => {
     if (status === 429) {
       return res.status(429).json({
         success: false,
-        message: "Hệ thống đang quá tải hoặc hết hạn mức. Vui lòng thử lại sau vài phút.",
+        message:
+          "Hệ thống đang quá tải hoặc hết hạn mức. Vui lòng thử lại sau vài phút.",
       });
     }
     console.error("Chatbot Error:", error);
