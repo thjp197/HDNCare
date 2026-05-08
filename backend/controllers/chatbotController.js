@@ -56,6 +56,8 @@ export const handleChatbotMessage = async (req, res) => {
     let response;
     let lastError;
 
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
     for (const modelName of modelCandidates) {
       try {
         const model = genAI.getGenerativeModel({
@@ -64,7 +66,23 @@ export const handleChatbotMessage = async (req, res) => {
           tools: bookingTools,
         });
         chat = model.startChat({ history: history || [] });
-        const result = await chat.sendMessage(message);
+        let attempt = 0;
+        let result;
+        while (attempt < 3) {
+          try {
+            result = await chat.sendMessage(message);
+            break;
+          } catch (sendErr) {
+            const status = sendErr?.status || sendErr?.response?.status;
+            if (status === 429 && attempt < 2) {
+              await sleep(800 * (attempt + 1));
+              attempt += 1;
+              continue;
+            }
+            throw sendErr;
+          }
+        }
+        if (!result) throw new Error("Gemini request failed");
         response = result.response;
         lastError = null;
         break;
@@ -234,6 +252,13 @@ export const handleChatbotMessage = async (req, res) => {
 
     return res.json({ success: true, reply: response.text() });
   } catch (error) {
+    const status = error?.status || error?.response?.status;
+    if (status === 429) {
+      return res.status(429).json({
+        success: false,
+        message: "Hệ thống đang quá tải hoặc hết hạn mức. Vui lòng thử lại sau vài phút.",
+      });
+    }
     console.error("Chatbot Error:", error);
     res
       .status(500)
