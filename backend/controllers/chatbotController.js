@@ -47,7 +47,7 @@ export const handleChatbotMessage = async (req, res) => {
     // 2. KHỞI TẠO MODEL VỚI LỜI DẶN DÒ MỚI (CÓ FALLBACK KHI MODEL KHÔNG TỒN TẠI)
     const modelCandidates = [
       process.env.GEMINI_MODEL,
-      "gemini-2.0-flash",
+      "gemini-2.5-flash",
       "gemini-1.5-flash-002",
       "gemini-1.5-flash-latest",
     ].filter(Boolean);
