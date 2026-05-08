@@ -6,10 +6,13 @@ import stylistModel from "../models/stylistModel.js";
 import userModel from "../models/userModel.js";
 
 const getGeminiClient = () => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+  const rawKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+  const apiKey = rawKey ? rawKey.trim() : "";
   if (!apiKey) return null;
   return new GoogleGenerativeAI(apiKey);
 };
+
+const getStatusCode = (err) => err?.status || err?.response?.status;
 
 export const handleChatbotMessage = async (req, res) => {
   try {
@@ -46,7 +49,7 @@ export const handleChatbotMessage = async (req, res) => {
 
     // 2. KHỞI TẠO MODEL VỚI LỜI DẶN DÒ MỚI (CÓ FALLBACK KHI MODEL KHÔNG TỒN TẠI)
     const modelCandidates = [
-      process.env.GEMINI_MODEL,
+      process.env.GEMINI_MODEL?.trim(),
       "gemini-2.5-flash",
       "gemini-1.5-flash-002",
       "gemini-1.5-flash-latest",
@@ -87,9 +90,9 @@ export const handleChatbotMessage = async (req, res) => {
         lastError = null;
         break;
       } catch (err) {
-        const status = err?.status || err?.response?.status;
+        const status = getStatusCode(err);
         lastError = err;
-        if (status === 404) {
+        if (status === 400 || status === 404) {
           continue;
         }
         throw err;
@@ -252,7 +255,7 @@ export const handleChatbotMessage = async (req, res) => {
 
     return res.json({ success: true, reply: response.text() });
   } catch (error) {
-    const status = error?.status || error?.response?.status;
+    const status = getStatusCode(error);
     if (status === 429) {
       return res.status(429).json({
         success: false,
@@ -260,7 +263,19 @@ export const handleChatbotMessage = async (req, res) => {
           "Hệ thống đang quá tải hoặc hết hạn mức. Vui lòng thử lại sau vài phút.",
       });
     }
-    console.error("Chatbot Error:", error);
+    if (status === 401 || status === 403) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Gemini API key không hợp lệ hoặc bị giới hạn quyền. Vui lòng kiểm tra lại cấu hình key trên server.",
+      });
+    }
+
+    console.error("Gemini error:", {
+      status,
+      message: error?.message,
+      name: error?.name,
+    });
     res
       .status(500)
       .json({ success: false, message: "Lỗi hệ thống Chatbot AI" });
