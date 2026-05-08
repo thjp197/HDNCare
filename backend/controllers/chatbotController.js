@@ -44,16 +44,43 @@ export const handleChatbotMessage = async (req, res) => {
             - BẮT BUỘC phải yêu cầu họ cung cấp Tên và Số điện thoại trước khi tiến hành đặt lịch.`;
     }
 
-    // 2. KHỞI TẠO MODEL VỚI LỜI DẶN DÒ MỚI
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
-      systemInstruction: customInstruction,
-      tools: bookingTools,
-    });
+    // 2. KHỞI TẠO MODEL VỚI LỜI DẶN DÒ MỚI (CÓ FALLBACK KHI MODEL KHÔNG TỒN TẠI)
+    const modelCandidates = [
+      process.env.GEMINI_MODEL,
+      "gemini-2.0-flash",
+      "gemini-1.5-flash-002",
+      "gemini-1.5-flash-latest",
+    ].filter(Boolean);
 
-    const chat = model.startChat({ history: history || [] });
-    const result = await chat.sendMessage(message);
-    const response = result.response;
+    let chat;
+    let response;
+    let lastError;
+
+    for (const modelName of modelCandidates) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: customInstruction,
+          tools: bookingTools,
+        });
+        chat = model.startChat({ history: history || [] });
+        const result = await chat.sendMessage(message);
+        response = result.response;
+        lastError = null;
+        break;
+      } catch (err) {
+        const status = err?.status || err?.response?.status;
+        lastError = err;
+        if (status === 404) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!response || !chat) {
+      throw lastError || new Error("Gemini model not available");
+    }
     const functionCalls = response.functionCalls();
 
     if (functionCalls && functionCalls.length > 0) {
