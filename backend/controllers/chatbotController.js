@@ -46,7 +46,7 @@ export const handleChatbotMessage = async (req, res) => {
 
     // 2. KHỞI TẠO MODEL VỚI LỜI DẶN DÒ MỚI
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
+      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
       systemInstruction: customInstruction,
       tools: bookingTools,
     });
