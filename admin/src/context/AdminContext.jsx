@@ -8,10 +8,14 @@ const AdminContextProvider = (props) => {
     const [aToken, setAToken] = useState(localStorage.getItem('aToken')?localStorage.getItem('aToken'):'')
     const [stylists, setStylists] = useState([])
     const [appointments, setAppointments] = useState([])
+    const [penalizedUsers, setPenalizedUsers] = useState([])
     const [dashData, setDashData] = useState(false)
 
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL
+    const backendUrl =
+        import.meta.env.VITE_API_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        'http://localhost:4000'
 
      // Getting all stylist data from Database using API
     const getAllStylists = async () => {
@@ -69,15 +73,37 @@ const AdminContextProvider = (props) => {
     }
 
      // Function to cancel appointment using API
-    const cancelAppointment = async (appointmentId) => {
+    const cancelAppointment = async (appointmentId, options = {}) => {
+
+        const { penalizeUser = false } = options
 
         try {
 
-            const { data } = await axios.post(backendUrl + '/api/admin/cancel-appointment', { appointmentId }, { headers: { aToken } })
+            const { data } = await axios.post(
+                backendUrl + '/api/admin/cancel-appointment',
+                { appointmentId, penalizeUser },
+                { headers: { aToken } }
+            )
 
             if (data.success) {
                 toast.success(data.message)
-                getAllAppointments()
+                setAppointments((prev) =>
+                    prev.map((item) =>
+                        item._id === appointmentId
+                            ? {
+                                ...item,
+                                cancelled: true,
+                                cancellationReasons: item.cancellationReasons?.length
+                                    ? item.cancellationReasons
+                                    : ['Hủy bởi quản trị viên/chuyên viên'],
+                                cancellationDetails: item.cancellationDetails || 'Đơn đã bị hủy và được giữ lại để theo dõi.',
+                              }
+                            : item
+                    )
+                )
+                if (penalizeUser) {
+                    getPenalizedUsers()
+                }
             } else {
                 toast.error(data.message)
             }
@@ -87,6 +113,85 @@ const AdminContextProvider = (props) => {
             console.log(error)
         }
 
+    }
+
+    const getPenalizedUsers = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/penalized-users', { headers: { aToken } })
+
+            if (data.success) {
+                setPenalizedUsers(data.users || [])
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    const resetUserPenalty = async (userId) => {
+        try {
+            const { data } = await axios.post(
+                backendUrl + '/api/admin/reset-user-penalty',
+                { userId },
+                { headers: { aToken } }
+            )
+
+            if (data.success) {
+                toast.success(data.message)
+                setPenalizedUsers((prev) => prev.filter((item) => item._id !== userId))
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    const updateUserPenalty = async (userId, penaltyCount) => {
+        try {
+            const { data } = await axios.post(
+                backendUrl + '/api/admin/update-user-penalty',
+                { userId, penaltyCount },
+                { headers: { aToken } }
+            )
+
+            if (data.success) {
+                toast.success(data.message)
+                const normalizedPenaltyCount = Number(data.penaltyCount)
+
+                if (normalizedPenaltyCount <= 0) {
+                    setPenalizedUsers((prev) => prev.filter((item) => item._id !== userId))
+                    return { success: true }
+                }
+
+                setPenalizedUsers((prev) =>
+                    prev
+                        .map((item) =>
+                            item._id === userId
+                                ? {
+                                      ...item,
+                                      penaltyCount: normalizedPenaltyCount,
+                                      isBanned: Boolean(data.isBanned),
+                                      lastPenaltyAt: new Date().toISOString(),
+                                  }
+                                : item
+                        )
+                        .sort((a, b) => Number(b.penaltyCount || 0) - Number(a.penaltyCount || 0))
+                )
+
+                return { success: true }
+            }
+
+            toast.error(data.message)
+            return { success: false }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
     }
 
     const getDashData = async () => {
@@ -112,7 +217,9 @@ const AdminContextProvider = (props) => {
         getAllStylists,
         stylists,
         changeAvailability,
-        appointments, getAllAppointments, setAppointments, cancelAppointment, dashData, getDashData
+        appointments, getAllAppointments, setAppointments, cancelAppointment,
+        penalizedUsers, getPenalizedUsers, resetUserPenalty, updateUserPenalty,
+        dashData, getDashData
     }
 
     return (

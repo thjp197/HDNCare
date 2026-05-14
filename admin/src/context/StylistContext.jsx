@@ -6,7 +6,10 @@ export const StylistContext = createContext();
 
 const StylistContextProvider = (props) => {
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL
+    const backendUrl =
+        import.meta.env.VITE_API_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        'http://localhost:4000'
 
     const [sToken, setSToken] = useState(localStorage.getItem('sToken') ? localStorage.getItem('sToken') : '')
     const [appointments, setAppointments] = useState([])
@@ -41,7 +44,20 @@ const StylistContextProvider = (props) => {
             }
             if (data.success) {
                 toast.success(data.message)
-                getAppointments()
+                setAppointments((prev) =>
+                    prev.map((item) =>
+                        item._id === appointmentId
+                            ? {
+                                ...item,
+                                cancelled: true,
+                                cancellationReasons: item.cancellationReasons?.length
+                                    ? item.cancellationReasons
+                                    : ['Hủy bởi quản trị viên/chuyên viên'],
+                                cancellationDetails: item.cancellationDetails || 'Đơn đã bị hủy và được giữ lại để theo dõi.',
+                              }
+                            : item
+                    )
+                )
             } else {
                 toast.error(data.message)
             }
@@ -53,10 +69,16 @@ const StylistContextProvider = (props) => {
 
     }
 
-    const cancelAppointment = async (appointmentId) => {
+    const cancelAppointment = async (appointmentId, options = {}) => {
+        const { penalizeUser = false } = options
+
         try {
             
-            const {data} = await axios.post(backendUrl + '/api/stylist/cancel-appointment', {appointmentId}, {headers: { stoken: sToken }})
+            const {data} = await axios.post(
+                backendUrl + '/api/stylist/cancel-appointment',
+                {appointmentId, penalizeUser},
+                {headers: { stoken: sToken }}
+            )
             if (import.meta.env.DEV) {
                 console.log('cancel-appointment response:', data)
             }

@@ -26,7 +26,7 @@ const About = () => {
       <div className='flex flex-col md:flex-row mb-20'>
         <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600 cursor-pointer'>
           <b>HIỆU QUẢ:</b>
-          <p>Streamlined appointment scheduling that fits into your busy lifestyle.</p>
+          <p>Hệ thống đặt lịch hẹn được tối ưu hóa, phù hợp với lối sống bận rộn của bạn.</p>
         </div>
         <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600 cursor-pointer'>
           <b>TIỆN LỢI: </b>

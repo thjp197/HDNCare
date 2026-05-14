@@ -39,8 +39,8 @@ const Navbar = () => {
               <li className='py-1'>LIÊN HỆ</li>
               <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
-            <NavLink to='/ar-makeup'>
-              <li className='py-1'>AR Makeup</li>
+            <NavLink to='/ai-makeup'>
+              <li className='py-1'>AI Makeup</li>
               <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
         </ul>
@@ -53,14 +53,15 @@ const Navbar = () => {
               {showProfile && (
                 <div className='absolute right-0 z-50 text-base font-medium text-gray-600 top-8 pt-2'>
                   <div className='flex flex-col gap-4 p-4 rounded min-w-48 bg-stone-100'>
-                    <p onClick={()=>{navigate('my-profile'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Hồ sơ của tôi</p>
-                    <p onClick={()=>{navigate('my-appointments'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
+                    <p onClick={()=>{navigate('/my-profile'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Hồ sơ của tôi</p>
+                    <p onClick={()=>{navigate('/my-appointments'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
+                    <p onClick={()=>{navigate('/my-wallet'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Ví của tôi</p>
                     <p onClick={()=>{logout()}} className='cursor-pointer hover:text-black'>Đăng xuất</p>
                   </div>
                 </div>
               )}
             </div>
-            :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-primary md:block'>Create account</button>
+            :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-primary md:block'>Tạo tài khoản</button>
           }
           <img onClick={() => setShowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
 
@@ -74,7 +75,7 @@ const Navbar = () => {
             <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded full inline-block'>TRANG CHỦ</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/stylists' ><p className='px-4 py-2 rounded full inline-block'>TẤT CẢ CHUYÊN VIÊN</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/about' ><p className='px-4 py-2 rounded full inline-block'>VỀ HDNCARE</p></NavLink>
-            <NavLink onClick={() => setShowMenu(false)} to='/ar-makeup' ><p className='px-4 py-2 rounded full inline-block'>AR Makeup</p></NavLink>
+            <NavLink onClick={() => setShowMenu(false)} to='/ai-makeup' ><p className='px-4 py-2 rounded full inline-block'>AI Makeup</p></NavLink>
           </ul>
         </div>
         </div>

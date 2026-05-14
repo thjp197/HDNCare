@@ -1,17 +1,26 @@
 import axios from "axios";
-import { Camera } from "lucide-react";
+import { Camera, Images, Trash2, X } from "lucide-react";
 import { useContext, useState } from "react";
 import { toast } from "react-toastify";
 import { AppContext } from "../context/AppContext";
 
 const MyProfile = () => {
-  const { userData, setUserData, token, backendUrl, loadUserProfileData } =
+  const {
+    userData,
+    setUserData,
+    token,
+    backendUrl,
+    loadUserProfileData,
+    patchPersonalImages,
+  } =
     useContext(AppContext);
 
   const [isEdit, setIsEdit] = useState(false);
   const [image, setImage] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [deletingImageUrl, setDeletingImageUrl] = useState("");
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -139,6 +148,23 @@ const MyProfile = () => {
     });
   };
 
+  const deletePersonalImage = async (imageUrl) => {
+    try {
+      setDeletingImageUrl(imageUrl);
+      const result = await patchPersonalImages({ action: "remove", imageUrl });
+
+      if (result.success) {
+        toast.success("Đã xóa ảnh khỏi thư viện");
+      } else {
+        toast.error(result.message || "Không thể xóa ảnh");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setDeletingImageUrl("");
+    }
+  };
+
   // Hàm xử lý nhập Số điện thoại
   const handlePhoneChange = (e) => {
     // Loại bỏ tất cả ký tự không phải là số
@@ -246,6 +272,15 @@ const MyProfile = () => {
                 Chỉnh sửa hồ sơ
               </button>
             )}
+
+            <button
+              onClick={() => setShowLibraryModal(true)}
+              className="px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-white hover:bg-[#fff5f8] transition-all inline-flex items-center gap-2"
+            >
+              <Images className="w-4 h-4" />
+              Thư viện ảnh của bạn
+            </button>
+
             <button
               onClick={() => setShowPasswordForm(true)}
               className="px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-[#fff4f7] hover:bg-[#fdeaf0] transition-all"
@@ -445,6 +480,60 @@ const MyProfile = () => {
                 {isChangingPassword ? "Đang xử lý..." : "Cập nhật mật khẩu"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showLibraryModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl bg-white rounded-2xl border border-[#ecd5dc] shadow-2xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-semibold text-[#2f211c]">
+                  Thư viện ảnh của bạn
+                </p>
+                <p className="text-sm text-[#8a6960] mt-1">
+                  Quản lý ảnh makeup cá nhân để chia sẻ nhanh khi đặt lịch.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowLibraryModal(false)}
+                className="p-2 rounded-lg border border-[#ead5dd] text-[#7b1e3a] hover:bg-[#fff2f7]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {Array.isArray(userData.personalImages) &&
+            userData.personalImages.length > 0 ? (
+              <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                {userData.personalImages.map((imgUrl) => (
+                  <div
+                    key={imgUrl}
+                    className="group relative rounded-xl overflow-hidden border border-[#ead5dd] bg-[#fff8fb]"
+                  >
+                    <img
+                      src={imgUrl}
+                      alt="Ảnh makeup cá nhân"
+                      className="w-full h-36 object-contain bg-white p-1"
+                    />
+
+                    <button
+                      onClick={() => deletePersonalImage(imgUrl)}
+                      disabled={deletingImageUrl === imgUrl}
+                      className="absolute top-2 right-2 bg-white/95 text-[#8f2042] border border-[#efcfda] rounded-lg p-1.5 shadow-sm hover:bg-white disabled:opacity-60"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-xl border border-dashed border-[#ead5dd] bg-[#fff8fb] p-10 text-center text-[#8a6960]">
+                Bạn chưa có ảnh trong thư viện cá nhân.
+              </div>
+            )}
           </div>
         </div>
       )}

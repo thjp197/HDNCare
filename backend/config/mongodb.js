@@ -5,7 +5,12 @@ const connectDB = async () => {
         console.log("DB connected");
     });
 
-    await mongoose.connect(`${process.env.MONGODB_URI}/booking`);
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
+    if (!mongoUri) {
+        throw new Error('Missing MongoDB connection string (MONGODB_URI or MONGO_URI).');
+    }
+
+    await mongoose.connect(`${mongoUri}/booking`);
 }
 
 export default connectDB;

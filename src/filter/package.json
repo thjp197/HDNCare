@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "live-server --host=127.0.0.1 --port=8090 --no-browser"
-  },
-  "devDependencies": {
-    "live-server": "^1.2.2"
+    "dev": "node -e \"console.log('Deprecated: AR filter is now served from /public/filter via Client')\""
   }
 }

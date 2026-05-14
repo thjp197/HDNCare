@@ -2,6 +2,7 @@ import stylistModel from "../models/stylistModel.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import appointmentModel from "../models/appointmentModel.js";
+import { applyUserPenalty } from "../utils/penaltyUtils.js";
 
 // API to change stylist availablity for Admin and Stylist Panel
 const changeAvailablity = async (req, res) => {
@@ -42,7 +43,7 @@ const loginStylist = async (req, res) => {
         const user = await stylistModel.findOne({ email })
 
         if (!user) {
-            return res.json({ success: false, message: "Invalid credentials" })
+            return res.json({ success: false, message: "Thông tin đăng nhập không đúng" })
         }
 
         const isMatch = await bcrypt.compare(password, user.password)
@@ -51,7 +52,7 @@ const loginStylist = async (req, res) => {
             const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
             res.json({ success: true, token })
         } else {
-            res.json({ success: false, message: "Invalid credentials" })
+            res.json({ success: false, message: "Thông tin đăng nhập không đúng" })
         }
 
     } catch (error) {
@@ -101,17 +102,62 @@ const appointmentComplete = async (req, res) => {
 // API to cancel appointment for stylist panel
 const appointmentCancel = async (req, res) => {
     try {
-        const { appointmentId } = req.body
+        const { appointmentId, penalizeUser = false } = req.body
         const styId = req.styId
 
         const appointmentData = await appointmentModel.findById(appointmentId)
+        if (appointmentData?.cancelled) {
+            return res.json({ success: false, message: 'Lịch hẹn này đã được hủy trước đó' })
+        }
+
         if (appointmentData && String(appointmentData.styId) === String(styId)) {
             const updatedAppointment = await appointmentModel.findByIdAndUpdate(
                 appointmentId,
-                { cancelled: true },
+                {
+                    cancelled: true,
+                    cancellationReasons: ['Hủy bởi quản trị viên/chuyên viên'],
+                    cancellationDetails: penalizeUser
+                        ? 'Đơn đã bị hủy và người dùng bị phạt 1 lần.'
+                        : 'Đơn đã bị hủy bởi quản trị viên/chuyên viên.',
+                },
                 { returnDocument: 'after' }
             )
-            return res.json({ success: true, message: 'Hủy cuộc hẹn thành công', appointment: updatedAppointment })
+
+            const stylistData = await stylistModel.findById(styId)
+            if (stylistData) {
+                const { slotDate, slotTime } = appointmentData
+                let slots_booked = stylistData.slots_booked || {}
+
+                if (Array.isArray(slots_booked[slotDate])) {
+                    slots_booked[slotDate] = slots_booked[slotDate].filter((item) => item !== slotTime)
+                }
+
+                await stylistModel.findByIdAndUpdate(styId, { slots_booked })
+            }
+
+            let penaltyResult = null
+            if (penalizeUser) {
+                penaltyResult = await applyUserPenalty(appointmentData.userId, {
+                    appointmentId,
+                    source: 'stylist',
+                    reason: 'Lịch hẹn bị hủy bởi quản trị viên hoặc chuyên viên',
+                })
+            }
+
+            const message = penaltyResult?.applied
+                ? penaltyResult.isBanned
+                    ? 'Hủy cuộc hẹn thành công. Người dùng đã bị phạt và tài khoản đã bị khóa vì đủ 5 lần vi phạm.'
+                    : `Hủy cuộc hẹn thành công. Người dùng đã bị phạt ${penaltyResult.penaltyCount}/5 lần.`
+                : 'Hủy cuộc hẹn thành công'
+
+            return res.json({
+                success: true,
+                message,
+                appointment: updatedAppointment,
+                penaltyApplied: Boolean(penaltyResult?.applied),
+                penaltyCount: penaltyResult?.penaltyCount || null,
+                userBanned: Boolean(penaltyResult?.isBanned),
+            })
         } else {
             return res.json({ success: false, message: 'Hủy cuộc hẹn thất bại' })
         }
