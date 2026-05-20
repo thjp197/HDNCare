@@ -23,8 +23,11 @@ export const handleChatbotMessage = async (req, res) => {
             });
         }
 
+        // Lấy ngày giờ hiện tại của Việt Nam để AI tự tính ngày tháng
+        const today = new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
         // 1. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG (DYNAMIC INSTRUCTION)
-        let customInstruction = companyInfo;
+        let customInstruction = `[SYSTEM TIME CLOCK: Hôm nay là ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên ngày này và LUÔN MẶC ĐỊNH LÀ NĂM HIỆN TẠI.]\n\n` + companyInfo;
         
         if (currentUser && currentUser.phone) {
             customInstruction += `\n\n[LƯU Ý ĐẶC BIỆT]: Bạn đang nói chuyện với khách hàng đã đăng nhập. 
@@ -33,11 +36,14 @@ export const handleChatbotMessage = async (req, res) => {
             - BẮT BUỘC: KHÔNG ĐƯỢC hỏi tên và số điện thoại của họ nữa.
             - Khi cần gọi hàm createBooking hoặc cancelAppointment, hãy tự động lấy tên và số điện thoại ở trên để điền vào.`;
         } else {
+            // CHẶN KHÁCH VÃNG LAI BẰNG PROMPT
             customInstruction += `\n\n[LƯU Ý ĐẶC BIỆT]: Bạn đang nói chuyện với khách vãng lai (chưa đăng nhập). 
-            - BẮT BUỘC phải yêu cầu họ cung cấp Tên và Số điện thoại trước khi tiến hành đặt lịch.`;
+            - QUY TẮC CỨNG: TUYỆT ĐỐI KHÔNG ĐƯỢC PHÉP ĐẶT LỊCH HOẶC HUỶ LỊCH.
+            - Nếu khách yêu cầu đặt/huỷ lịch, hãy từ chối một cách lịch sự, khéo léo và hướng dẫn họ ĐĂNG NHẬP vào tài khoản trên website để thực hiện.
+            - KHÔNG ĐƯỢC gọi các hàm 'checkAvailability', 'createBooking', hay 'cancelAppointment' trong bất kỳ hoàn cảnh nào.`;
         }
 
-        // 2. KHỞI TẠO MODEL VỚI LỜI DẶN DÒ MỚI
+        // 2. KHỞI TẠO MODEL (Đã giữ lại model gemini-2.5-flash theo yêu cầu của bạn)
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash", 
             systemInstruction: customInstruction,
@@ -51,6 +57,19 @@ export const handleChatbotMessage = async (req, res) => {
 
         if (functionCalls && functionCalls.length > 0) {
             const call = functionCalls[0];
+            
+            // 3. CHẶN BẢO MẬT KÉP Ở BACKEND: Đề phòng AI lách luật gọi hàm khi là khách vãng lai
+            if ((call.name === "createBooking" || call.name === "checkAvailability" || call.name === "cancelAppointment") && (!currentUser || !currentUser.phone)) {
+                // Ép AI ghi nhận lỗi 
+                await chat.sendMessage([{
+                    functionResponse: { name: call.name, response: { error: "Yêu cầu đăng nhập." } }
+                }]);
+                // Trả thẳng thông báo cho người dùng
+                return res.json({ 
+                    success: true, 
+                    reply: "Dạ để đảm bảo quyền lợi và theo dõi lịch sử dịch vụ, anh/chị vui lòng đăng nhập vào hệ thống trước khi sử dụng tính năng đặt hoặc huỷ lịch giúp em nhé ạ!" 
+                });
+            }
             
             // --- XỬ LÝ KIỂM TRA TRÙNG LỊCH ---
             if (call.name === "checkAvailability") {
@@ -158,6 +177,15 @@ export const handleChatbotMessage = async (req, res) => {
 
     } catch (error) {
         console.error("Chatbot Error:", error);
+        
+        // BẮT LỖI 503: GOOGLE BỊ QUÁ TẢI (Đóng vai trò như một lớp khiên bảo vệ)
+        if (error.status === 503 || (error.message && error.message.includes("503"))) {
+            return res.json({ 
+                success: true, 
+                reply: "Dạ hiện tại hệ thống tổng đài AI đang có chút quá tải do lượng khách truy cập đông. Anh/chị vui lòng thử nhắn lại giúp em sau vài giây nhé ạ!" 
+            });
+        }
+
         res.status(500).json({ success: false, message: "Lỗi hệ thống Chatbot AI" });
     }
 };
