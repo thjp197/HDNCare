@@ -29,6 +29,14 @@ export const handleChatbotMessage = async (req, res) => {
         // 1. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG (DYNAMIC INSTRUCTION)
         let customInstruction = `[SYSTEM TIME CLOCK: Hôm nay là ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên ngày này và LUÔN MẶC ĐỊNH LÀ NĂM HIỆN TẠI.]\n\n` + companyInfo;
         
+        // --- ĐOẠN HƯỚNG DẪN THANH TOÁN ĐƯỢC THÊM VÀO ĐÂY ---
+        customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN]:
+        Hệ thống HDNCare hỗ trợ thanh toán an toàn qua cổng VNPay và thanh toán bằng Ví điện tử nội bộ. Khi khách hàng hỏi về cách thanh toán hoặc cách nạp tiền, hãy hướng dẫn họ một cách lịch sự theo các bước sau:
+        1. Đăng nhập vào tài khoản trên website.
+        2. Cách nạp tiền vào Ví: Truy cập trang thông tin cá nhân, chọn mục "Ví của tôi" (Wallet) -> Nhập số tiền -> Bấm "Nạp tiền". Hệ thống sẽ chuyển hướng sang cổng VNPay để giao dịch an toàn.
+        3. Cách thanh toán lịch hẹn: Sau khi tạo lịch hẹn thành công, khách hàng có thể thanh toán ngay tại bước xác nhận, hoặc vào mục "Lịch sử đặt lịch" để tiến hành thanh toán. Có thể dùng số dư trong Ví HDNCare hoặc thanh toán trực tiếp qua VNPay.
+        [QUY TẮC BẢO MẬT TỐI CAO]: Tuyệt đối không bao giờ yêu cầu khách hàng cung cấp số thẻ ngân hàng, mã CVV, mật khẩu hoặc mã OTP vào khung chat. Khẳng định với khách rằng AI Chatbot không trực tiếp thu tiền.`;
+
         if (currentUser && currentUser.phone) {
             customInstruction += `\n\n[LƯU Ý ĐẶC BIỆT]: Bạn đang nói chuyện với khách hàng đã đăng nhập. 
             - Tên khách hàng: ${currentUser.name}
