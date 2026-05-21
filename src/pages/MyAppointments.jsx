@@ -20,6 +20,10 @@ const MyAppointments = () => {
   const [selectedReasons, setSelectedReasons] = useState([]);
   const [cancellationReason, setCancellationReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [finalAmount, setFinalAmount] = useState(0);
+  const [discountVerifying, setDiscountVerifying] = useState(false);
 
   const months = [
     " ",
@@ -65,13 +69,67 @@ const MyAppointments = () => {
     }
   };
 
+  const verifyAndApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      toast.error("Vui lòng nhập mã giảm giá");
+      return;
+    }
+
+    if (!appointmentToPay) return;
+
+    try {
+      setDiscountVerifying(true);
+      const appointment = appointments.find(a => a._id === appointmentToPay);
+      const orderAmount = paymentModalType === "deposit" 
+        ? Math.round((appointment?.amount || 0) * 0.2) 
+        : (appointment?.amount || 0);
+
+      const { data } = await axios.post(
+        backendUrl + "/api/user/verify-discount-code",
+        {
+          code: discountCode,
+          appointmentId: appointmentToPay,
+          orderAmount: orderAmount,
+        },
+        { headers: { token } },
+      );
+
+      if (data.success) {
+        setDiscountAmount(data.discount);
+        setFinalAmount(data.finalAmount);
+        toast.success(`Áp dụng mã giảm giá thành công! Tiết kiệm ${data.discount.toLocaleString("vi-VN")} VND`);
+      } else {
+        toast.error(data.message || "Mã giảm giá không hợp lệ");
+        setDiscountAmount(0);
+        setFinalAmount(0);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error.response?.data?.message || "Lỗi khi xác minh mã giảm giá");
+      setDiscountAmount(0);
+      setFinalAmount(0);
+    } finally {
+      setDiscountVerifying(false);
+    }
+  };
+
   const handlePayment = async (appointmentId) => {
     try {
       setPaymentLoading((prev) => ({ ...prev, [appointmentId]: true }));
 
+      // Save discount code to sessionStorage before redirecting to VNPay
+      if (discountCode) {
+        sessionStorage.setItem(`discount_${appointmentId}`, discountCode);
+      }
+
       const { data } = await axios.post(
         backendUrl + "/api/user/create-payment-url",
-        { appointmentId },
+        { 
+          appointmentId,
+          discountCode: discountCode || null,
+          discountAmount: discountAmount,
+          finalAmount: finalAmount || null,
+        },
         { headers: { token } },
       );
 
@@ -96,9 +154,18 @@ const MyAppointments = () => {
     try {
       setPaymentLoading((prev) => ({ ...prev, [appointmentId]: true }));
 
+      // Save discount code to sessionStorage before redirecting to VNPay
+      if (discountCode) {
+        sessionStorage.setItem(`discount_dep_${appointmentId}`, discountCode);
+      }
+
       const { data } = await axios.post(
         backendUrl + "/api/user/create-deposit-payment-url",
-        { appointmentId },
+        { 
+          appointmentId,
+          discountCode: discountCode || null,
+          discountAmount: discountAmount,
+        },
         { headers: { token } },
       );
 
@@ -124,7 +191,11 @@ const MyAppointments = () => {
 
       const { data } = await axios.post(
         backendUrl + "/api/user/wallet/pay-appointment",
-        { appointmentId },
+        { 
+          appointmentId,
+          discountCode: discountCode || null,
+          discountAmount: discountAmount,
+        },
         { headers: { token } },
       );
 
@@ -149,7 +220,11 @@ const MyAppointments = () => {
 
       const { data } = await axios.post(
         backendUrl + "/api/user/wallet/pay-appointment-deposit",
-        { appointmentId },
+        { 
+          appointmentId,
+          discountCode: discountCode || null,
+          discountAmount: discountAmount,
+        },
         { headers: { token } },
       );
 
@@ -182,16 +257,27 @@ const MyAppointments = () => {
           ? "/api/user/verify-deposit-payment"
           : "/api/user/verify-payment";
 
+        // Get discount code from sessionStorage
+        let savedDiscountCode = null;
+        if (isDepositPayment) {
+          const appointmentId = vnp_TxnRef.split("_")[1];
+          savedDiscountCode = sessionStorage.getItem(`discount_dep_${appointmentId}`);
+        } else {
+          savedDiscountCode = sessionStorage.getItem(`discount_${vnp_TxnRef}`);
+        }
+
         const payload = isDepositPayment
           ? {
               depositRef: vnp_TxnRef,
               vnp_TransactionNo,
               vnp_Amount,
+              discountCode: savedDiscountCode || null,
             }
           : {
               appointmentId: vnp_TxnRef,
               vnp_TransactionNo,
               vnp_Amount,
+              discountCode: savedDiscountCode || null,
             };
 
         const { data } = await axios.post(backendUrl + verifyEndpoint, payload, {
@@ -200,6 +286,13 @@ const MyAppointments = () => {
 
         if (data.success) {
           toast.success(isDepositPayment ? "Thanh toán cọc thành công!" : "Thanh toán thành công!");
+          // Clear discount code from sessionStorage
+          if (isDepositPayment) {
+            const appointmentId = vnp_TxnRef.split("_")[1];
+            sessionStorage.removeItem(`discount_dep_${appointmentId}`);
+          } else {
+            sessionStorage.removeItem(`discount_${vnp_TxnRef}`);
+          }
           getUserAppointments(); // Refresh to show updated payment status
           loadUserProfileData();
           // Clear URL parameters
@@ -287,6 +380,9 @@ const MyAppointments = () => {
     setPaymentModalOpen(false);
     setAppointmentToPay(null);
     setPaymentModalType("full");
+    setDiscountCode("");
+    setDiscountAmount(0);
+    setFinalAmount(0);
   };
 
   const handlePayOnlineFromModal = async () => {
@@ -413,9 +509,17 @@ const MyAppointments = () => {
                   </button>
                 )}
                 {!item.cancelled && item.payment && !item.isCompleted && (
-                  <button className="px-4 py-2 bg-green-500 text-white rounded cursor-default">
-                    ✓ Đã thanh toán
-                  </button>
+                  <>
+                    <button className="px-4 py-2 bg-green-500 text-white rounded cursor-default">
+                      ✓ Đã thanh toán
+                    </button>
+                    <button
+                      onClick={() => openCancelModal(item._id)}
+                      className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
+                    >
+                      Hủy lịch hẹn
+                    </button>
+                  </>
                 )}
                 {!item.cancelled && !item.payment && !item.isCompleted &&(
                   <button
@@ -536,6 +640,42 @@ const MyAppointments = () => {
             <p className="text-sm text-gray-600 mb-1">Vui lòng chọn phương thức thanh toán.</p>
             <p className="text-sm font-semibold text-gray-900 mb-5">
               Số tiền: {paymentTargetAmount.toLocaleString("vi-VN")} VND
+            </p>
+
+            {/* Discount Code Section */}
+            <div className="mb-5 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Mã giảm giá (tuỳ chọn)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  placeholder="Nhập mã giảm giá..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={discountVerifying}
+                />
+                <button
+                  onClick={verifyAndApplyDiscount}
+                  disabled={discountVerifying || !discountCode.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {discountVerifying ? "Kiểm tra..." : "Áp dụng"}
+                </button>
+              </div>
+              
+              {discountAmount > 0 && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-sm text-green-700 font-medium">✓ Áp dụng thành công!</p>
+                  <p className="text-sm text-gray-700">Tiết kiệm: <span className="font-semibold text-green-600">{discountAmount.toLocaleString("vi-VN")} VND</span></p>
+                  <p className="text-sm text-gray-700">Tổng thanh toán: <span className="font-semibold text-lg text-primary">{finalAmount.toLocaleString("vi-VN")} VND</span></p>
+                </div>
+              )}
+            </div>
+
+            <p className="text-sm font-semibold text-gray-900 mb-5">
+              Số tiền cần thanh toán: {(finalAmount > 0 ? finalAmount : paymentTargetAmount).toLocaleString("vi-VN")} VND
             </p>
 
             <div className="space-y-3">

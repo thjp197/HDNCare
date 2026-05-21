@@ -5,6 +5,7 @@ import userModel from "../models/userModel.js";
 import { v2 as cloudinary } from "cloudinary";
 import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import discountCodeModel from "../models/discountCodeModel.js";
 import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } from "vnpay";
 import { applyUserPenalty, isWithinHoursToAppointment, processRefund } from "../utils/penaltyUtils.js";
 
@@ -1102,7 +1103,7 @@ const createDepositPaymentUrl = async (req, res) => {
 const verifyPayment = async (req, res) => {
   try {
     const userId = req.userId;
-    const { appointmentId, vnp_TransactionNo, vnp_Amount } = req.body;
+    const { appointmentId, vnp_TransactionNo, vnp_Amount, discountCode } = req.body;
 
     if (!appointmentId) {
       return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
@@ -1120,11 +1121,26 @@ const verifyPayment = async (req, res) => {
     }
 
     // Update appointment payment status
-    await appointmentModel.findByIdAndUpdate(appointmentId, {
+    const updateData = {
       payment: true,
       paymentTransactionId: vnp_TransactionNo,
       paymentMethod: "vnpay",
-    });
+    };
+
+    // If discount code is used, update it
+    if (discountCode) {
+      const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
+      if (discount) {
+        discount.usedCount = (discount.usedCount || 0) + 1;
+        if (!discount.usedBy) discount.usedBy = [];
+        discount.usedBy.push(userId);
+        await discount.save();
+        
+        updateData.discountCode = discountCode.toUpperCase();
+      }
+    }
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
 
     res.json({ success: true, message: "Thanh toán thành công" });
   } catch (error) {
@@ -1136,7 +1152,7 @@ const verifyPayment = async (req, res) => {
 const verifyDepositPayment = async (req, res) => {
   try {
     const userId = req.userId;
-    const { depositRef, vnp_TransactionNo } = req.body;
+    const { depositRef, vnp_TransactionNo, discountCode } = req.body;
 
     if (!depositRef) {
       return res.json({ success: false, message: "Thiếu mã giao dịch cọc" });
@@ -1169,14 +1185,116 @@ const verifyDepositPayment = async (req, res) => {
 
     const depositAmount = calculateDepositAmount(appointmentData.amount);
 
-    await appointmentModel.findByIdAndUpdate(appointmentId, {
+    const updateData = {
       depositPaid: true,
       depositAmount,
       depositTransactionId: vnp_TransactionNo || depositRef,
       depositMethod: "vnpay",
-    });
+    };
+
+    // If discount code is used, update it
+    if (discountCode) {
+      const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
+      if (discount) {
+        discount.usedCount = (discount.usedCount || 0) + 1;
+        if (!discount.usedBy) discount.usedBy = [];
+        discount.usedBy.push(userId);
+        await discount.save();
+        
+        updateData.discountCode = discountCode.toUpperCase();
+      }
+    }
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
 
     res.json({ success: true, message: "Thanh toán cọc thành công" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const verifyDiscountCode = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { code, appointmentId } = req.body;
+
+    if (!code) {
+      return res.json({ success: false, message: "Vui lòng nhập mã giảm giá" });
+    }
+
+    if (!appointmentId) {
+      return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
+    }
+
+    // Find appointment
+    const appointmentData = await appointmentModel.findById(appointmentId);
+    if (!appointmentData) {
+      return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+    }
+
+    // Verify appointment belongs to user
+    if (String(appointmentData.userId) !== String(userId)) {
+      return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    // Find discount code
+    const discountCode = await discountCodeModel.findOne({ code: code.toUpperCase() });
+
+    if (!discountCode) {
+      return res.json({ success: false, message: "Mã giảm giá không hợp lệ" });
+    }
+
+    if (!discountCode.isActive) {
+      return res.json({ success: false, message: "Mã giảm giá đã bị vô hiệu hóa" });
+    }
+
+    if (discountCode.expiryDate && new Date(discountCode.expiryDate) < new Date()) {
+      return res.json({ success: false, message: "Mã giảm giá đã hết hạn" });
+    }
+
+    // Calculate the amount to check against minimum
+    const depositAmount = Number(appointmentData.depositPaid ? appointmentData.depositAmount || 0 : 0);
+    const orderAmount = Math.max(Number(appointmentData.amount || 0) - depositAmount, 0);
+
+    if (discountCode.minOrderAmount && orderAmount < discountCode.minOrderAmount) {
+      return res.json({ 
+        success: false, 
+        message: `Đơn hàng phải tối thiểu ${discountCode.minOrderAmount.toLocaleString('vi-VN')} VND` 
+      });
+    }
+
+    if (discountCode.maxUses && discountCode.usedCount >= discountCode.maxUses) {
+      return res.json({ success: false, message: "Mã giảm giá đã hết lượt sử dụng" });
+    }
+
+    if (discountCode.usedBy && discountCode.usedBy.includes(userId)) {
+      return res.json({ success: false, message: "Bạn đã sử dụng mã giảm giá này rồi" });
+    }
+
+    // Calculate discount
+    let discount = 0;
+    if (discountCode.discountType === "percentage") {
+      discount = (orderAmount * discountCode.discountValue) / 100;
+      if (discountCode.maxDiscount) {
+        discount = Math.min(discount, discountCode.maxDiscount);
+      }
+    } else {
+      discount = Math.min(discountCode.discountValue, orderAmount);
+    }
+
+    discount = Math.round(discount);
+    const finalAmount = Math.max(0, orderAmount - discount);
+
+    res.json({
+      success: true,
+      message: "Mã giảm giá hợp lệ",
+      discount,
+      finalAmount,
+      originalAmount: orderAmount,
+      discountCode: discountCode.code
+    });
+
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -1203,4 +1321,5 @@ export {
   payAppointmentDepositWithWallet,
   withdrawFromWallet,
   updatePersonalImages,
+  verifyDiscountCode,
 };

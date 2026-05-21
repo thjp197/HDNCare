@@ -321,10 +321,18 @@ const adminDashboard = async (req, res) => {
         const users = await userModel.find({})
         const appointments = await appointmentModel.find({})
 
+        const earnings = appointments.reduce((sum, item) => {
+            if (item.isCompleted) {
+                return sum + Number(item.amount || 0)
+            }
+            return sum
+        }, 0)
+
         const dashData = {
             stylists: stylists.length,
             appointments: appointments.length,
             users: users.length,
+            earnings,
             latestAppointments: appointments.reverse()
         }
 

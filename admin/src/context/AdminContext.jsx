@@ -9,6 +9,7 @@ const AdminContextProvider = (props) => {
     const [stylists, setStylists] = useState([])
     const [appointments, setAppointments] = useState([])
     const [penalizedUsers, setPenalizedUsers] = useState([])
+    const [discountCodes, setDiscountCodes] = useState([])
     const [dashData, setDashData] = useState(false)
 
 
@@ -25,7 +26,6 @@ const AdminContextProvider = (props) => {
             const { data } = await axios.post(backendUrl + '/api/admin/all-stylists', {}, { headers: { aToken } })
             if (data.success) {
                 setStylists(data.stylists)
-                console.log(data.stylists)
             } else {
                 toast.error(data.message)
             }
@@ -211,6 +211,78 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    const addDiscountCode = async (discountData) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/add-discount-code', discountData, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getAllDiscountCodes()
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false }
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
+    }
+
+    const getAllDiscountCodes = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/discount-codes', { headers: { aToken } })
+
+            if (data.success) {
+                setDiscountCodes(data.discountCodes)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    const updateDiscountCode = async (discountData) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/update-discount-code', discountData, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getAllDiscountCodes()
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false }
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
+    }
+
+    const deleteDiscountCode = async (discountCodeId) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/delete-discount-code', { discountCodeId }, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getAllDiscountCodes()
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false }
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
+    }
+
     const value = {
         aToken, setAToken,
         backendUrl,
@@ -219,7 +291,8 @@ const AdminContextProvider = (props) => {
         changeAvailability,
         appointments, getAllAppointments, setAppointments, cancelAppointment,
         penalizedUsers, getPenalizedUsers, resetUserPenalty, updateUserPenalty,
-        dashData, getDashData
+        dashData, getDashData,
+        discountCodes, addDiscountCode, getAllDiscountCodes, updateDiscountCode, deleteDiscountCode
     }
 
     return (
