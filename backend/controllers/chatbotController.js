@@ -23,11 +23,34 @@ export const handleChatbotMessage = async (req, res) => {
             });
         }
 
+        // ------------------------------------------------------------------
+        // BƯỚC MỚI: LẤY BẢNG GIÁ REAL-TIME TỪ DATABASE CHO AI
+        // ------------------------------------------------------------------
+        const stylistsList = await stylistModel.find({});
+        let realtimePricingInfo = `\n\n[BẢNG GIÁ DỊCH VỤ VÀ CHUYÊN VIÊN MỚI NHẤT (REAL-TIME CẬP NHẬT TỪ DATABASE)]:
+        Hãy sử dụng thông tin giá tiền và kinh nghiệm dưới đây để báo giá, tư vấn cho khách (Tuyệt đối không dùng giá cũ ở bất kỳ đâu): \n`;
+        
+        if (stylistsList && stylistsList.length > 0) {
+            stylistsList.forEach(sty => {
+                // Định dạng tiền tệ VNĐ
+                const price = sty.fees ? sty.fees.toLocaleString('vi-VN') + ' VNĐ' : '250.000 VNĐ';
+                const specialty = sty.specialty || 'Dịch vụ làm đẹp';
+                // Thêm kinh nghiệm từ Database
+                const experience = sty.experience ? `${sty.experience} kinh nghiệm` : 'Chuyên viên chuyên nghiệp';
+                
+                realtimePricingInfo += `- Chuyên viên ${sty.name} (Chuyên môn: ${specialty} - ${experience}): Giá dịch vụ là ${price}.\n`;
+            });
+        } else {
+            realtimePricingInfo += "- Hệ thống đang cập nhật danh sách chuyên viên.\n";
+        }
+        // ------------------------------------------------------------------
+
         // Lấy ngày giờ hiện tại của Việt Nam để AI tự tính ngày tháng
         const today = new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
         // 1. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG (DYNAMIC INSTRUCTION)
-        let customInstruction = `[SYSTEM TIME CLOCK: Hôm nay là ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên ngày này và LUÔN MẶC ĐỊNH LÀ NĂM HIỆN TẠI.]\n\n` + companyInfo;
+        // Lưu ý: Đã ghép nối bảng giá realtime (realtimePricingInfo) vào Prompt
+        let customInstruction = `[SYSTEM TIME CLOCK: Hôm nay là ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên ngày này và LUÔN MẶC ĐỊNH LÀ NĂM HIỆN TẠI.]\n\n` + companyInfo + realtimePricingInfo;
         
         // --- HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG ---
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG]:
@@ -78,11 +101,9 @@ export const handleChatbotMessage = async (req, res) => {
             
             // 3. CHẶN BẢO MẬT KÉP Ở BACKEND
             if ((call.name === "createBooking" || call.name === "checkAvailability" || call.name === "cancelAppointment") && (!currentUser || !currentUser.phone)) {
-                // Ép AI ghi nhận lỗi 
                 await chat.sendMessage([{
                     functionResponse: { name: call.name, response: { error: "Yêu cầu đăng nhập." } }
                 }]);
-                // Trả thẳng thông báo cho người dùng (Đã cập nhật câu mời gọi đặt lịch qua Chatbot)
                 return res.json({ 
                     success: true, 
                     reply: "Dạ để đảm bảo quyền lợi bảo mật và đồng bộ lịch sử dịch vụ, hệ thống yêu cầu anh/chị cần đăng nhập tài khoản trước ạ.\n\nQuy trình tự đặt lịch trên website vô cùng đơn giản gồm 5 bước:\n1. Đăng nhập/Đăng ký tài khoản.\n2. Chọn Chi nhánh gần nhất.\n3. Chọn dịch vụ (Makeup/Stylist).\n4. Chọn Chuyên viên & Khung giờ.\n5. Xác nhận & Thanh toán.\n\n💡 **Đặc biệt:** Ngay sau khi đăng nhập (hoặc đăng ký xong), anh/chị hoàn toàn có thể nhắn tin yêu cầu em đặt lịch giúp ngay tại khung chat này luôn ạ, vô cùng tiện lợi! Anh/chị vui lòng đăng nhập ở góc phải màn hình để trải nghiệm nhé." 
