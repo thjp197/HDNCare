@@ -24,7 +24,7 @@ export const handleChatbotMessage = async (req, res) => {
         }
 
         // ------------------------------------------------------------------
-        // BƯỚC MỚI: LẤY BẢNG GIÁ REAL-TIME TỪ DATABASE CHO AI
+        // BƯỚC MỚI: LẤY BẢNG GIÁ VÀ KINH NGHIỆM REAL-TIME TỪ DATABASE
         // ------------------------------------------------------------------
         const stylistsList = await stylistModel.find({});
         let realtimePricingInfo = `\n\n[BẢNG GIÁ DỊCH VỤ VÀ CHUYÊN VIÊN MỚI NHẤT (REAL-TIME CẬP NHẬT TỪ DATABASE)]:
@@ -32,10 +32,8 @@ export const handleChatbotMessage = async (req, res) => {
         
         if (stylistsList && stylistsList.length > 0) {
             stylistsList.forEach(sty => {
-                // Định dạng tiền tệ VNĐ
                 const price = sty.fees ? sty.fees.toLocaleString('vi-VN') + ' VNĐ' : '250.000 VNĐ';
                 const specialty = sty.specialty || 'Dịch vụ làm đẹp';
-                // Thêm kinh nghiệm từ Database
                 const experience = sty.experience ? `${sty.experience} kinh nghiệm` : 'Chuyên viên chuyên nghiệp';
                 
                 realtimePricingInfo += `- Chuyên viên ${sty.name} (Chuyên môn: ${specialty} - ${experience}): Giá dịch vụ là ${price}.\n`;
@@ -43,16 +41,12 @@ export const handleChatbotMessage = async (req, res) => {
         } else {
             realtimePricingInfo += "- Hệ thống đang cập nhật danh sách chuyên viên.\n";
         }
-        // ------------------------------------------------------------------
 
-        // Lấy ngày giờ hiện tại của Việt Nam để AI tự tính ngày tháng
         const today = new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
-        // 1. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG (DYNAMIC INSTRUCTION)
-        // Lưu ý: Đã ghép nối bảng giá realtime (realtimePricingInfo) vào Prompt
+        // 1. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG
         let customInstruction = `[SYSTEM TIME CLOCK: Hôm nay là ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên ngày này và LUÔN MẶC ĐỊNH LÀ NĂM HIỆN TẠI.]\n\n` + companyInfo + realtimePricingInfo;
         
-        // --- HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG ---
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG]:
         Khi khách hàng hỏi về quy trình, các bước đặt lịch hoặc lộ trình sử dụng dịch vụ trên website HDNCare, hãy giới thiệu rõ ràng cho họ quy trình chuẩn 5 bước sau:
         - Bước 1 (BẮT BUỘC): Đăng ký / Đăng nhập vào tài khoản cá nhân trên website.
@@ -60,9 +54,8 @@ export const handleChatbotMessage = async (req, res) => {
         - Bước 3: Lựa chọn phân loại dịch vụ theo nhu cầu: Trang điểm (Makeup) hoặc Làm tóc/Tạo kiểu (Stylist).
         - Bước 4: Khám phá hồ sơ cá nhân và lựa chọn Chuyên viên yêu thích, sau đó chọn một Ngày và Khung giờ còn trống (Select Time Slot) trên lịch làm việc của họ.
         - Bước 5: Kiểm tra lại toàn bộ thông tin tại trang Xác nhận (Confirm booking), tiến hành Thanh toán (RECAP + Payment) qua cổng VNPay hoặc bằng số dư Ví điện tử để hoàn tất.
-        [ĐẶC QUYỀN AI]: Hãy luôn tự hào thông báo thêm với khách rằng: Ngay sau khi họ có tài khoản và đăng nhập thành công, họ hoàn toàn có thể nhắn tin yêu cầu bạn (AI Chatbot) đặt lịch hoặc huỷ lịch giúp họ ngay lập tức tại khung chat này mà không cần tự click qua 5 bước trên web.`;
+        [ĐẶC QUYỀN AI]: Hãy luôn tự hào thông báo thêm với khách rằng: Ngay sau khi họ có tài khoản và đăng nhập thành công, họ hoàn toàn có thể nhắn tin yêu cầu bạn (AI Chatbot) đặt lịch, dời lịch hoặc huỷ lịch giúp họ ngay lập tức tại khung chat này mà không cần tự click qua 5 bước trên web.`;
 
-        // --- ĐOẠN HƯỚNG DẪN THANH TOÁN ---
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN]:
         Hệ thống HDNCare hỗ trợ thanh toán an toàn qua cổng VNPay và thanh toán bằng Ví điện tử nội bộ. Khi khách hàng hỏi về cách thanh toán hoặc cách nạp tiền, hãy hướng dẫn họ một cách lịch sự theo các bước sau:
         1. Đăng nhập vào tài khoản trên website.
@@ -75,13 +68,12 @@ export const handleChatbotMessage = async (req, res) => {
             - Tên khách hàng: ${currentUser.name}
             - Số điện thoại: ${currentUser.phone}
             - BẮT BUỘC: KHÔNG ĐƯỢC hỏi tên và số điện thoại của họ nữa.
-            - Khi cần gọi hàm createBooking hoặc cancelAppointment, hãy tự động lấy tên và số điện thoại ở trên để điền vào.`;
+            - Khi cần gọi hàm createBooking, cancelAppointment, HOẶC rescheduleAppointment, hãy tự động lấy tên và số điện thoại ở trên để điền vào.`;
         } else {
-            // CHẶN KHÁCH VÃNG LAI BẰNG PROMPT VÀ ĐIỀU HƯỚNG SANG QUY TRÌNH TỰ ĐẶT LỊCH
             customInstruction += `\n\n[LƯU Ý ĐẶC BIỆT]: Bạn đang nói chuyện với khách vãng lai (chưa đăng nhập). 
-            - QUY TẮC CỨNG: TUYỆT ĐỐI KHÔNG ĐƯỢC PHÉP ĐẶT LỊCH HOẶC HUỶ LỊCH TRỰC TIẾP TRÊN KHUNG CHAT.
-            - Nếu khách yêu cầu đặt/huỷ lịch, hãy từ chối một cách lịch sự, khéo léo. Sau đó, giới thiệu chi tiết 5 bước trong [HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG] để họ hiểu và hướng dẫn họ ĐĂNG NHẬP/ĐĂNG KÝ vào tài khoản trên website. Đừng quên nhắc họ rằng bạn có thể đặt lịch giúp họ sau khi họ đăng nhập.
-            - KHÔNG ĐƯỢC gọi các hàm 'checkAvailability', 'createBooking', hay 'cancelAppointment' trong bất kỳ hoàn cảnh nào.`;
+            - QUY TẮC CỨNG: TUYỆT ĐỐI KHÔNG ĐƯỢC PHÉP ĐẶT LỊCH, HUỶ LỊCH HOẶC DỜI LỊCH TRỰC TIẾP TRÊN KHUNG CHAT.
+            - Nếu khách yêu cầu thao tác lịch, hãy từ chối một cách lịch sự, khéo léo. Sau đó, giới thiệu chi tiết 5 bước trong [HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG] và hướng dẫn họ ĐĂNG NHẬP/ĐĂNG KÝ.
+            - KHÔNG ĐƯỢC gọi các hàm 'checkAvailability', 'createBooking', 'cancelAppointment', hay 'rescheduleAppointment' trong bất kỳ hoàn cảnh nào.`;
         }
 
         // 2. KHỞI TẠO MODEL (Gemini 2.5 Flash)
@@ -100,13 +92,13 @@ export const handleChatbotMessage = async (req, res) => {
             const call = functionCalls[0];
             
             // 3. CHẶN BẢO MẬT KÉP Ở BACKEND
-            if ((call.name === "createBooking" || call.name === "checkAvailability" || call.name === "cancelAppointment") && (!currentUser || !currentUser.phone)) {
+            if ((call.name === "createBooking" || call.name === "checkAvailability" || call.name === "cancelAppointment" || call.name === "rescheduleAppointment") && (!currentUser || !currentUser.phone)) {
                 await chat.sendMessage([{
                     functionResponse: { name: call.name, response: { error: "Yêu cầu đăng nhập." } }
                 }]);
                 return res.json({ 
                     success: true, 
-                    reply: "Dạ để đảm bảo quyền lợi bảo mật và đồng bộ lịch sử dịch vụ, hệ thống yêu cầu anh/chị cần đăng nhập tài khoản trước ạ.\n\nQuy trình tự đặt lịch trên website vô cùng đơn giản gồm 5 bước:\n1. Đăng nhập/Đăng ký tài khoản.\n2. Chọn Chi nhánh gần nhất.\n3. Chọn dịch vụ (Makeup/Stylist).\n4. Chọn Chuyên viên & Khung giờ.\n5. Xác nhận & Thanh toán.\n\n💡 **Đặc biệt:** Ngay sau khi đăng nhập (hoặc đăng ký xong), anh/chị hoàn toàn có thể nhắn tin yêu cầu em đặt lịch giúp ngay tại khung chat này luôn ạ, vô cùng tiện lợi! Anh/chị vui lòng đăng nhập ở góc phải màn hình để trải nghiệm nhé." 
+                    reply: "Dạ để đảm bảo quyền lợi bảo mật và đồng bộ lịch sử dịch vụ, hệ thống yêu cầu anh/chị cần đăng nhập tài khoản trước ạ.\n\nQuy trình tự đặt lịch trên website vô cùng đơn giản gồm 5 bước:\n1. Đăng nhập/Đăng ký tài khoản.\n2. Chọn Chi nhánh gần nhất.\n3. Chọn dịch vụ (Makeup/Stylist).\n4. Chọn Chuyên viên & Khung giờ.\n5. Xác nhận & Thanh toán.\n\n💡 **Đặc biệt:** Ngay sau khi đăng nhập, anh/chị hoàn toàn có thể nhắn tin yêu cầu em đặt lịch hoặc dời lịch giúp ngay tại khung chat này luôn ạ. Anh/chị vui lòng đăng nhập ở góc phải màn hình để trải nghiệm nhé." 
                 });
             }
             
@@ -168,7 +160,49 @@ export const handleChatbotMessage = async (req, res) => {
                 return res.json({ success: true, reply: finalResult.response.text() });
             }
 
-            // --- XỬ LÝ TẠO LỊCH MỚI CÓ PHÂN LUỒNG ---
+            // --- XỬ LÝ DỜI LỊCH (TÍNH NĂNG MỚI) ---
+            else if (call.name === "rescheduleAppointment") {
+                const { customerPhone, oldSlotDate, oldSlotTime, newSlotDate, newSlotTime } = call.args;
+
+                // 1. Tìm lịch hẹn cũ
+                const appointment = await appointmentModel.findOne({
+                    slotDate: oldSlotDate,
+                    slotTime: oldSlotTime,
+                    "userData.phone": customerPhone,
+                    cancelled: false
+                });
+
+                let dbResult = {};
+                if (!appointment) {
+                    dbResult = { success: false, message: "Không tìm thấy lịch hẹn cũ trùng khớp để dời lịch." };
+                } else {
+                    // 2. Kiểm tra xem giờ mới có bị người khác đặt chưa
+                    const isConflict = await appointmentModel.findOne({
+                        styId: appointment.styId,
+                        slotDate: newSlotDate,
+                        slotTime: newSlotTime,
+                        cancelled: false
+                    });
+
+                    if (isConflict) {
+                        dbResult = { success: false, message: "Khung giờ mới đã có khách đặt, vui lòng gợi ý khách chọn giờ/ngày khác." };
+                    } else {
+                        // 3. Cập nhật sang giờ mới
+                        appointment.slotDate = newSlotDate;
+                        appointment.slotTime = newSlotTime;
+                        await appointment.save();
+                        dbResult = { success: true, message: "Đã dời lịch thành công sang thời gian mới." };
+                    }
+                }
+
+                const finalResult = await chat.sendMessage([{
+                    functionResponse: { name: "rescheduleAppointment", response: dbResult }
+                }]);
+
+                return res.json({ success: true, reply: finalResult.response.text() });
+            }
+
+            // --- XỬ LÝ TẠO LỊCH MỚI ---
             else if (call.name === "createBooking") {
                 const { customerName, customerPhone, stylistName, slotDate, slotTime } = call.args;
 
@@ -216,11 +250,9 @@ export const handleChatbotMessage = async (req, res) => {
 
     } catch (error) {
         console.error("Chatbot Error:", error);
-        
-        // BẮT LỖI 503: GOOGLE BỊ QUÁ TẢI
         if (error.status === 503 || (error.message && error.message.includes("503"))) {
-            return res.json({ 
-                success: true, 
+            return res.json({
+                success: true,
                 reply: "Dạ hiện tại hệ thống tổng đài AI đang có chút quá tải do lượng khách truy cập đông. Anh/chị vui lòng thử nhắn lại giúp em sau vài giây nhé ạ!" 
             });
         }
