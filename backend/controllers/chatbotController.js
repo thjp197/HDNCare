@@ -15,6 +15,17 @@ export const handleChatbotMessage = async (req, res) => {
     try {
         const { message, history, currentUser } = req.body;
 
+        // --- 1. CHẶN TỪ CỬA: KIỂM TRA TÀI KHOẢN CÓ BỊ KHOÁ KHÔNG ---
+        if (currentUser && currentUser.phone) {
+            const dbUser = await userModel.findOne({ phone: currentUser.phone });
+            if (dbUser && dbUser.isBanned) {
+                return res.json({ 
+                    success: true, 
+                    reply: "⚠️ Tài khoản của anh/chị đã bị hệ thống tạm khoá do vi phạm quy định huỷ lịch quá 5 lần. Vui lòng liên hệ với Quản lý chi nhánh hoặc Hotline HDNCare để được hỗ trợ xử lý ạ." 
+                });
+            }
+        }
+
         const genAI = getGeminiClient();
         if (!genAI) {
             return res.status(500).json({
@@ -23,9 +34,7 @@ export const handleChatbotMessage = async (req, res) => {
             });
         }
 
-        // ------------------------------------------------------------------
-        // BƯỚC MỚI: LẤY BẢNG GIÁ VÀ KINH NGHIỆM REAL-TIME TỪ DATABASE
-        // ------------------------------------------------------------------
+        // --- 2. LẤY BẢNG GIÁ VÀ KINH NGHIỆM REAL-TIME TỪ DATABASE ---
         const stylistsList = await stylistModel.find({});
         let realtimePricingInfo = `\n\n[BẢNG GIÁ DỊCH VỤ VÀ CHUYÊN VIÊN MỚI NHẤT (REAL-TIME CẬP NHẬT TỪ DATABASE)]:
         Hãy sử dụng thông tin giá tiền và kinh nghiệm dưới đây để báo giá, tư vấn cho khách (Tuyệt đối không dùng giá cũ ở bất kỳ đâu): \n`;
@@ -44,7 +53,7 @@ export const handleChatbotMessage = async (req, res) => {
 
         const today = new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
-        // 1. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG
+        // --- 3. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG ---
         let customInstruction = `[SYSTEM TIME CLOCK: Hôm nay là ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên ngày này và LUÔN MẶC ĐỊNH LÀ NĂM HIỆN TẠI.]\n\n` + companyInfo + realtimePricingInfo;
         
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG]:
@@ -56,12 +65,10 @@ export const handleChatbotMessage = async (req, res) => {
         - Bước 5: Kiểm tra lại toàn bộ thông tin tại trang Xác nhận (Confirm booking), tiến hành Thanh toán (RECAP + Payment) qua cổng VNPay hoặc bằng số dư Ví điện tử để hoàn tất.
         [ĐẶC QUYỀN AI]: Hãy luôn tự hào thông báo thêm với khách rằng: Ngay sau khi họ có tài khoản và đăng nhập thành công, họ hoàn toàn có thể nhắn tin yêu cầu bạn (AI Chatbot) đặt lịch, dời lịch hoặc huỷ lịch giúp họ ngay lập tức tại khung chat này mà không cần tự click qua 5 bước trên web.`;
 
-        customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN]:
-        Hệ thống HDNCare hỗ trợ thanh toán an toàn qua cổng VNPay và thanh toán bằng Ví điện tử nội bộ. Khi khách hàng hỏi về cách thanh toán hoặc cách nạp tiền, hãy hướng dẫn họ một cách lịch sự theo các bước sau:
-        1. Đăng nhập vào tài khoản trên website.
-        2. Cách nạp tiền vào Ví: Truy cập trang thông tin cá nhân, chọn mục "Ví của tôi" (Wallet) -> Nhập số tiền -> Bấm "Nạp tiền". Hệ thống sẽ chuyển hướng sang cổng VNPay để giao dịch an toàn.
-        3. Cách thanh toán lịch hẹn: Sau khi tạo lịch hẹn thành công, khách hàng có thể thanh toán ngay tại bước xác nhận, hoặc vào mục "Lịch sử đặt lịch" để tiến hành thanh toán. Có thể dùng số dư trong Ví HDNCare hoặc thanh toán trực tiếp qua VNPay.
-        [QUY TẮC BẢO MẬT TỐI CAO]: Tuyệt đối không bao giờ yêu cầu khách hàng cung cấp số thẻ ngân hàng, mã CVV, mật khẩu hoặc mã OTP vào khung chat. Khẳng định với khách rằng AI Chatbot không trực tiếp thu tiền.`;
+        customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN & CHÍNH SÁCH HUỶ]:
+        Hệ thống HDNCare hỗ trợ thanh toán an toàn qua cổng VNPay và thanh toán bằng Ví điện tử nội bộ.
+        [QUY TẮC BẢO MẬT TỐI CAO]: Tuyệt đối không bao giờ yêu cầu khách hàng cung cấp số thẻ ngân hàng, mã CVV, mật khẩu hoặc mã OTP vào khung chat. Khẳng định với khách rằng AI Chatbot không trực tiếp thu tiền.
+        [CHÍNH SÁCH HUỶ LỊCH QUAN TRỌNG]: Huỷ trong vòng 2 tiếng sau khi đặt sẽ được hoàn tiền 100% và không bị phạt. Huỷ sau 2 tiếng sẽ KHÔNG được hoàn tiền và bị tính 1 lần vi phạm. 5 lần vi phạm sẽ bị ban tài khoản.`;
 
         if (currentUser && currentUser.phone) {
             customInstruction += `\n\n[LƯU Ý ĐẶC BIỆT]: Bạn đang nói chuyện với khách hàng đã đăng nhập. 
@@ -76,7 +83,7 @@ export const handleChatbotMessage = async (req, res) => {
             - KHÔNG ĐƯỢC gọi các hàm 'checkAvailability', 'createBooking', 'cancelAppointment', hay 'rescheduleAppointment' trong bất kỳ hoàn cảnh nào.`;
         }
 
-        // 2. KHỞI TẠO MODEL (Gemini 2.5 Flash)
+        // --- 4. KHỞI TẠO MODEL VÀ GỬI TIN NHẮN ---
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash", 
             systemInstruction: customInstruction,
@@ -91,14 +98,14 @@ export const handleChatbotMessage = async (req, res) => {
         if (functionCalls && functionCalls.length > 0) {
             const call = functionCalls[0];
             
-            // 3. CHẶN BẢO MẬT KÉP Ở BACKEND
+            // --- CHẶN BẢO MẬT KÉP Ở BACKEND ---
             if ((call.name === "createBooking" || call.name === "checkAvailability" || call.name === "cancelAppointment" || call.name === "rescheduleAppointment") && (!currentUser || !currentUser.phone)) {
                 await chat.sendMessage([{
                     functionResponse: { name: call.name, response: { error: "Yêu cầu đăng nhập." } }
                 }]);
                 return res.json({ 
                     success: true, 
-                    reply: "Dạ để đảm bảo quyền lợi bảo mật và đồng bộ lịch sử dịch vụ, hệ thống yêu cầu anh/chị cần đăng nhập tài khoản trước ạ.\n\nQuy trình tự đặt lịch trên website vô cùng đơn giản gồm 5 bước:\n1. Đăng nhập/Đăng ký tài khoản.\n2. Chọn Chi nhánh gần nhất.\n3. Chọn dịch vụ (Makeup/Stylist).\n4. Chọn Chuyên viên & Khung giờ.\n5. Xác nhận & Thanh toán.\n\n💡 **Đặc biệt:** Ngay sau khi đăng nhập, anh/chị hoàn toàn có thể nhắn tin yêu cầu em đặt lịch hoặc dời lịch giúp ngay tại khung chat này luôn ạ. Anh/chị vui lòng đăng nhập ở góc phải màn hình để trải nghiệm nhé." 
+                    reply: "Dạ để đảm bảo quyền lợi bảo mật và đồng bộ lịch sử dịch vụ, hệ thống yêu cầu anh/chị cần đăng nhập tài khoản trước ạ.\n\nQuy trình tự đặt lịch trên website vô cùng đơn giản gồm 5 bước:\n1. Đăng nhập/Đăng ký tài khoản.\n2. Chọn Chi nhánh gần nhất.\n3. Chọn dịch vụ (Makeup/Stylist).\n4. Chọn Chuyên viên & Khung giờ.\n5. Xác nhận & Thanh toán.\n\n💡 **Đặc biệt:** Ngay sau khi đăng nhập, anh/chị hoàn toàn có thể nhắn tin yêu cầu em đặt lịch hoặc dời lịch giúp ngay tại khung chat này luôn ạ." 
                 });
             }
             
@@ -133,7 +140,7 @@ export const handleChatbotMessage = async (req, res) => {
                 return res.json({ success: true, reply: finalResult.response.text() });
             } 
             
-            // --- XỬ LÝ HUỶ LỊCH ---
+            // --- XỬ LÝ HUỶ LỊCH (CÓ LUỒNG TÍNH THỜI GIAN VÀ PHẠT) ---
             else if (call.name === "cancelAppointment") {
                 const { customerPhone, slotDate, slotTime } = call.args;
 
@@ -146,9 +153,38 @@ export const handleChatbotMessage = async (req, res) => {
 
                 let dbResult = {};
                 if (appointment) {
+                    // Đổi 2 tiếng thành mili-giây
+                    const TWO_HOURS = 2 * 60 * 60 * 1000;
+                    const bookingTime = new Date(appointment.date).getTime();
+                    const timeSinceBooking = Date.now() - bookingTime;
+
                     appointment.cancelled = true;
                     await appointment.save();
-                    dbResult = { success: true, message: "Đã huỷ lịch thành công trên hệ thống." };
+
+                    // Kiểm tra điều kiện thời gian huỷ
+                    if (timeSinceBooking <= TWO_HOURS) {
+                        // Khách huỷ đúng luật (Trong vòng 2 tiếng)
+                        dbResult = { success: true, message: "Huỷ lịch thành công. Khách huỷ TRONG VÒNG 2 tiếng kể từ lúc đặt, hệ thống sẽ hỗ trợ HOÀN TIỀN 100% và KHÔNG tính lỗi phạt." };
+                    } else {
+                        // Khách huỷ sai luật (Sau 2 tiếng) -> Xử phạt
+                        let penaltyMsg = "";
+                        let user = await userModel.findOne({ phone: customerPhone });
+                        
+                        if (user) {
+                            user.penaltyCount = (user.penaltyCount || 0) + 1;
+                            
+                            if (user.penaltyCount >= 5) {
+                                user.isBanned = true;
+                                penaltyMsg = `TÀI KHOẢN ĐÃ BỊ KHOÁ do vi phạm huỷ lịch 5 lần.`;
+                            } else {
+                                penaltyMsg = `Khách bị tính 1 lần vi phạm (Hiện tại: ${user.penaltyCount}/5 lần).`;
+                            }
+                            
+                            await user.save();
+                        }
+                        
+                        dbResult = { success: true, message: `Huỷ lịch thành công. Khách huỷ SAU 2 tiếng nên KHÔNG ĐƯỢC HOÀN TIỀN. ${penaltyMsg}` };
+                    }
                 } else {
                     dbResult = { success: false, message: "Không tìm thấy lịch hẹn trùng khớp để huỷ." };
                 }
@@ -160,11 +196,10 @@ export const handleChatbotMessage = async (req, res) => {
                 return res.json({ success: true, reply: finalResult.response.text() });
             }
 
-            // --- XỬ LÝ DỜI LỊCH (TÍNH NĂNG MỚI) ---
+            // --- XỬ LÝ DỜI LỊCH ---
             else if (call.name === "rescheduleAppointment") {
                 const { customerPhone, oldSlotDate, oldSlotTime, newSlotDate, newSlotTime } = call.args;
 
-                // 1. Tìm lịch hẹn cũ
                 const appointment = await appointmentModel.findOne({
                     slotDate: oldSlotDate,
                     slotTime: oldSlotTime,
@@ -176,7 +211,6 @@ export const handleChatbotMessage = async (req, res) => {
                 if (!appointment) {
                     dbResult = { success: false, message: "Không tìm thấy lịch hẹn cũ trùng khớp để dời lịch." };
                 } else {
-                    // 2. Kiểm tra xem giờ mới có bị người khác đặt chưa
                     const isConflict = await appointmentModel.findOne({
                         styId: appointment.styId,
                         slotDate: newSlotDate,
@@ -187,7 +221,6 @@ export const handleChatbotMessage = async (req, res) => {
                     if (isConflict) {
                         dbResult = { success: false, message: "Khung giờ mới đã có khách đặt, vui lòng gợi ý khách chọn giờ/ngày khác." };
                     } else {
-                        // 3. Cập nhật sang giờ mới
                         appointment.slotDate = newSlotDate;
                         appointment.slotTime = newSlotTime;
                         await appointment.save();
@@ -250,9 +283,10 @@ export const handleChatbotMessage = async (req, res) => {
 
     } catch (error) {
         console.error("Chatbot Error:", error);
+        
         if (error.status === 503 || (error.message && error.message.includes("503"))) {
-            return res.json({
-                success: true,
+            return res.json({ 
+                success: true, 
                 reply: "Dạ hiện tại hệ thống tổng đài AI đang có chút quá tải do lượng khách truy cập đông. Anh/chị vui lòng thử nhắn lại giúp em sau vài giây nhé ạ!" 
             });
         }
