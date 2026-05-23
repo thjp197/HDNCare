@@ -13,8 +13,6 @@ const DiscountCodes = () => {
     discountType: 'percentage',
     discountValue: '',
     maxUses: '',
-    minOrderAmount: '',
-    maxDiscount: '',
     expiryDate: '',
     isActive: true
   })
@@ -43,8 +41,6 @@ const DiscountCodes = () => {
         discountType: code.discountType,
         discountValue: code.discountValue,
         maxUses: code.maxUses || '',
-        minOrderAmount: code.minOrderAmount || '',
-        maxDiscount: code.maxDiscount || '',
         expiryDate: code.expiryDate ? code.expiryDate.split('T')[0] : '',
         isActive: code.isActive
       })
@@ -56,8 +52,6 @@ const DiscountCodes = () => {
         discountType: 'percentage',
         discountValue: '',
         maxUses: '',
-        minOrderAmount: '',
-        maxDiscount: '',
         expiryDate: '',
         isActive: true
       })
@@ -226,32 +220,6 @@ const DiscountCodes = () => {
                     onChange={handleInputChange}
                     className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none'
                     placeholder='Nhập giá trị'
-                  />
-                </div>
-
-                <div>
-                  <label className='mb-1 block text-sm font-medium text-gray-700'>Giảm Tối Đa</label>
-                  <input
-                    type='number'
-                    name='maxDiscount'
-                    value={formData.maxDiscount}
-                    onChange={handleInputChange}
-                    className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none'
-                    placeholder='(Chỉ cho %)'
-                  />
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <label className='mb-1 block text-sm font-medium text-gray-700'>Đơn Hàng Tối Thiểu</label>
-                  <input
-                    type='number'
-                    name='minOrderAmount'
-                    value={formData.minOrderAmount}
-                    onChange={handleInputChange}
-                    className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none'
-                    placeholder='VND'
                   />
                 </div>
 

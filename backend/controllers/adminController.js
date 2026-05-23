@@ -27,23 +27,23 @@ const addStylist = async (req, res) => {
 
     // checking for all data to add stylist
     if (!name || !email || !password || !speciality || !degree || !experience || !about || !fees || !address) {
-        return res.json({ success: false, message: "Missing Details" })
+        return res.json({ success: false, message: "Thiếu thông tin" })
     }
 
     // validating email format
     if (!validator.isEmail(email)) {
-        return res.json({ success: false, message: "Please enter a valid email" })
+        return res.json({ success: false, message: "Vui lòng nhập email hợp lệ" })
     }
 
     // validating strong password
     if (password.length < 8) {
-        return res.json({ success: false, message: "Please enter a strong password" })
+        return res.json({ success: false, message: "Vui lòng nhập mật khẩu mạnh" })
     }
 
     // checking for duplicate email
     const existingStylist = await stylistModel.findOne({ email })
     if (existingStylist) {
-        return res.json({ success: false, message: "Email already registered" })
+        return res.json({ success: false, message: "Email đã được đăng ký" })
     }
 
     // hashing user password
@@ -70,7 +70,7 @@ const addStylist = async (req, res) => {
 
     const newStylist = new stylistModel(stylistData)
     await newStylist.save()
-    res.json({ success: true, message: 'Stylist Added' })
+    res.json({ success: true, message: 'Nhân viên tạo kiểu đã được thêm' })
 
   } catch (error) {
     console.log(error);

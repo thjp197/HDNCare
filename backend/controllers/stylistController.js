@@ -12,7 +12,7 @@ const changeAvailablity = async (req, res) => {
 
         const stylistData = await stylistModel.findById(stylistId)
         await stylistModel.findByIdAndUpdate(stylistId, { available: !stylistData.available })
-        res.json({ success: true, message: 'Availablity Changed' })
+        res.json({ success: true, message: 'Tình trạng khả dụng đã được thay đổi' })
 
     } catch (error) {
         console.log(error)

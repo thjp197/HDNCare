@@ -1,17 +1,25 @@
 import React, { useContext, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { AppContext } from "../context/AppContext";
 import { assets, stylists as localStylists } from "../assets/assets";
 import { toast } from "react-toastify";
-import { useSearchParams } from "react-router-dom";
 
 const MyAppointments = () => {
+  const navigate = useNavigate();
   const { backendUrl, token, stylists, getStylistsData, loadUserProfileData, userData, setShowBannedAccountModal } =
     useContext(AppContext);
   const [searchParams] = useSearchParams();
 
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    }
+  }, [token, navigate]);
+
   const [appointments, setAppointments] = useState([]);
   const [paymentLoading, setPaymentLoading] = useState({});
+  const [paymentTypeModalOpen, setPaymentTypeModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [appointmentToPay, setAppointmentToPay] = useState(null);
   const [paymentModalType, setPaymentModalType] = useState("full");
@@ -24,6 +32,11 @@ const MyAppointments = () => {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
   const [discountVerifying, setDiscountVerifying] = useState(false);
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [appointmentToReschedule, setAppointmentToReschedule] = useState(null);
+  const [availableRescheduleSlots, setAvailableRescheduleSlots] = useState([]);
+  const [selectedRescheduleSlot, setSelectedRescheduleSlot] = useState(null);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   const months = [
     " ",
@@ -355,6 +368,127 @@ const MyAppointments = () => {
     setCancelModalOpen(true);
   };
 
+  const openRescheduleModal = (appointmentId) => {
+    const appointment = appointments.find(a => a._id === appointmentId);
+    if (!appointment) return;
+
+    if (appointment.rescheduleCount >= 1) {
+      toast.error("Bạn chỉ được đổi lịch 1 lần duy nhất");
+      return;
+    }
+
+    // Check if appointment is at least 2 hours away
+    const [dayStr, monthStr, yearStr] = appointment.slotDate.split("_");
+    const day = parseInt(dayStr);
+    const month = parseInt(monthStr);
+    const year = parseInt(yearStr);
+    
+    // Extract just HH:MM from slotTime (handles formats like "09:30", "09:30 AM", etc.)
+    const timeMatch = appointment.slotTime.match(/(\d{1,2}):(\d{2})/);
+    if (!timeMatch) {
+      toast.error("Lỗi định dạng giờ hẹn");
+      return;
+    }
+    const hour = parseInt(timeMatch[1]);
+    const minute = parseInt(timeMatch[2]);
+    const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
+    const now = new Date();
+    const timeDifference = (appointmentDateTime - now) / (1000 * 60); // in minutes
+
+    if (timeDifference < 120) {
+      toast.error("Đổi lịch không được phép trong 2 tiếng trước giờ đặt lịch");
+      return;
+    }
+
+    // Get available slots for the same day
+    const stylist = stylists.find(s => s._id === appointment.styId);
+    if (!stylist) {
+      toast.error("Không tìm thấy thông tin nhân viên");
+      return;
+    }
+
+    // Generate available slots for the same day
+    const slots = generateRescheduleSlots(appointment, stylist);
+    setAvailableRescheduleSlots(slots);
+    setAppointmentToReschedule(appointmentId);
+    setSelectedRescheduleSlot(null);
+    setRescheduleModalOpen(true);
+  };
+
+  const generateRescheduleSlots = (appointment, stylist) => {
+    const slots = [];
+    const [day, month, year] = appointment.slotDate.split("_");
+    
+    const bookedSlots = stylist.slots_booked || {};
+    const slotDate = day + "_" + month + "_" + year;
+    
+    let currentDate = new Date(year, month - 1, day, 9, 0, 0, 0); // Start at 9 AM
+    const endTime = new Date(year, month - 1, day, 21, 0, 0, 0); // End at 9 PM
+    const now = new Date();
+
+    while (currentDate < endTime) {
+      const formattedTime = currentDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      // Check if slot is available and not the current appointment time
+      const isBooked = bookedSlots[slotDate]?.includes(formattedTime);
+      const isCurrentTime = formattedTime === appointment.slotTime;
+      const isPastTime = currentDate <= now; // Skip if time already passed
+
+      if (!isBooked && !isCurrentTime && !isPastTime) {
+        slots.push({
+          time: formattedTime,
+          datetime: new Date(currentDate),
+        });
+      }
+
+      currentDate.setMinutes(currentDate.getMinutes() + 60);
+    }
+
+    return slots;
+  };
+
+  const handleReschedule = async () => {
+    if (!selectedRescheduleSlot || !appointmentToReschedule) {
+      toast.error("Vui lòng chọn giờ hẹn mới");
+      return;
+    }
+
+    setRescheduleLoading(true);
+    try {
+      const appointment = appointments.find(a => a._id === appointmentToReschedule);
+      const [day, month, year] = appointment.slotDate.split("_");
+      const newSlotDate = day + "_" + month + "_" + year;
+
+      const response = await axios.post(
+        `${backendUrl}/api/user/reschedule-appointment`,
+        {
+          appointmentId: appointmentToReschedule,
+          newSlotDate,
+          newSlotTime: selectedRescheduleSlot,
+        },
+        { headers: { token } }
+      );
+
+      if (response.data.success) {
+        toast.success("Đổi lịch hẹn thành công");
+        setRescheduleModalOpen(false);
+        setAppointmentToReschedule(null);
+        setSelectedRescheduleSlot(null);
+        getUserAppointments();
+        getStylistsData();
+      } else {
+        toast.error(response.data.message || "Không thể đổi lịch hẹn");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setRescheduleLoading(false);
+    }
+  };
+
   const handleReasonChange = (reason) => {
     if (selectedReasons.includes(reason)) {
       setSelectedReasons(selectedReasons.filter((r) => r !== reason));
@@ -370,11 +504,24 @@ const MyAppointments = () => {
     setCancellationReason("");
   };
 
-  const openPaymentModal = (appointmentId, type = "full") => {
+  const openPaymentTypeModal = (appointmentId) => {
     setAppointmentToPay(appointmentId);
+    setPaymentTypeModalOpen(true);
+  };
+
+  const selectPaymentType = (type) => {
     setPaymentModalType(type);
+    setPaymentTypeModalOpen(false);
+    setDiscountCode("");
+    setDiscountAmount(0);
+    setFinalAmount(0);
     setPaymentModalOpen(true);
   };
+
+  const closePaymentTypeModal = () => {
+    setPaymentTypeModalOpen(false);
+    setAppointmentToPay(null);
+  };;
 
   const closePaymentModal = () => {
     setPaymentModalOpen(false);
@@ -429,7 +576,9 @@ const MyAppointments = () => {
     0,
   );
   const paymentTargetAmount = paymentModalType === "deposit" ? selectedDepositAmount : selectedRemainingAmount;
-  const modalWalletSufficient = walletBalance >= paymentTargetAmount;
+  // Use finalAmount if discount is applied, otherwise use paymentTargetAmount
+  const amountToCheck = finalAmount > 0 ? finalAmount : paymentTargetAmount;
+  const modalWalletSufficient = walletBalance >= amountToCheck;
   const paymentModalLoading = appointmentToPay ? paymentLoading[appointmentToPay] : false;
 
   return (
@@ -485,33 +634,39 @@ const MyAppointments = () => {
               <div className="flex flex-col gap-2 justify-center">
                 {!item.cancelled && !item.payment && !item.isCompleted && (
                   <button
-                    onClick={() => openPaymentModal(item._id, "full")}
+                    onClick={() => openPaymentTypeModal(item._id)}
                     disabled={paymentLoading[item._id]}
                     className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán"}
                   </button>
                 )}
-                {!item.cancelled && !item.payment && !item.isCompleted && !item.depositPaid && (
-                  <button
-                    onClick={() => openPaymentModal(item._id, "deposit")}
-                    disabled={paymentLoading[item._id]}
-                    className="px-4 py-2 border border-emerald-600 text-emerald-700 rounded hover:bg-emerald-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {paymentLoading[item._id]
-                      ? "Đang xử lý..."
-                      : `Thanh toán cọc (20%) - ${Math.round((item.amount || 0) * 0.2).toLocaleString("vi-VN")} VND`}
-                  </button>
-                )}
                 {!item.cancelled && !item.payment && item.depositPaid && !item.isCompleted && (
-                  <button className="px-4 py-2 border border-emerald-500 text-emerald-600 rounded cursor-default">
-                    ✓ Đã cọc {Number(item.depositAmount || Math.round((item.amount || 0) * 0.2)).toLocaleString("vi-VN")} VND
-                  </button>
+                  <>
+                    <button className="px-4 py-2 border border-emerald-500 text-emerald-600 rounded cursor-default">
+                      ✓ Đã cọc {Number(item.depositAmount || Math.round((item.amount || 0) * 0.2)).toLocaleString("vi-VN")} VND
+                    </button>
+                    <button
+                      onClick={() => { setPaymentModalType("full"); setAppointmentToPay(item._id); setDiscountCode(""); setDiscountAmount(0); setFinalAmount(0); setPaymentModalOpen(true); }}
+                      disabled={paymentLoading[item._id]}
+                      className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán phần còn lại"}
+                    </button>
+                  </>
                 )}
                 {!item.cancelled && item.payment && !item.isCompleted && (
                   <>
                     <button className="px-4 py-2 bg-green-500 text-white rounded cursor-default">
                       ✓ Đã thanh toán
+                    </button>
+                    <button
+                      onClick={() => openRescheduleModal(item._id)}
+                      disabled={item.rescheduleCount >= 1}
+                      className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-400"
+                      title={item.rescheduleCount >= 1 ? "Đã đổi lịch" : ""}
+                    >
+                      Đổi lịch hẹn
                     </button>
                     <button
                       onClick={() => openCancelModal(item._id)}
@@ -522,12 +677,22 @@ const MyAppointments = () => {
                   </>
                 )}
                 {!item.cancelled && !item.payment && !item.isCompleted &&(
-                  <button
-                    onClick={() => openCancelModal(item._id)}
-                    className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
-                  >
-                    Hủy lịch hẹn
-                  </button>
+                  <>
+                    <button
+                      onClick={() => openRescheduleModal(item._id)}
+                      disabled={item.rescheduleCount >= 1}
+                      className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-400"
+                      title={item.rescheduleCount >= 1 ? "Đã đổi lịch" : ""}
+                    >
+                      Đổi lịch hẹn
+                    </button>
+                    <button
+                      onClick={() => openCancelModal(item._id)}
+                      className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
+                    >
+                      Hủy lịch hẹn
+                    </button>
+                  </>
                 )}
                 {item.cancelled && !item.isCompleted &&(
                   <button className="sm:min-w-48 py-2 border border-red-500 rounded text-red-500 cursor-default">
@@ -546,6 +711,48 @@ const MyAppointments = () => {
       </div>
 
       {/* Modal Hủy Lịch Hẹn */}
+      {paymentTypeModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6">
+            <h2 className="text-xl font-bold mb-2 text-gray-800">Chọn phương thức thanh toán</h2>
+            <p className="text-sm text-gray-600 mb-5">Vui lòng chọn loại thanh toán mà bạn muốn thực hiện.</p>
+            
+            <div className="space-y-3">
+              {appointmentToPay && appointments.find(a => a._id === appointmentToPay) && (
+                <>
+                  <button
+                    onClick={() => selectPaymentType("full")}
+                    className="w-full p-4 border-2 border-rose-500 rounded-lg hover:bg-rose-50 transition text-left"
+                  >
+                    <p className="font-semibold text-gray-800">Thanh toán đầy đủ</p>
+                    <p className="text-sm text-gray-600">Số tiền: {(appointments.find(a => a._id === appointmentToPay)?.amount || 0).toLocaleString("vi-VN")} VND</p>
+                  </button>
+                  
+                  {!appointments.find(a => a._id === appointmentToPay)?.depositPaid && (
+                    <button
+                      onClick={() => selectPaymentType("deposit")}
+                      className="w-full p-4 border-2 border-emerald-500 rounded-lg hover:bg-emerald-50 transition text-left"
+                    >
+                      <p className="font-semibold text-gray-800">Thanh toán cọc (20%)</p>
+                      <p className="text-sm text-gray-600">Số tiền: {Math.round((appointments.find(a => a._id === appointmentToPay)?.amount || 0) * 0.2).toLocaleString("vi-VN")} VND</p>
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={closePaymentTypeModal}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {cancelModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
@@ -710,6 +917,64 @@ const MyAppointments = () => {
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Đổi Lịch Hẹn */}
+      {rescheduleModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 max-h-96 overflow-y-auto">
+            <h2 className="text-xl font-bold mb-2 text-gray-800">Đổi lịch hẹn</h2>
+            <p className="text-sm text-red-600 font-medium mb-4">(⚠ Chỉ được đổi lịch 1 lần duy nhất)</p>
+            
+            {appointmentToReschedule && appointments.find(a => a._id === appointmentToReschedule) && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-3">
+                  Chọn giờ mới cho lịch hẹn ngày {slotDateFormat(appointments.find(a => a._id === appointmentToReschedule)?.slotDate)}
+                </p>
+                
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {availableRescheduleSlots.map((slot, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedRescheduleSlot(slot.time)}
+                      className={`p-2 rounded border text-sm font-medium transition ${
+                        selectedRescheduleSlot === slot.time
+                          ? "border-blue-600 bg-blue-50 text-blue-600"
+                          : "border-gray-300 text-gray-700 hover:border-blue-400"
+                      }`}
+                    >
+                      {slot.time}
+                    </button>
+                  ))}
+                </div>
+                
+                {availableRescheduleSlots.length === 0 && (
+                  <p className="text-sm text-red-600 mb-4">Không có giờ khả dụng trong ngày này</p>
+                )}
+              </div>
+            )}
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setRescheduleModalOpen(false);
+                  setAppointmentToReschedule(null);
+                  setSelectedRescheduleSlot(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={handleReschedule}
+                disabled={rescheduleLoading || !selectedRescheduleSlot}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {rescheduleLoading ? "Đang xử lý..." : "Xác nhận đổi lịch"}
               </button>
             </div>
           </div>

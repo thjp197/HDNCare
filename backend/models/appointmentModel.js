@@ -21,7 +21,8 @@ const appointmentSchema = new mongoose.Schema({
     depositTransactionId: {type: String, default: null},
     depositMethod: {type: String, default: null},
     isCompleted: {type: Boolean, default: false},
-    discountCode: {type: String, default: null}
+    discountCode: {type: String, default: null},
+    rescheduleCount: {type: Number, default: 0}
 })
 
 const appointmentModel = mongoose.models.appointment || mongoose.model("appointment", appointmentSchema);

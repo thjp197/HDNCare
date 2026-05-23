@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 // API to add a new discount code
 const addDiscountCode = async (req, res) => {
   try {
-    const { code, description, discountType, discountValue, maxUses, minOrderAmount, maxDiscount, expiryDate } = req.body;
+    const { code, description, discountType, discountValue, maxUses, expiryDate } = req.body;
 
     // Validate required fields
     if (!code || !discountType || discountValue === undefined) {
@@ -32,8 +32,6 @@ const addDiscountCode = async (req, res) => {
       discountType,
       discountValue,
       maxUses: maxUses || null,
-      minOrderAmount: minOrderAmount || 0,
-      maxDiscount: maxDiscount || null,
       expiryDate: expiryDate || null,
     });
 
@@ -60,7 +58,7 @@ const getAllDiscountCodes = async (req, res) => {
 // API to update discount code
 const updateDiscountCode = async (req, res) => {
   try {
-    const { discountCodeId, code, description, discountType, discountValue, maxUses, minOrderAmount, maxDiscount, expiryDate, isActive } = req.body;
+    const { discountCodeId, code, description, discountType, discountValue, maxUses, expiryDate, isActive } = req.body;
 
     if (!discountCodeId) {
       return res.json({ success: false, message: "ID mã giảm giá không hợp lệ" });
@@ -72,8 +70,6 @@ const updateDiscountCode = async (req, res) => {
       discountType,
       discountValue,
       maxUses: maxUses || null,
-      minOrderAmount: minOrderAmount || 0,
-      maxDiscount: maxDiscount || null,
       expiryDate: expiryDate || null,
       isActive
     };
