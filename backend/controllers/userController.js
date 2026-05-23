@@ -39,10 +39,10 @@ const calculateDepositAmount = (amount) => {
 // API to register user
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
     // checking for all data to register user
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone) {
       return res.json({ success: false, message: "Thiếu thông tin" });
     }
 
@@ -51,6 +51,15 @@ const registerUser = async (req, res) => {
       return res.json({
         success: false,
         message: "Vui lòng nhập email hợp lệ",
+      });
+    }
+
+    // validating phone number format (10 digits)
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      return res.json({
+        success: false,
+        message: "Số điện thoại phải có 10 số",
       });
     }
 
@@ -70,6 +79,7 @@ const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      phone: phoneDigits,
     };
 
     const newUser = new userModel(userData);
