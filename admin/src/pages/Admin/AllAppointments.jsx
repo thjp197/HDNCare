@@ -13,6 +13,32 @@ const AllAppointments = () => {
   const [cancelConfirmModalOpen, setCancelConfirmModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
 
+  // Helper function to check if appointment is expired
+  const isAppointmentExpired = (appointment) => {
+    // If already cancelled or completed, it's not expired
+    if (appointment.cancelled || appointment.isCompleted) {
+      return false;
+    }
+    
+    // Parse date and time
+    const [dayStr, monthStr, yearStr] = appointment.slotDate.split("_");
+    const day = parseInt(dayStr);
+    const month = parseInt(monthStr);
+    const year = parseInt(yearStr);
+    
+    // Extract hour and minute from slotTime
+    const timeMatch = appointment.slotTime.match(/(\d{1,2}):(\d{2})/);
+    if (!timeMatch) return false;
+    
+    const hour = parseInt(timeMatch[1]);
+    const minute = parseInt(timeMatch[2]);
+    const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
+    const now = new Date();
+    
+    // If appointment time is in the past, it's expired
+    return appointmentDateTime < now;
+  };
+
   useEffect(() => {
     if (aToken) {
       getAllAppointments();
@@ -63,16 +89,24 @@ const AllAppointments = () => {
           <p>Phí</p>
           <p>Hành động</p>
         </div>
-        {appointments.map((item, index) => (
+        {appointments.map((item, index) => {
+          const isExpired = isAppointmentExpired(item);
+          return (
           <div
-            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
+            className={`flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center py-3 px-6 border-b ${
+              isExpired
+                ? "bg-gray-100 text-gray-400 hover:bg-gray-150"
+                : "text-gray-500 hover:bg-gray-50"
+            }`}
             key={index}
           >
             <p className="max-sm:hidden">{index + 1}</p>
             <div className="flex items-center gap-2">
               <img
                 src={item.userData.image}
-                className="w-8 rounded-full"
+                className={`w-8 rounded-full ${
+                  isExpired ? "opacity-50" : ""
+                }`}
                 alt=""
               />{" "}
               <p>{item.userData.name}</p>
@@ -80,7 +114,9 @@ const AllAppointments = () => {
             <div>
               <p
                 className={`text-xs inline px-2 py-0.5 rounded-full border font-medium ${
-                  item.cancelled
+                  isExpired
+                    ? "bg-gray-300 text-gray-600 border-gray-400"
+                    : item.cancelled
                     ? "bg-red-100 text-red-700 border-red-300"
                     : item.isCompleted
                     ? "bg-green-100 text-green-700 border-green-300"
@@ -91,7 +127,9 @@ const AllAppointments = () => {
                     : "bg-yellow-100 text-yellow-800 border-yellow-300"
                 }`}
               >
-                {item.depositPaid && !item.payment
+                {isExpired
+                  ? "Hết hạn"
+                  : item.depositPaid && !item.payment
                   ? `Đã cọc - ${(Number(item.depositAmount) || Math.round(Number(item.amount || 0) * 0.2)).toLocaleString("vi-VN")} ${currency}`
                   : item.payment
                   ? "Trực tuyến"
@@ -105,7 +143,9 @@ const AllAppointments = () => {
             <div className="flex items-center gap-2">
               <img
                 src={item.styData.image}
-                className="w-8 rounded-full bg-gray-200"
+                className={`w-8 rounded-full bg-gray-200 ${
+                  isExpired ? "opacity-50" : ""
+                }`}
                 alt=""
               />{" "}
               <p>{item.styData.name}</p>
@@ -113,7 +153,11 @@ const AllAppointments = () => {
             <p className="whitespace-nowrap">
               {item.amount} {currency}
             </p>
-            {item.cancelled ? (
+            {isExpired ? (
+              <button className="inline-flex w-fit justify-self-start items-center rounded border border-gray-400 bg-gray-300 px-3 py-1.5 text-xs font-semibold font-sans text-gray-700 cursor-default hover:bg-gray-350 transition">
+                Hết hạn
+              </button>
+            ) : item.cancelled ? (
               <p
                 onClick={() =>
                   openCancellationReasonModal(
@@ -136,7 +180,8 @@ const AllAppointments = () => {
               />
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal hiển thị lý do hủy */}
