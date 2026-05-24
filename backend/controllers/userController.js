@@ -786,7 +786,8 @@ const payAppointmentDepositWithWallet = async (req, res) => {
         type: "appointment_deposit",
         amount: -depositAmount,
         status: "success",
-        description: `Thanh toán cọc lịch hẹn ${appointmentId}`,
+        // description: `Thanh toán cọc lịch hẹn ${appointmentId}`,
+        description: `Thanh toán cọc lịch hẹn `,
         createdAt: new Date(),
       },
     ];
