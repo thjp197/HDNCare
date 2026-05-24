@@ -7,7 +7,8 @@ import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import discountCodeModel from "../models/discountCodeModel.js";
 import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } from "vnpay";
-import { applyUserPenalty, isWithinHoursToAppointment, processRefund } from "../utils/penaltyUtils.js";
+import { applyUserPenalty, isWithinHoursToAppointment, parseAppointmentDateTime, processRefund } from "../utils/penaltyUtils.js";
+import { emitStylistSlotsUpdated } from "../utils/socket.js";
 
 const PERSONAL_LIBRARY_FOLDER = "hdn_care/personal_library";
 
@@ -243,8 +244,24 @@ const bookAppointment = async (req, res) => {
     const styData = await stylistModel.findById(styId).select("-password");
     const userData = await userModel.findById(userId).select("-password");
 
+    if (!styData) {
+      return res.json({ success: false, message: "Không tìm thấy thông tin nhân viên" });
+    }
+
     if (!userData) {
       return res.json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    const selectedSlotDateTime = parseAppointmentDateTime(slotDate, slotTime);
+    if (!selectedSlotDateTime) {
+      return res.json({ success: false, message: "Thời gian đặt lịch không hợp lệ" });
+    }
+
+    if (selectedSlotDateTime.getTime() <= Date.now()) {
+      return res.json({
+        success: false,
+        message: "Khung giờ này đã qua, vui lòng chọn khung giờ khác",
+      });
     }
 
     if (
@@ -294,6 +311,11 @@ const bookAppointment = async (req, res) => {
 
     //save new slots data in styData
     await stylistModel.findByIdAndUpdate(styId, { slots_booked });
+    emitStylistSlotsUpdated(styId, {
+      action: "booked",
+      slotDate,
+      slotTime,
+    });
 
     res.json({ success: true, message: "Lịch hẹn đã được đặt" });
   } catch (error) {
@@ -1078,6 +1100,18 @@ const rescheduleAppointment = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy thông tin nhân viên" });
     }
 
+    const newSlotDateTime = parseAppointmentDateTime(newSlotDate, newSlotTime);
+    if (!newSlotDateTime) {
+      return res.json({ success: false, message: "Thời gian đổi lịch không hợp lệ" });
+    }
+
+    if (newSlotDateTime.getTime() <= Date.now()) {
+      return res.json({
+        success: false,
+        message: "Khung giờ mới đã qua, vui lòng chọn khung giờ khác",
+      });
+    }
+
     // Check if new slot is available
     const bookedSlots = stylist.slots_booked || {};
     if (bookedSlots[newSlotDate] && bookedSlots[newSlotDate].includes(newSlotTime)) {
@@ -1107,6 +1141,13 @@ const rescheduleAppointment = async (req, res) => {
       { slotDate: newSlotDate, slotTime: newSlotTime, rescheduleCount: 1 },
       { returnDocument: "after" }
     );
+    emitStylistSlotsUpdated(appointmentData.styId, {
+      action: "rescheduled",
+      oldSlotDate: appointmentData.slotDate,
+      oldSlotTime: appointmentData.slotTime,
+      newSlotDate,
+      newSlotTime,
+    });
 
     res.json({
       success: true,
