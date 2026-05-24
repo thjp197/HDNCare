@@ -6,7 +6,7 @@ import { AppContext } from "../../context/AppContext";
 const Dashboard = () => {
   const { aToken, getDashData, cancelAppointment, dashData } =
     useContext(AdminContext);
-  const { slotDateFormat } = useContext(AppContext);
+  const { slotDateFormat, currency } = useContext(AppContext);
 
   useEffect(() => {
     if (aToken) {
@@ -83,6 +83,25 @@ const Dashboard = () => {
                   {dashData.users}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+          <span className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-100/70 transition-transform duration-300 group-hover:scale-125"></span>
+          <div className="relative flex items-center gap-4">
+            <div className="rounded-xl bg-emerald-50 p-2">
+              <img
+                className="w-12 font-sans"
+                src={assets.earning_icon}
+                alt="Doanh thu"
+              />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Tổng Doanh Thu</p>
+              <p className="text-3xl font-bold text-gray-800">
+                {(dashData.earnings || 0).toLocaleString("vi-VN")} <span className="text-lg">{currency}</span>
+              </p>
             </div>
           </div>
         </div>

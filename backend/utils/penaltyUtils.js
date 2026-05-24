@@ -142,8 +142,8 @@ const processRefund = async (userId, appointmentData) => {
       status: "success",
       description: 
         refundSource === "full_payment"
-          ? `Hoàn lại tiền dịch vụ từ lịch hẹn bị hủy - ${refundAmount.toLocaleString("vi-VN")} VND`
-          : `Hoàn lại tiền cọc từ lịch hẹn bị hủy - ${refundAmount.toLocaleString("vi-VN")} VND`,
+          ? `Hoàn lại tiền từ lịch hẹn bị hủy - ${refundAmount.toLocaleString("vi-VN")} VND`
+          : `Hoàn lại tiền từ lịch hẹn bị hủy - ${refundAmount.toLocaleString("vi-VN")} VND`,
       createdAt: new Date(),
     };
 

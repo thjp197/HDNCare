@@ -5,6 +5,7 @@ import userModel from "../models/userModel.js";
 import { v2 as cloudinary } from "cloudinary";
 import stylistModel from "../models/stylistModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import discountCodeModel from "../models/discountCodeModel.js";
 import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } from "vnpay";
 import { applyUserPenalty, isWithinHoursToAppointment, processRefund } from "../utils/penaltyUtils.js";
 
@@ -38,18 +39,27 @@ const calculateDepositAmount = (amount) => {
 // API to register user
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
     // checking for all data to register user
-    if (!name || !email || !password) {
-      return res.json({ success: false, message: "Missing Details" });
+    if (!name || !email || !password || !phone) {
+      return res.json({ success: false, message: "Thiếu thông tin" });
     }
 
     // validating email format
     if (!validator.isEmail(email)) {
       return res.json({
         success: false,
-        message: "Please enter a valid email",
+        message: "Vui lòng nhập email hợp lệ",
+      });
+    }
+
+    // validating phone number format (10 digits)
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      return res.json({
+        success: false,
+        message: "Số điện thoại phải có 10 số",
       });
     }
 
@@ -57,7 +67,7 @@ const registerUser = async (req, res) => {
     if (password.length < 8) {
       return res.json({
         success: false,
-        message: "Please enter a strong password",
+        message: "Vui lòng nhập mật khẩu có ít nhất 8 ký tự",
       });
     }
 
@@ -69,6 +79,7 @@ const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      phone: phoneDigits,
     };
 
     const newUser = new userModel(userData);
@@ -134,7 +145,7 @@ const updateProfile = async (req, res) => {
     const imageFile = req.file;
 
     if (!name || !phone || !dob || !gender) {
-      return res.json({ success: false, message: "Data Missing" });
+      return res.json({ success: false, message: "Thiếu dữ liệu" });
     }
 
     await userModel.findByIdAndUpdate(userId, {
@@ -155,7 +166,7 @@ const updateProfile = async (req, res) => {
       await userModel.findByIdAndUpdate(userId, { image: imageURL });
     }
 
-    res.json({ success: true, message: "Profile Updated" });
+    res.json({ success: true, message: "Hồ sơ đã được cập nhật" });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -233,20 +244,20 @@ const bookAppointment = async (req, res) => {
     const userData = await userModel.findById(userId).select("-password");
 
     if (!userData) {
-      return res.json({ success: false, message: "User not found" });
+      return res.json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
     if (
       selectedStyleImage &&
       !(userData.personalImages || []).includes(selectedStyleImage)
     ) {
-      return res.json({ success: false, message: "Selected image is invalid" });
+      return res.json({ success: false, message: "Hình ảnh được chọn không hợp lệ" });
     }
 
     if (!styData.available) {
       return res.json({
         success: false,
-        message: "Stylist not available at the selected time",
+        message: "Nhân viên tạo kiểu không khả dụng vào thời gian được chọn",
       });
     }
 
@@ -255,7 +266,7 @@ const bookAppointment = async (req, res) => {
     //checking for slot availability
     if (slots_booked[slotDate]) {
       if (slots_booked[slotDate].includes(slotTime)) {
-        return res.json({ success: false, message: "Slot not available" });
+        return res.json({ success: false, message: "Khung giờ không khả dụng" });
       } else {
         slots_booked[slotDate].push(slotTime);
       }
@@ -284,7 +295,7 @@ const bookAppointment = async (req, res) => {
     //save new slots data in styData
     await stylistModel.findByIdAndUpdate(styId, { slots_booked });
 
-    res.json({ success: true, message: "Appointment Booked" });
+    res.json({ success: true, message: "Lịch hẹn đã được đặt" });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -299,17 +310,17 @@ const updatePersonalImages = async (req, res) => {
     const imageFile = req.file;
 
     if (!["add", "remove"].includes(action)) {
-      return res.json({ success: false, message: "Invalid action" });
+      return res.json({ success: false, message: "Hành động không hợp lệ" });
     }
 
     const user = await userModel.findById(userId);
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
     if (action === "add") {
       if (!imageFile && (!imageData || typeof imageData !== "string")) {
-        return res.json({ success: false, message: "Missing image data" });
+        return res.json({ success: false, message: "Thiếu dữ liệu hình ảnh" });
       }
 
       const uploaded = imageFile
@@ -330,7 +341,7 @@ const updatePersonalImages = async (req, res) => {
 
       return res.json({
         success: true,
-        message: "Saved image to personal library",
+        message: "Đã lưu hình ảnh vào thư viện cá nhân",
         personalImages: user.personalImages,
         imageUrl: secureUrl,
       });
@@ -338,7 +349,7 @@ const updatePersonalImages = async (req, res) => {
 
     // action === "remove"
     if (!imageUrl || typeof imageUrl !== "string") {
-      return res.json({ success: false, message: "Missing image URL" });
+      return res.json({ success: false, message: "Thiếu URL hình ảnh" });
     }
 
     user.personalImages = (user.personalImages || []).filter(
@@ -353,7 +364,7 @@ const updatePersonalImages = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Removed image from personal library",
+      message: "Đã xóa hình ảnh khỏi thư viện cá nhân",
       personalImages: user.personalImages,
     });
   } catch (error) {
@@ -570,7 +581,7 @@ const verifyWalletTopup = async (req, res) => {
 const payAppointmentWithWallet = async (req, res) => {
   try {
     const userId = req.userId;
-    const { appointmentId } = req.body;
+    const { appointmentId, discountCode, discountAmount } = req.body;
 
     if (!userId) {
       return res.json({
@@ -612,14 +623,34 @@ const payAppointmentWithWallet = async (req, res) => {
 
     const appointmentAmount = Number(appointmentData.amount || 0);
     const paidDeposit = Number(appointmentData.depositPaid ? appointmentData.depositAmount || 0 : 0);
-    const payableAmount = Math.max(appointmentAmount - paidDeposit, 0);
+    let payableAmount = Math.max(appointmentAmount - paidDeposit, 0);
+    
+    // Subtract discount if applied - check with Number.isFinite to avoid falsy check issue
+    if (Number.isFinite(Number(discountAmount)) && Number(discountAmount) > 0) {
+      payableAmount = Math.max(0, payableAmount - Number(discountAmount));
+    }
+    
     const walletBalance = Number(user.walletBalance || 0);
 
     if (payableAmount <= 0) {
-      await appointmentModel.findByIdAndUpdate(appointmentId, {
+      // Update appointment and handle discount code if applied
+      const updateData = {
         payment: true,
         paymentMethod: appointmentData.depositMethod || "wallet",
-      });
+      };
+
+      if (discountCode) {
+        const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
+        if (discount) {
+          discount.usedCount = (discount.usedCount || 0) + 1;
+          if (!discount.usedBy) discount.usedBy = [];
+          discount.usedBy.push(userId);
+          await discount.save();
+          updateData.discountCode = discountCode.toUpperCase();
+        }
+      }
+
+      await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
 
       return res.json({
         success: true,
@@ -630,11 +661,10 @@ const payAppointmentWithWallet = async (req, res) => {
     if (walletBalance < payableAmount) {
       return res.json({
         success: false,
-        message: "Số dư ví không đủ để thanh toán",
+        message: "Số dư ví không đủ để thanh toán"
       });
     }
 
-    const previousBalance = walletBalance;
     let walletReference = `wallet_pay_${appointmentId}_${Date.now()}`;
     const nextTransactions = [
       ...(user.walletTransactions || []),
@@ -654,11 +684,25 @@ const payAppointmentWithWallet = async (req, res) => {
     });
 
     try {
-      await appointmentModel.findByIdAndUpdate(appointmentId, {
+      const updateData = {
         payment: true,
         paymentTransactionId: walletReference,
         paymentMethod: "wallet",
-      });
+      };
+
+      // Handle discount code if applied
+      if (discountCode) {
+        const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
+        if (discount) {
+          discount.usedCount = (discount.usedCount || 0) + 1;
+          if (!discount.usedBy) discount.usedBy = [];
+          discount.usedBy.push(userId);
+          await discount.save();
+          updateData.discountCode = discountCode.toUpperCase();
+        }
+      }
+
+      await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
     } catch (appointmentError) {
       await userModel.findByIdAndUpdate(userId, {
         walletBalance: previousBalance,
@@ -677,7 +721,7 @@ const payAppointmentWithWallet = async (req, res) => {
 const payAppointmentDepositWithWallet = async (req, res) => {
   try {
     const userId = req.userId;
-    const { appointmentId } = req.body;
+    const { appointmentId, discountCode, discountAmount } = req.body;
 
     if (!userId) {
       return res.json({
@@ -718,7 +762,11 @@ const payAppointmentDepositWithWallet = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
-    const depositAmount = calculateDepositAmount(appointmentData.amount);
+    // Calculate deposit amount, then subtract discount if applied - check with Number.isFinite to avoid falsy check issue
+    let depositAmount = calculateDepositAmount(appointmentData.amount);
+    if (Number.isFinite(Number(discountAmount)) && Number(discountAmount) > 0) {
+      depositAmount = Math.max(0, depositAmount - Number(discountAmount));
+    }
 
     if (depositAmount <= 0) {
       return res.json({ success: false, message: "Số tiền cọc không hợp lệ" });
@@ -738,7 +786,8 @@ const payAppointmentDepositWithWallet = async (req, res) => {
         type: "appointment_deposit",
         amount: -depositAmount,
         status: "success",
-        description: `Thanh toán cọc lịch hẹn ${appointmentId}`,
+        // description: `Thanh toán cọc lịch hẹn ${appointmentId}`,
+        description: `Thanh toán cọc lịch hẹn `,
         createdAt: new Date(),
       },
     ];
@@ -749,12 +798,26 @@ const payAppointmentDepositWithWallet = async (req, res) => {
     });
 
     try {
-      await appointmentModel.findByIdAndUpdate(appointmentId, {
+      const updateData = {
         depositPaid: true,
         depositAmount,
         depositTransactionId: walletReference,
         depositMethod: "wallet",
-      });
+      };
+
+      // Handle discount code if applied
+      if (discountCode) {
+        const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
+        if (discount) {
+          discount.usedCount = (discount.usedCount || 0) + 1;
+          if (!discount.usedBy) discount.usedBy = [];
+          discount.usedBy.push(userId);
+          await discount.save();
+          updateData.discountCode = discountCode.toUpperCase();
+        }
+      }
+
+      await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
     } catch (appointmentError) {
       await userModel.findByIdAndUpdate(userId, {
         walletBalance: previousBalance,
@@ -952,11 +1015,115 @@ const cancelAppointment = async (req, res) => {
   }
 };
 
+// API to reschedule appointment
+const rescheduleAppointment = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { appointmentId, newSlotDate, newSlotTime } = req.body;
+
+    if (!userId) {
+      return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    if (!appointmentId || !newSlotDate || !newSlotTime) {
+      return res.json({ success: false, message: "Thiếu thông tin" });
+    }
+
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (!appointmentData) {
+      return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+    }
+
+    if (appointmentData.cancelled) {
+      return res.json({ success: false, message: "Lịch hẹn này đã bị huỷ trước đó" });
+    }
+
+    if (appointmentData.isCompleted) {
+      return res.json({ success: false, message: "Lịch hẹn này đã hoàn thành" });
+    }
+
+    if (appointmentData.rescheduleCount >= 1) {
+      return res.json({ success: false, message: "Bạn chỉ được đổi lịch 1 lần duy nhất" });
+    }
+
+    // verify appointment user
+    if (String(appointmentData.userId) !== String(userId)) {
+      return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    // Check if at least 2 hours before appointment
+    const [dayStr, monthStr, yearStr] = appointmentData.slotDate.split("_");
+    const day = parseInt(dayStr);
+    const month = parseInt(monthStr);
+    const year = parseInt(yearStr);
+    // Extract just HH:MM from slotTime (handles formats like "09:30", "09:30 AM", etc.)
+    const timeMatch = appointmentData.slotTime.match(/(\d{1,2}):(\d{2})/);
+    if (!timeMatch) {
+      return res.json({ success: false, message: "Lỗi định dạng giờ hẹn" });
+    }
+    const hour = parseInt(timeMatch[1]);
+    const minute = parseInt(timeMatch[2]);
+    
+    const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
+    const now = new Date();
+    const timeDifference = (appointmentDateTime - now) / (1000 * 60); // in minutes
+
+    if (timeDifference < 120) {
+      return res.json({ success: false, message: "Không thể đổi lịch sát giờ đặt lịch 2 tiếng" });
+    }
+
+    const stylist = await stylistModel.findById(appointmentData.styId);
+    if (!stylist) {
+      return res.json({ success: false, message: "Không tìm thấy thông tin nhân viên" });
+    }
+
+    // Check if new slot is available
+    const bookedSlots = stylist.slots_booked || {};
+    if (bookedSlots[newSlotDate] && bookedSlots[newSlotDate].includes(newSlotTime)) {
+      return res.json({ success: false, message: "Giờ hẹn này không khả dụng" });
+    }
+
+    // Release old slot
+    let slots_booked = stylist.slots_booked || {};
+    if (Array.isArray(slots_booked[appointmentData.slotDate])) {
+      slots_booked[appointmentData.slotDate] = slots_booked[appointmentData.slotDate].filter(
+        (e) => e !== appointmentData.slotTime,
+      );
+    }
+
+    // Book new slot
+    if (!slots_booked[newSlotDate]) {
+      slots_booked[newSlotDate] = [];
+    }
+    slots_booked[newSlotDate].push(newSlotTime);
+
+    // Update stylist slots
+    await stylistModel.findByIdAndUpdate(appointmentData.styId, { slots_booked });
+
+    // Update appointment
+    const updatedAppointment = await appointmentModel.findByIdAndUpdate(
+      appointmentId,
+      { slotDate: newSlotDate, slotTime: newSlotTime, rescheduleCount: 1 },
+      { returnDocument: "after" }
+    );
+
+    res.json({
+      success: true,
+      message: "Đổi lịch hẹn thành công",
+      appointment: updatedAppointment,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 // API to create VNPay payment URL
 const createPaymentUrl = async (req, res) => {
   try {
     const userId = req.userId;
-    const { appointmentId } = req.body;
+    const { appointmentId, finalAmount, discountCode, discountAmount } = req.body;
 
     if (!appointmentId) {
       return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
@@ -982,7 +1149,8 @@ const createPaymentUrl = async (req, res) => {
     }
 
     const depositAmount = Number(appointmentData.depositPaid ? appointmentData.depositAmount || 0 : 0);
-    const payableAmount = Math.max(Number(appointmentData.amount || 0) - depositAmount, 0);
+    // Use finalAmount from request if available (when discount is applied), otherwise calculate default
+    let payableAmount = finalAmount ? Number(finalAmount) : Math.max(Number(appointmentData.amount || 0) - depositAmount, 0);
 
     if (payableAmount <= 0) {
       await appointmentModel.findByIdAndUpdate(appointmentId, {
@@ -1029,7 +1197,7 @@ const createPaymentUrl = async (req, res) => {
 const createDepositPaymentUrl = async (req, res) => {
   try {
     const userId = req.userId;
-    const { appointmentId } = req.body;
+    const { appointmentId, discountAmount } = req.body;
 
     if (!appointmentId) {
       return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
@@ -1057,7 +1225,11 @@ const createDepositPaymentUrl = async (req, res) => {
       return res.json({ success: true, message: "Lịch hẹn đã được thanh toán cọc" });
     }
 
-    const depositAmount = calculateDepositAmount(appointmentData.amount);
+    // Calculate deposit amount, then subtract discount if applied - check with Number.isFinite to avoid falsy check issue
+    let depositAmount = calculateDepositAmount(appointmentData.amount);
+    if (Number.isFinite(Number(discountAmount)) && Number(discountAmount) > 0) {
+      depositAmount = Math.max(0, depositAmount - Number(discountAmount));
+    }
 
     if (depositAmount <= 0) {
       return res.json({ success: false, message: "Số tiền cọc không hợp lệ" });
@@ -1102,7 +1274,7 @@ const createDepositPaymentUrl = async (req, res) => {
 const verifyPayment = async (req, res) => {
   try {
     const userId = req.userId;
-    const { appointmentId, vnp_TransactionNo, vnp_Amount } = req.body;
+    const { appointmentId, vnp_TransactionNo, vnp_Amount, discountCode } = req.body;
 
     if (!appointmentId) {
       return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
@@ -1120,11 +1292,26 @@ const verifyPayment = async (req, res) => {
     }
 
     // Update appointment payment status
-    await appointmentModel.findByIdAndUpdate(appointmentId, {
+    const updateData = {
       payment: true,
       paymentTransactionId: vnp_TransactionNo,
       paymentMethod: "vnpay",
-    });
+    };
+
+    // If discount code is used, update it
+    if (discountCode) {
+      const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
+      if (discount) {
+        discount.usedCount = (discount.usedCount || 0) + 1;
+        if (!discount.usedBy) discount.usedBy = [];
+        discount.usedBy.push(userId);
+        await discount.save();
+        
+        updateData.discountCode = discountCode.toUpperCase();
+      }
+    }
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
 
     res.json({ success: true, message: "Thanh toán thành công" });
   } catch (error) {
@@ -1136,7 +1323,7 @@ const verifyPayment = async (req, res) => {
 const verifyDepositPayment = async (req, res) => {
   try {
     const userId = req.userId;
-    const { depositRef, vnp_TransactionNo } = req.body;
+    const { depositRef, vnp_TransactionNo, discountCode } = req.body;
 
     if (!depositRef) {
       return res.json({ success: false, message: "Thiếu mã giao dịch cọc" });
@@ -1169,14 +1356,116 @@ const verifyDepositPayment = async (req, res) => {
 
     const depositAmount = calculateDepositAmount(appointmentData.amount);
 
-    await appointmentModel.findByIdAndUpdate(appointmentId, {
+    const updateData = {
       depositPaid: true,
       depositAmount,
       depositTransactionId: vnp_TransactionNo || depositRef,
       depositMethod: "vnpay",
-    });
+    };
+
+    // If discount code is used, update it
+    if (discountCode) {
+      const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
+      if (discount) {
+        discount.usedCount = (discount.usedCount || 0) + 1;
+        if (!discount.usedBy) discount.usedBy = [];
+        discount.usedBy.push(userId);
+        await discount.save();
+        
+        updateData.discountCode = discountCode.toUpperCase();
+      }
+    }
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
 
     res.json({ success: true, message: "Thanh toán cọc thành công" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const verifyDiscountCode = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { code, appointmentId } = req.body;
+
+    if (!code) {
+      return res.json({ success: false, message: "Vui lòng nhập mã giảm giá" });
+    }
+
+    if (!appointmentId) {
+      return res.json({ success: false, message: "Thiếu mã lịch hẹn" });
+    }
+
+    // Find appointment
+    const appointmentData = await appointmentModel.findById(appointmentId);
+    if (!appointmentData) {
+      return res.json({ success: false, message: "Không tìm thấy lịch hẹn" });
+    }
+
+    // Verify appointment belongs to user
+    if (String(appointmentData.userId) !== String(userId)) {
+      return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    // Find discount code
+    const discountCode = await discountCodeModel.findOne({ code: code.toUpperCase() });
+
+    if (!discountCode) {
+      return res.json({ success: false, message: "Mã giảm giá không hợp lệ" });
+    }
+
+    if (!discountCode.isActive) {
+      return res.json({ success: false, message: "Chương trình khuyến mãi đã kết thúc" });
+    }
+
+    if (discountCode.expiryDate && new Date(discountCode.expiryDate) < new Date()) {
+      return res.json({ success: false, message: "Mã giảm giá đã hết hạn" });
+    }
+
+    // Calculate the amount to check against minimum
+    const depositAmount = Number(appointmentData.depositPaid ? appointmentData.depositAmount || 0 : 0);
+    const orderAmount = Math.max(Number(appointmentData.amount || 0) - depositAmount, 0);
+
+    if (discountCode.minOrderAmount && orderAmount < discountCode.minOrderAmount) {
+      return res.json({ 
+        success: false, 
+        message: `Đơn hàng phải tối thiểu ${discountCode.minOrderAmount.toLocaleString('vi-VN')} VND` 
+      });
+    }
+
+    if (discountCode.maxUses && discountCode.usedCount >= discountCode.maxUses) {
+      return res.json({ success: false, message: "Mã giảm giá đã hết lượt sử dụng" });
+    }
+
+    if (discountCode.usedBy && discountCode.usedBy.includes(userId)) {
+      return res.json({ success: false, message: "Bạn đã sử dụng mã giảm giá này rồi" });
+    }
+
+    // Calculate discount
+    let discount = 0;
+    if (discountCode.discountType === "percentage") {
+      discount = (orderAmount * discountCode.discountValue) / 100;
+      if (discountCode.maxDiscount) {
+        discount = Math.min(discount, discountCode.maxDiscount);
+      }
+    } else {
+      discount = Math.min(discountCode.discountValue, orderAmount);
+    }
+
+    discount = Math.round(discount);
+    const finalAmount = Math.max(0, orderAmount - discount);
+
+    res.json({
+      success: true,
+      message: "Mã giảm giá hợp lệ",
+      discount,
+      finalAmount,
+      originalAmount: orderAmount,
+      discountCode: discountCode.code
+    });
+
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -1192,6 +1481,7 @@ export {
   bookAppointment,
   listAppointment,
   cancelAppointment,
+  rescheduleAppointment,
   createPaymentUrl,
   verifyPayment,
   createDepositPaymentUrl,
@@ -1203,4 +1493,5 @@ export {
   payAppointmentDepositWithWallet,
   withdrawFromWallet,
   updatePersonalImages,
+  verifyDiscountCode,
 };

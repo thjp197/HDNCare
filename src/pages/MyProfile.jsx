@@ -1,10 +1,12 @@
 import axios from "axios";
 import { Camera, Images, Trash2, X } from "lucide-react";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AppContext } from "../context/AppContext";
 
 const MyProfile = () => {
+  const navigate = useNavigate();
   const {
     userData,
     setUserData,
@@ -14,6 +16,12 @@ const MyProfile = () => {
     patchPersonalImages,
   } =
     useContext(AppContext);
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    }
+  }, [token, navigate]);
 
   const [isEdit, setIsEdit] = useState(false);
   const [image, setImage] = useState(false);
@@ -89,17 +97,17 @@ const MyProfile = () => {
         !passwordData.newPassword ||
         !passwordData.confirmPassword
       ) {
-        toast.error("Vui long nhap day du thong tin");
+        toast.error("Vui lòng nhập đầy đủ thông tin");
         return;
       }
 
       if (passwordData.newPassword.length < 8) {
-        toast.error("Mat khau moi phai co it nhat 8 ky tu");
+        toast.error("Mật khẩu mới phải có ít nhất 8 ký tự");
         return;
       }
 
       if (passwordData.newPassword !== passwordData.confirmPassword) {
-        toast.error("Xac nhan mat khau moi khong khop");
+        toast.error("Xác nhận mật khẩu mới không khớp");
         return;
       }
 

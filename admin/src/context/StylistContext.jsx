@@ -24,7 +24,6 @@ const StylistContextProvider = (props) => {
 
             if (data.success) {
                 setAppointments(data.appointments)
-                console.log(data.appointments)
             } else {
                 toast.error(data.message)
             }
@@ -40,7 +39,7 @@ const StylistContextProvider = (props) => {
             
             const {data} = await axios.post(backendUrl + '/api/stylist/complete-appointment', {appointmentId}, {headers: { stoken: sToken }})
             if (import.meta.env.DEV) {
-                console.log('complete-appointment response:', data)
+
             }
             if (data.success) {
                 toast.success(data.message)
@@ -80,7 +79,7 @@ const StylistContextProvider = (props) => {
                 {headers: { stoken: sToken }}
             )
             if (import.meta.env.DEV) {
-                console.log('cancel-appointment response:', data)
+
             }
             if (data.success) {
                 toast.success(data.message)
@@ -102,7 +101,6 @@ const StylistContextProvider = (props) => {
             const { data } = await axios.get(backendUrl + '/api/stylist/dashboard', { headers: { stoken: sToken } })
             if (data.success) {
                 setDashData(data.dashData)
-                console.log(data.dashData);
             } else {
                 toast.error(data.message)
             }
@@ -118,7 +116,6 @@ const StylistContextProvider = (props) => {
             const {data} = await axios.get(backendUrl + '/api/stylist/profile', { headers: { stoken: sToken } })
             if (data.success) {
                 setProfileData(data.profileData)
-                console.log(data.profileData)
             }
 
         } catch (error) {

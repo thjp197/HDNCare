@@ -15,13 +15,36 @@ const Login = () => {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [phone, setPhone] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '')
+    setPhone(value)
+
+    if (value.length > 0 && value.length !== 10) {
+      setPhoneError('Số điện thoại phải có 10 số')
+    } else {
+      setPhoneError('')
+    }
+  }
 
   const onSubmitHandler = async (event) => {
     event.preventDefault()
     try {
       if (state === 'Sign Up') {
+        if (phoneError || !phone) {
+          toast.error('Vui lòng nhập số điện thoại hợp lệ')
+          return
+        }
 
-        const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password })
+        if (password !== confirmPassword) {
+          toast.error('Mật khẩu nhập lại không trùng khớp')
+          return
+        }
+
+        const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password, phone })
 
         if (data.success) {
           localStorage.setItem('token', data.token)
@@ -76,10 +99,25 @@ const Login = () => {
           <p>Email</p>
           <input onChange={(e) => setEmail(e.target.value)} value={email} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="email" required />
         </div>
+        {state === 'Sign Up'
+          ? <div className='w-full '>
+            <p>Số Điện Thoại</p>
+            <input onChange={handlePhoneChange} value={phone} className={`border rounded w-full p-2 mt-1 ${phoneError ? 'border-red-500' : 'border-[#DADADA]'}`} type="text" required />
+            {phoneError && <p className='text-red-500 text-xs mt-1'>{phoneError}</p>}
+          </div>
+          : null
+        }
         <div className='w-full '>
           <p>Mật khẩu</p>
           <input onChange={(e) => setPassword(e.target.value)} value={password} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="password" required />
         </div>
+        {state === 'Sign Up'
+          ? <div className='w-full '>
+            <p>Nhập lại Mật khẩu</p>
+            <input onChange={(e) => setConfirmPassword(e.target.value)} value={confirmPassword} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="password" required />
+          </div>
+          : null
+        }
         <button type="submit" className='bg-primary text-white w-full py-2 my-2 rounded-md text-base'>{state === 'Sign Up' ? 'Tạo tài khoản' : 'Đăng nhập'}</button>
         {state === 'Sign Up'
           ? <p>Đã có tài khoản? <span onClick={() => setState('Login')} className='text-primary underline cursor-pointer'>Đăng nhập tại đây</span></p>

@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getProfile, updateProfile, changePassword, bookAppointment, listAppointment, cancelAppointment, createPaymentUrl, verifyPayment, createDepositPaymentUrl, verifyDepositPayment, getWalletData, createWalletTopupUrl, verifyWalletTopup, payAppointmentWithWallet, payAppointmentDepositWithWallet, withdrawFromWallet, updatePersonalImages } from "../controllers/userController.js";
+import { registerUser, loginUser, getProfile, updateProfile, changePassword, bookAppointment, listAppointment, cancelAppointment, rescheduleAppointment, createPaymentUrl, verifyPayment, createDepositPaymentUrl, verifyDepositPayment, getWalletData, createWalletTopupUrl, verifyWalletTopup, payAppointmentWithWallet, payAppointmentDepositWithWallet, withdrawFromWallet, updatePersonalImages, verifyDiscountCode } from "../controllers/userController.js";
 import authUser from "../middlewares/authUser.js";
 import upload from "../middlewares/multer.js";
 
@@ -15,6 +15,7 @@ userRoute.patch("/personal-images", upload.single("image"), authUser, updatePers
 userRoute.post("/book-appointment", authUser, bookAppointment)
 userRoute.get("/appointments", authUser, listAppointment)
 userRoute.post("/cancel-appointment", authUser, cancelAppointment)
+userRoute.post("/reschedule-appointment", authUser, rescheduleAppointment)
 
 userRoute.get("/wallet", authUser, getWalletData)
 userRoute.post("/wallet/create-topup-url", authUser, createWalletTopupUrl)
@@ -28,5 +29,8 @@ userRoute.post("/create-payment-url", authUser, createPaymentUrl)
 userRoute.post("/verify-payment", authUser, verifyPayment)
 userRoute.post("/create-deposit-payment-url", authUser, createDepositPaymentUrl)
 userRoute.post("/verify-deposit-payment", authUser, verifyDepositPayment)
+
+// Discount code route
+userRoute.post("/verify-discount-code", authUser, verifyDiscountCode)
 
 export default userRoute;

@@ -6,6 +6,7 @@ const Stylists = () => {
   const { speciality } = useParams();
   const [filteredStylists, setFilteredStylists] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
+  const [searchName, setSearchName] = useState("");
   const navigate = useNavigate();
 
   const { stylists } = useContext(AppContext);
@@ -26,26 +27,62 @@ const Stylists = () => {
   };
 
   const applyFilter = () => {
+    let result = stylists;
+
+    // Filter by speciality
     if (speciality) {
       const normalizedSpeciality = normalizeSpeciality(speciality);
-      setFilteredStylists(
-        stylists.filter(
-          (stylist) =>
-            normalizeSpeciality(stylist.speciality) === normalizedSpeciality,
-        ),
+      result = result.filter(
+        (stylist) =>
+          normalizeSpeciality(stylist.speciality) === normalizedSpeciality,
       );
-    } else {
-      setFilteredStylists(stylists);
     }
+
+    // Filter by name
+    if (searchName.trim()) {
+      const lowerSearchName = searchName.toLowerCase();
+      result = result.filter((stylist) =>
+        stylist.name.toLowerCase().includes(lowerSearchName),
+      );
+    }
+
+    setFilteredStylists(result);
   };
 
   useEffect(() => {
     applyFilter();
-  }, [speciality, stylists]);
+  }, [speciality, stylists, searchName]);
 
   return (
     <div>
       <p className="text-gray-600">Tất cả chuyên viên</p>
+      
+      {/* Search Bar */}
+      <div className="mt-6 mb-8">
+        <div className="relative">
+          <svg
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên chuyên viên..."
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg text-sm bg-blue-50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 shadow-md transition-all"
+          />
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row items-start gap-5 mt-5">
         <button
           onClick={() => setShowFilter(!showFilter)}
