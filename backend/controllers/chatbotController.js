@@ -65,9 +65,20 @@ export const handleChatbotMessage = async (req, res) => {
         - Bước 5: Kiểm tra lại toàn bộ thông tin tại trang Xác nhận (Confirm booking), tiến hành Thanh toán (RECAP + Payment) qua cổng VNPay hoặc bằng số dư Ví điện tử để hoàn tất.
         [ĐẶC QUYỀN AI]: Hãy luôn tự hào thông báo thêm với khách rằng: Ngay sau khi họ có tài khoản và đăng nhập thành công, họ hoàn toàn có thể nhắn tin yêu cầu bạn (AI Chatbot) đặt lịch, dời lịch hoặc huỷ lịch giúp họ ngay lập tức tại khung chat này mà không cần tự click qua 5 bước trên web.`;
 
+        // --- BỔ SUNG LẠI HƯỚNG DẪN THANH TOÁN TỪNG BƯỚC ---
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN & CHÍNH SÁCH HUỶ]:
-        Hệ thống HDNCare hỗ trợ thanh toán an toàn qua cổng VNPay và thanh toán bằng Ví điện tử nội bộ.
-        [QUY TẮC BẢO MẬT TỐI CAO]: Tuyệt đối không bao giờ yêu cầu khách hàng cung cấp số thẻ ngân hàng, mã CVV, mật khẩu hoặc mã OTP vào khung chat. Khẳng định với khách rằng AI Chatbot không trực tiếp thu tiền.
+        Khi khách hàng hỏi cách thanh toán hoặc nạp tiền, hãy hướng dẫn họ chi tiết theo các bước sau:
+        👉 CÁCH THANH TOÁN LỊCH HẸN:
+        - Bước 1: Truy cập vào mục "Lịch sử đặt lịch" (Booking History) trên giao diện website.
+        - Bước 2: Tìm lịch hẹn chưa thanh toán và nhấn vào nút "Thanh toán".
+        - Bước 3: Lựa chọn phương thức thanh toán: Sử dụng số dư trong "Ví HDNCare" hoặc thanh toán trực tiếp qua cổng an toàn "VNPay".
+        
+        👉 CÁCH NẠP TIỀN VÀO VÍ HDNCARE:
+        - Bước 1: Truy cập vào "Trang cá nhân" (Profile).
+        - Bước 2: Chọn mục "Ví của tôi" (Wallet) và nhập số tiền muốn nạp.
+        - Bước 3: Nhấn "Nạp tiền", hệ thống sẽ tự động chuyển hướng sang VNPay để giao dịch an toàn.
+
+        [QUY TẮC BẢO MẬT TỐI CAO]: Tuyệt đối KHÔNG BAO GIỜ yêu cầu khách cung cấp số thẻ ngân hàng, mã CVV, mật khẩu hoặc mã OTP vào khung chat. Chatbot KHÔNG trực tiếp thu tiền.
         [CHÍNH SÁCH HUỶ LỊCH QUAN TRỌNG]: Huỷ trong vòng 2 tiếng sau khi đặt sẽ được hoàn tiền 100% và không bị phạt. Huỷ sau 2 tiếng sẽ KHÔNG được hoàn tiền và bị tính 1 lần vi phạm. 5 lần vi phạm sẽ bị ban tài khoản.`;
 
         if (currentUser && currentUser.phone) {
@@ -153,7 +164,6 @@ export const handleChatbotMessage = async (req, res) => {
 
                 let dbResult = {};
                 if (appointment) {
-                    // Đổi 2 tiếng thành mili-giây
                     const TWO_HOURS = 2 * 60 * 60 * 1000;
                     const bookingTime = new Date(appointment.date).getTime();
                     const timeSinceBooking = Date.now() - bookingTime;
@@ -161,12 +171,9 @@ export const handleChatbotMessage = async (req, res) => {
                     appointment.cancelled = true;
                     await appointment.save();
 
-                    // Kiểm tra điều kiện thời gian huỷ
                     if (timeSinceBooking <= TWO_HOURS) {
-                        // Khách huỷ đúng luật (Trong vòng 2 tiếng)
                         dbResult = { success: true, message: "Huỷ lịch thành công. Khách huỷ TRONG VÒNG 2 tiếng kể từ lúc đặt, hệ thống sẽ hỗ trợ HOÀN TIỀN 100% và KHÔNG tính lỗi phạt." };
                     } else {
-                        // Khách huỷ sai luật (Sau 2 tiếng) -> Xử phạt
                         let penaltyMsg = "";
                         let user = await userModel.findOne({ phone: customerPhone });
                         

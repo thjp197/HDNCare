@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useContext, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AppContext } from '../context/AppContext';
@@ -15,6 +15,8 @@ const Navbar = () => {
       const logout = () => {
         setToken(false)
         localStorage.removeItem('token')
+        // THÊM DÒNG NÀY: Quét sạch bộ nhớ chat của AI khi khách đăng xuất
+        localStorage.removeItem('hdncare_chat_history')
         navigate('/')
       }
 

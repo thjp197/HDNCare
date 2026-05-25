@@ -5,12 +5,21 @@ import ChatForm from "./ChatForm";
 import ChatMessage from "./ChatMessage";
 
 const Chatbot = () => {
-  const [chatHistory, setChatHistory] = useState([]);
+  // 1. CẬP NHẬT: Khởi tạo State từ localStorage (Nếu có dữ liệu cũ thì lấy ra, không thì mảng rỗng)
+  const [chatHistory, setChatHistory] = useState(() => {
+    const savedChat = localStorage.getItem("hdncare_chat_history");
+    return savedChat ? JSON.parse(savedChat) : [];
+  });
   const [showChatbot, setChatbot] = useState(false);
   const chatBodyRef = useRef();
 
-  // 1. Lấy token và thông tin user từ Context (để biết họ đã đăng nhập chưa)
+  // Lấy token và thông tin user từ Context (để biết họ đã đăng nhập chưa)
   const { token, userData } = useContext(AppContext); 
+
+  // 2. CẬP NHẬT: Tự động đồng bộ mảng chatHistory vào localStorage mỗi khi có tin nhắn mới
+  useEffect(() => {
+    localStorage.setItem("hdncare_chat_history", JSON.stringify(chatHistory));
+  }, [chatHistory]);
 
   const generateBotResponse = async (history, currentMessage) => {
     const updateHistory = (text, isError = false) => {
@@ -22,13 +31,13 @@ const Chatbot = () => {
         parts: [{text}]
     }));
 
-    // 2. Đóng gói thông tin user hiện tại (nếu có)
+    // Đóng gói thông tin user hiện tại (nếu có)
     const currentUserInfo = (token && userData) ? {
         name: userData.name,
         phone: userData.phone
     } : null;
 
-    // 3. Gửi kèm currentUser xuống Backend
+    // Gửi kèm currentUser xuống Backend
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -61,11 +70,12 @@ const Chatbot = () => {
     chatBodyRef.current.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "smooth" });
   }, [chatHistory]);
 
-  // THÊM MỚI: Tự động xoá lịch sử chat và đóng popup khi Đăng xuất
+  // 3. CẬP NHẬT: Xoá sạch lịch sử chat trong State và LocalStorage khi Đăng xuất (!token)
   useEffect(() => {
     if (!token) {
       setChatHistory([]); // Reset về mảng rỗng
       setChatbot(false);  // Đóng khung chat lại cho gọn
+      localStorage.removeItem("hdncare_chat_history"); // Xóa dữ liệu chat khỏi trình duyệt
     }
   }, [token]);
 
