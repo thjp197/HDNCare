@@ -71,9 +71,9 @@ const EditStylist = () => {
   }
 
   return (
-    <form onSubmit={onSubmit} className='m-5 w-full'>
+    <form onSubmit={onSubmit} className='w-full p-4 sm:p-5'>
       <p className='mb-4 text-lg font-medium'>Chỉnh sửa thông tin nhân viên</p>
-      <div className='bg-white px-8 py-8 border rounded w-full max-h-[80vh] overflow-y-scroll'>
+      <div className='max-h-[80vh] w-full overflow-y-auto rounded border bg-white px-4 py-6 sm:px-8 sm:py-8'>
 
         {/* Image */}
         <div className='flex items-center gap-4 mb-8'>
@@ -87,7 +87,7 @@ const EditStylist = () => {
           <p className='text-sm text-gray-500'>Nhấn để thay ảnh</p>
         </div>
 
-        <div className='flex flex-col lg:flex-row gap-10'>
+        <div className='flex flex-col gap-6 lg:flex-row lg:gap-10'>
           <div className='w-full lg:flex-1 flex flex-col gap-4'>
             <div className='flex flex-col gap-1'>
               <p>Tên nhân viên</p>
@@ -140,7 +140,7 @@ const EditStylist = () => {
           <textarea value={about} onChange={e => setAbout(e.target.value)} className='border rounded px-3 py-2' rows={4} />
         </div>
 
-        <div className='flex gap-3 mt-6'>
+        <div className='flex flex-col gap-3 mt-6 sm:flex-row'>
           <button type='submit' className='bg-primary text-white px-10 py-3 rounded-full'>Lưu thay đổi</button>
           <button type='button' onClick={() => navigate('/stylists-list')} className='border px-10 py-3 rounded-full'>Hủy</button>
         </div>

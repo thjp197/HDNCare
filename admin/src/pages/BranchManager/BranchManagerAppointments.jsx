@@ -28,12 +28,12 @@ const BranchManagerAppointments = () => {
   }
 
   return (
-    <div className='m-5 max-h-[90vh] overflow-y-scroll font-sans'>
-      <h1 className='text-2xl font-bold mb-6'>Lịch Hẹn Chi Nhánh</h1>
+    <div className='max-h-[90vh] overflow-y-auto p-4 font-sans sm:p-5'>
+      <h1 className='mb-6 text-xl font-bold sm:text-2xl'>Lịch Hẹn Chi Nhánh</h1>
 
       <div className='bg-white rounded-lg shadow-md overflow-hidden'>
         <div className='overflow-x-auto'>
-          <table className='w-full'>
+          <table className='w-full min-w-[820px]'>
             <thead className='bg-gray-100 border-b border-gray-300'>
               <tr>
                 <th className='px-4 py-3 text-left text-sm font-semibold text-gray-700'>Khách Hàng</th>

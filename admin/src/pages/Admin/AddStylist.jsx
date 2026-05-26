@@ -71,10 +71,10 @@ const AddStylist = () => {
   };
 
   return (
-    <form onSubmit={onSubmitHandler} className="m-5 w-full">
-      <p className="mb-3 text-lg font-medium">Add Stylist</p>
+    <form onSubmit={onSubmitHandler} className="w-full p-4 sm:p-5">
+      <p className="mb-3 text-lg font-medium">Thêm mới chuyên viên</p>
 
-      <div className="bg-white px-8 py-8 border rounded w-full max-w-8xl max-h-[80vh] overflow-y-scroll">
+      <div className="max-h-[80vh] w-full overflow-y-auto rounded border bg-white px-4 py-6 sm:px-8 sm:py-8">
         <div className="flex items-center gap-4 mb-8 text-gray-500">
           <label htmlFor="sty-img">
             <img
@@ -94,7 +94,7 @@ const AddStylist = () => {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row items-start gap-10 text-gray-600">
+        <div className="flex flex-col items-start gap-6 text-gray-600 lg:flex-row lg:gap-10">
           <div className="w-full lg:flex-1 flex flex-col gap-4">
             <div className="flex-1 flex flex-col gap-1">
               <p>Tên nhà tạo mẫu</p>
@@ -232,7 +232,7 @@ const AddStylist = () => {
 
       <button
         type="submit"
-        className="bg-primary px-10 py-3 mt-4  text-white rounded-full"
+        className="mt-4 w-full rounded-full bg-primary px-10 py-3 text-white sm:w-auto"
       >
         Thêm nhà tạo mẫu
       </button>

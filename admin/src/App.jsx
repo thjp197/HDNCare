@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import Login from './pages/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -26,15 +26,19 @@ const App = () => {
 
   const {aToken} = useContext(AdminContext)
   const {sToken} = useContext(StylistContext)
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const defaultDashboardPath = aToken ? '/admin-dashboard' : '/stylist-dashboard'
 
   return aToken || sToken ? (
-    <div className='bg-[#F8F9FD]'>
+    <div className='min-h-screen bg-[#F8F9FD]'>
       <ToastContainer/>
-      <Navbar/>
-      <div className='flex items-start w-full overflow-hidden'>
-        <Sidebar/>
-        <div className='flex-1 overflow-auto'>
+      <Navbar onMenuOpen={() => setShowMobileSidebar(true)} />
+      <div className='flex w-full flex-col overflow-hidden md:flex-row md:items-start'>
+        <Sidebar
+          isMobileOpen={showMobileSidebar}
+          onClose={() => setShowMobileSidebar(false)}
+        />
+        <div className='min-w-0 flex-1 overflow-x-hidden'>
         <Routes>
           {/* admin routes */}
           <Route path='/' element={<Navigate to={defaultDashboardPath} replace />}/>  

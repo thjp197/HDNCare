@@ -73,8 +73,8 @@ const PenalizedUsers = () => {
   }
 
   return (
-    <div className='m-5 w-full'>
-      <div className='mb-3 flex items-center gap-3'>
+    <div className='w-full p-4 sm:p-5'>
+      <div className='mb-3 flex flex-wrap items-center gap-3'>
         <p className='text-lg font-medium font-sans'>Tài khoản bị phạt</p>
         <button
           onClick={handleRefresh}
@@ -101,7 +101,7 @@ const PenalizedUsers = () => {
       </div>
 
       <div className='overflow-x-auto rounded border bg-white text-sm'>
-        <div className='grid grid-cols-[2fr_2fr_1.5fr_1fr_1.5fr_2fr] items-center gap-3 border-b bg-gray-50 px-5 py-3 font-semibold text-gray-700'>
+        <div className='grid min-w-[880px] grid-cols-[2fr_2fr_1.5fr_1fr_1.5fr_2fr] items-center gap-3 border-b bg-gray-50 px-5 py-3 font-semibold text-gray-700'>
           <p>Người dùng</p>
           <p>Email</p>
           <p>Số điện thoại</p>
@@ -113,7 +113,7 @@ const PenalizedUsers = () => {
         {penalizedUsers.map((user) => (
           <div
             key={user._id}
-            className='grid grid-cols-[2fr_2fr_1.5fr_1fr_1.5fr_2fr] items-center gap-3 border-b px-5 py-3 text-gray-600 hover:bg-gray-50'
+            className='grid min-w-[880px] grid-cols-[2fr_2fr_1.5fr_1fr_1.5fr_2fr] items-center gap-3 border-b px-5 py-3 text-gray-600 hover:bg-gray-50'
           >
             <p className='font-medium text-gray-800'>{user.name}</p>
             <p>{user.email}</p>
@@ -216,7 +216,7 @@ const PenalizedUsers = () => {
               Chỉ được nhập từ 0 đến 5. Nếu nhập 5, tài khoản sẽ bị khóa. Nếu nhập 0, tài khoản sẽ không còn trong danh sách bị phạt.
             </p>
 
-            <div className='mt-6 flex justify-end gap-3'>
+            <div className='mt-6 flex flex-col justify-end gap-3 sm:flex-row'>
               <button
                 onClick={closeEditModal}
                 className='rounded-md bg-gray-200 px-4 py-2 text-gray-800 transition hover:bg-gray-300'

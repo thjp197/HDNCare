@@ -8,8 +8,12 @@ const AppContextProvider = (props) => {
     const currency = "VND"
 
     const calculateAge = (dob) => {
+        if (!dob) return "-"
+
         const today = new Date()
         const birthDate = new Date(dob)
+        if (Number.isNaN(birthDate.getTime())) return "-"
+
         let age = today.getFullYear() - birthDate.getFullYear()
         return age
     }

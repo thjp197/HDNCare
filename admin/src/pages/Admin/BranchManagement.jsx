@@ -81,8 +81,8 @@ const BranchManagement = () => {
     : null
 
   return (
-    <div className='m-5 max-h-[90vh] overflow-y-scroll font-sans'>
-      <h1 className='text-2xl font-bold mb-6'>Quản lý Chi nhánh</h1>
+    <div className='max-h-[90vh] overflow-y-auto p-4 font-sans sm:p-5'>
+      <h1 className='mb-6 text-xl font-bold sm:text-2xl'>Quản lý Chi nhánh</h1>
 
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8'>
         {branches.map((branch) => (
@@ -105,14 +105,14 @@ const BranchManagement = () => {
       </div>
 
       {selectedBranch && currentBranchInfo && (
-        <div className='bg-white rounded-lg shadow-lg p-6'>
+        <div className='rounded-lg bg-white p-4 shadow-lg sm:p-6'>
           <h2 className='text-xl font-bold mb-4'>{selectedBranch} - Chi tiết</h2>
 
           {/* Current Manager Section */}
           <div className='mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200'>
             <h3 className='text-lg font-semibold mb-2'>Trưởng Chi nhánh</h3>
             {currentBranchInfo.manager ? (
-              <div className='flex items-center justify-between'>
+              <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
                 <div>
                   <p className='font-semibold'>{currentBranchInfo.manager.name}</p>
                   <p className='text-sm text-gray-600'>{currentBranchInfo.manager.speciality}</p>
@@ -139,7 +139,7 @@ const BranchManagement = () => {
                 {currentBranchInfo.stylists.map((stylist) => (
                   <div
                     key={stylist._id}
-                    className='border border-gray-200 rounded-lg p-4 flex justify-between items-center'
+                    className='flex flex-col gap-3 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between'
                   >
                     <div>
                       <p className='font-semibold'>{stylist.name}</p>
@@ -176,7 +176,7 @@ const BranchManagement = () => {
                 {getUnassignedStylists().map((stylist) => (
                   <div
                     key={stylist._id}
-                    className='flex justify-between items-center p-3 bg-white border border-gray-200 rounded'
+                    className='flex flex-col gap-3 rounded border border-gray-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between'
                   >
                     <div>
                       <p className='font-semibold'>{stylist.name}</p>

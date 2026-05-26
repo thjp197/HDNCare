@@ -29,7 +29,7 @@ const BranchManagerDashboard = () => {
 
   if (loading) {
     return (
-      <div className='m-5 max-h-[90vh] overflow-y-scroll font-sans'>
+      <div className='max-h-[90vh] overflow-y-auto p-4 font-sans sm:p-5'>
         <div className='flex justify-center items-center py-12'>
           <p className='text-gray-600'>Đang tải...</p>
         </div>
@@ -39,7 +39,7 @@ const BranchManagerDashboard = () => {
 
   if (error) {
     return (
-      <div className='m-5 max-h-[90vh] overflow-y-scroll font-sans'>
+      <div className='max-h-[90vh] overflow-y-auto p-4 font-sans sm:p-5'>
         <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
           <p className='text-red-800'>{error}</p>
           <button
@@ -54,8 +54,8 @@ const BranchManagerDashboard = () => {
   }
 
   return (
-    <div className='m-5 max-h-[90vh] overflow-y-scroll font-sans'>
-      <h1 className='text-2xl font-bold mb-6'>Bảng Điều Khiển Chi Nhánh</h1>
+    <div className='max-h-[90vh] overflow-y-auto p-4 font-sans sm:p-5'>
+      <h1 className='mb-6 text-xl font-bold sm:text-2xl'>Bảng Điều Khiển Chi Nhánh</h1>
 
       {dashData && (
         <>
@@ -113,7 +113,7 @@ const BranchManagerDashboard = () => {
               <h2 className='text-xl font-semibold'>Lịch Hẹn Gần Đây</h2>
             </div>
             <div className='overflow-x-auto'>
-              <table className='w-full'>
+              <table className='w-full min-w-[720px]'>
                 <thead className='bg-gray-50 border-b border-gray-200'>
                   <tr>
                     <th className='px-6 py-3 text-left text-sm font-medium text-gray-600'>Khách Hàng</th>

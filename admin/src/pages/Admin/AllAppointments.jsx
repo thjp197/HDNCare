@@ -50,10 +50,10 @@ const AllAppointments = () => {
   };
 
   return (
-    <div className="w-full max-w-8xl m-5 ">
+    <div className="w-full p-4 sm:p-5">
       <p className="mb-3 text-lg font-medium font-sans">Tất cả lịch hẹn</p>
 
-      <div className="bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll">
+      <div className="max-h-[80vh] overflow-y-auto rounded border bg-white text-sm">
         <div className="hidden sm:grid grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center py-3 px-6 border-b">
           <p>#</p>
           <p>Người dùng</p>
@@ -68,7 +68,7 @@ const AllAppointments = () => {
           const isExpired = isAppointmentExpired(item);
           return (
           <div
-            className={`flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center py-3 px-6 border-b ${
+            className={`grid grid-cols-2 gap-3 border-b px-4 py-4 sm:grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] sm:items-center sm:gap-4 sm:px-6 sm:py-3 ${
               isExpired
                 ? "bg-gray-100 text-gray-400 hover:bg-gray-150"
                 : "text-gray-500 hover:bg-gray-50"
@@ -76,7 +76,7 @@ const AllAppointments = () => {
             key={index}
           >
             <p className="max-sm:hidden">{index + 1}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2 max-sm:order-1">
               <img
                 src={item.userData.image}
                 className={`w-8 rounded-full ${
@@ -84,9 +84,9 @@ const AllAppointments = () => {
                 }`}
                 alt=""
               />{" "}
-              <p>{item.userData.name}</p>
+              <p className="truncate">{item.userData.name}</p>
             </div>
-            <div>
+            <div className="max-sm:order-3">
               <p
                 className={`text-xs inline px-2 py-0.5 rounded-full border font-medium ${
                   isExpired
@@ -112,10 +112,10 @@ const AllAppointments = () => {
               </p>
             </div>
             <p className="max-sm:hidden">{calculateAge(item.userData.dob)}</p>
-            <p>
+            <p className="max-sm:order-4 max-sm:col-span-2">
               {slotDateFormat(item.slotDate)}, {item.slotTime}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2 max-sm:order-2">
               <img
                 src={item.styData.image}
                 className={`w-8 rounded-full bg-gray-200 ${
@@ -123,11 +123,12 @@ const AllAppointments = () => {
                 }`}
                 alt=""
               />{" "}
-              <p>{item.styData.name}</p>
+              <p className="truncate">{item.styData.name}</p>
             </div>
-            <p className="whitespace-nowrap">
+            <p className="whitespace-nowrap max-sm:order-5">
               {item.amount} {currency}
             </p>
+            <div className="max-sm:order-6 sm:contents">
             {isExpired ? (
               <button className="inline-flex w-fit justify-self-start items-center rounded border border-gray-400 bg-gray-300 px-3 py-1.5 text-xs font-semibold font-sans text-gray-700 cursor-default hover:bg-gray-350 transition">
                 Hết hạn
@@ -154,6 +155,7 @@ const AllAppointments = () => {
                 alt=""
               />
             )}
+            </div>
           </div>
           );
         })}

@@ -27,7 +27,7 @@ const Banner = () => {
           style={{ position: 'absolute', top: 5, left: 0, width: '100%', height: '100%' }}
         >
           {slides.map((src, i) => (
-            <SwiperSlide key={i} onClick={() => navigate('/login')} style={{ cursor: 'pointer' }}>
+            <SwiperSlide key={i} >
               <img src={src} alt={`Banner ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'full' }} />
             </SwiperSlide>
           ))}

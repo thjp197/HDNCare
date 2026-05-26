@@ -20,8 +20,8 @@ const BranchManagerStylists = () => {
   }
 
   return (
-    <div className='m-5 max-h-[90vh] overflow-y-scroll font-sans'>
-      <h1 className='text-2xl font-bold mb-6'>Nhân Viên Chi Nhánh</h1>
+    <div className='max-h-[90vh] overflow-y-auto p-4 font-sans sm:p-5'>
+      <h1 className='mb-6 text-xl font-bold sm:text-2xl'>Nhân Viên Chi Nhánh</h1>
 
       {loading ? (
         <div className='flex justify-center py-12'>
