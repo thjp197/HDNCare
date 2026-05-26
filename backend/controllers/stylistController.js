@@ -287,6 +287,124 @@ const changeStylistPassword = async (req, res) => {
     }
 }
 
+// API to get branch manager dashboard
+const branchManagerDashboard = async (req, res) => {
+    try {
+        const styId = req.styId
+        const isBranchManager = req.isBranchManager
+        const branch = req.branch
+        
+        console.log('Branch Manager Dashboard Request:', { styId, isBranchManager, branch })
+        
+        if (!isBranchManager || !branch) {
+            return res.json({ success: false, message: 'Bạn không phải là trưởng chi nhánh hoặc chưa được gán chi nhánh' })
+        }
+
+        // Get all stylists in this branch
+        const branchStylists = await stylistModel.find({ branch }).select('_id')
+        const stylistIds = branchStylists.map(s => s._id)
+
+        // Get appointments for stylists in this branch
+        const appointments = await appointmentModel.find({ styId: { $in: stylistIds } })
+
+        // Calculate metrics
+        const earnings = appointments.reduce((sum, item) => {
+            if (item.isCompleted) {
+                return sum + Number(item.amount || 0)
+            }
+            return sum
+        }, 0)
+
+        const dashData = {
+            branch,
+            stylists: branchStylists.length,
+            appointments: appointments.length,
+            earnings,
+            latestAppointments: appointments.reverse().slice(0, 5)
+        }
+
+        res.json({ success: true, dashData })
+
+    } catch (error) {
+        console.log('Error in branchManagerDashboard:', error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to get branch appointments
+const branchManagerAppointments = async (req, res) => {
+    try {
+        const isBranchManager = req.isBranchManager
+        const branch = req.branch
+        
+        if (!isBranchManager || !branch) {
+            return res.json({ success: false, message: 'Bạn không phải là trưởng chi nhánh hoặc chưa được gán chi nhánh' })
+        }
+
+        // Get all stylists in this branch
+        const branchStylists = await stylistModel.find({ branch }).select('_id')
+        const stylistIds = branchStylists.map(s => s._id)
+
+        // Get appointments for stylists in this branch
+        const appointments = await appointmentModel.find({ styId: { $in: stylistIds } })
+
+        res.json({ success: true, appointments })
+
+    } catch (error) {
+        console.log('Error in branchManagerAppointments:', error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to get branch stylists
+const branchManagerStylists = async (req, res) => {
+    try {
+        const isBranchManager = req.isBranchManager
+        const branch = req.branch
+        
+        if (!isBranchManager || !branch) {
+            return res.json({ success: false, message: 'Bạn không phải là trưởng chi nhánh hoặc chưa được gán chi nhánh' })
+        }
+
+        const stylists = await stylistModel.find({ branch }).select('-password')
+
+        res.json({ success: true, stylists })
+
+    } catch (error) {
+        console.log('Error in branchManagerStylists:', error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to get branch info
+const branchManagerInfo = async (req, res) => {
+    try {
+        const styId = req.styId
+        const isBranchManager = req.isBranchManager
+        const branch = req.branch
+        
+        if (!isBranchManager || !branch) {
+            return res.json({ success: false, message: 'Bạn không phải là trưởng chi nhánh hoặc chưa được gán chi nhánh' })
+        }
+
+        const branchStylists = await stylistModel.find({ branch }).select('-password')
+        const manager = branchStylists.find(s => String(s._id) === String(styId))
+
+        const branchInfo = {
+            name: branch,
+            manager: manager,
+            stylistCount: branchStylists.length,
+            stylists: branchStylists
+        }
+
+        res.json({ success: true, branchInfo })
+
+    } catch (error) {
+        console.log('Error in branchManagerInfo:', error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 export {
     changeAvailablity,
     stylistList,
@@ -297,5 +415,9 @@ export {
     stylistDashboard,
     stylistProfile,
     updateStylistProfile,
-    changeStylistPassword
+    changeStylistPassword,
+    branchManagerDashboard,
+    branchManagerAppointments,
+    branchManagerStylists,
+    branchManagerInfo
 }

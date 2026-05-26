@@ -1,5 +1,5 @@
 import express from "express";
-import { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel, adminDashboard, updateStylist, penalizedUsers, resetUserPenalty, updateUserPenalty } from "../controllers/adminController.js";
+import { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel, adminDashboard, updateStylist, penalizedUsers, resetUserPenalty, updateUserPenalty, getStylistsByBranch, getBranchesInfo, assignBranch, assignBranchManager, removeBranchManager } from "../controllers/adminController.js";
 import { addDiscountCode, getAllDiscountCodes, updateDiscountCode, deleteDiscountCode } from "../controllers/discountCodeController.js";
 import upload from '../middlewares/multer.js';
 import authAdmin from "../middlewares/authAdmin.js";
@@ -18,6 +18,13 @@ adminRouter.post("/update-stylist", authAdmin, upload.single("image"), updateSty
 adminRouter.get("/penalized-users", authAdmin, penalizedUsers);
 adminRouter.post("/reset-user-penalty", authAdmin, resetUserPenalty);
 adminRouter.post("/update-user-penalty", authAdmin, updateUserPenalty);
+
+// Branch Management Routes
+adminRouter.post("/get-stylists-by-branch", authAdmin, getStylistsByBranch);
+adminRouter.get("/get-branches-info", authAdmin, getBranchesInfo);
+adminRouter.post("/assign-branch", authAdmin, assignBranch);
+adminRouter.post("/assign-branch-manager", authAdmin, assignBranchManager);
+adminRouter.post("/remove-branch-manager", authAdmin, removeBranchManager);
 
 // Discount Code Routes
 adminRouter.post("/add-discount-code", authAdmin, addDiscountCode);

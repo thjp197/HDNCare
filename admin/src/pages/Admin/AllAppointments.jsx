@@ -3,6 +3,7 @@ import { assets } from "../../assets/assets";
 import { useContext } from "react";
 import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
+import { isAppointmentExpired } from "../../utils/appointmentUtils";
 
 const AllAppointments = () => {
   const { aToken, appointments, cancelAppointment, getAllAppointments } =
@@ -12,32 +13,6 @@ const AllAppointments = () => {
   const [selectedCancellationData, setSelectedCancellationData] = useState(null);
   const [cancelConfirmModalOpen, setCancelConfirmModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
-
-  // Helper function to check if appointment is expired
-  const isAppointmentExpired = (appointment) => {
-    // If already cancelled or completed, it's not expired
-    if (appointment.cancelled || appointment.isCompleted) {
-      return false;
-    }
-    
-    // Parse date and time
-    const [dayStr, monthStr, yearStr] = appointment.slotDate.split("_");
-    const day = parseInt(dayStr);
-    const month = parseInt(monthStr);
-    const year = parseInt(yearStr);
-    
-    // Extract hour and minute from slotTime
-    const timeMatch = appointment.slotTime.match(/(\d{1,2}):(\d{2})/);
-    if (!timeMatch) return false;
-    
-    const hour = parseInt(timeMatch[1]);
-    const minute = parseInt(timeMatch[2]);
-    const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
-    const now = new Date();
-    
-    // If appointment time is in the past, it's expired
-    return appointmentDateTime < now;
-  };
 
   useEffect(() => {
     if (aToken) {

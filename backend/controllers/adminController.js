@@ -370,6 +370,119 @@ const updateStylist = async (req, res) => {
   }
 }
 
+// API to get stylists by branch
+const getStylistsByBranch = async (req, res) => {
+  try {
+    const { branch } = req.body
+
+    if (!branch) {
+      return res.json({ success: false, message: "Vui lòng chọn chi nhánh" })
+    }
+
+    const stylists = await stylistModel.find({ branch }).select('-password')
+    res.json({ success: true, stylists })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to get all branches info
+const getBranchesInfo = async (req, res) => {
+  try {
+    const branches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3']
+    const branchesData = []
+
+    for (const branch of branches) {
+      const stylists = await stylistModel.find({ branch }).select('-password')
+      const manager = stylists.find(s => s.isBranchManager)
+
+      branchesData.push({
+        name: branch,
+        stylistCount: stylists.length,
+        stylists,
+        manager: manager || null
+      })
+    }
+
+    res.json({ success: true, branchesData })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to assign branch to stylist
+const assignBranch = async (req, res) => {
+  try {
+    const { stylistId, branch } = req.body
+
+    if (!stylistId || !branch) {
+      return res.json({ success: false, message: "Thiếu thông tin" })
+    }
+
+    const validBranches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3']
+    if (!validBranches.includes(branch)) {
+      return res.json({ success: false, message: "Chi nhánh không hợp lệ" })
+    }
+
+    await stylistModel.findByIdAndUpdate(stylistId, { branch })
+    res.json({ success: true, message: `Đã gán stylist vào ${branch}` })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to assign branch manager
+const assignBranchManager = async (req, res) => {
+  try {
+    const { stylistId, branch } = req.body
+
+    if (!stylistId || !branch) {
+      return res.json({ success: false, message: "Thiếu thông tin" })
+    }
+
+    const validBranches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3']
+    if (!validBranches.includes(branch)) {
+      return res.json({ success: false, message: "Chi nhánh không hợp lệ" })
+    }
+
+    // Remove isBranchManager from current manager of this branch (if exists)
+    await stylistModel.updateMany({ branch, isBranchManager: true }, { isBranchManager: false })
+
+    // Set the new manager
+    await stylistModel.findByIdAndUpdate(stylistId, { isBranchManager: true, branch })
+
+    res.json({ success: true, message: `Đã gán stylist làm quản lý của ${branch}` })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to remove branch manager status
+const removeBranchManager = async (req, res) => {
+  try {
+    const { stylistId } = req.body
+
+    if (!stylistId) {
+      return res.json({ success: false, message: "Thiếu ID stylist" })
+    }
+
+    await stylistModel.findByIdAndUpdate(stylistId, { isBranchManager: false })
+    res.json({ success: true, message: "Đã xóa quyền quản lý chi nhánh" })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 export {
   addStylist,
   loginAdmin,
@@ -381,4 +494,9 @@ export {
   penalizedUsers,
   resetUserPenalty,
   updateUserPenalty,
+  getStylistsByBranch,
+  getBranchesInfo,
+  assignBranch,
+  assignBranchManager,
+  removeBranchManager,
 };

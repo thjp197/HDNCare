@@ -15,6 +15,8 @@ const StylistContextProvider = (props) => {
     const [appointments, setAppointments] = useState([])
     const [dashData, setDashData] = useState(false)
     const [profileData, setProfileData] = useState(false)
+    const [isBranchManager, setIsBranchManager] = useState(false)
+    const [branchInfo, setBranchInfo] = useState(null)
 
     // Getting Stylist appointment data from Database using API
     const getAppointments = async () => {
@@ -116,8 +118,68 @@ const StylistContextProvider = (props) => {
             const {data} = await axios.get(backendUrl + '/api/stylist/profile', { headers: { stoken: sToken } })
             if (data.success) {
                 setProfileData(data.profileData)
+                // Check if user is branch manager
+                setIsBranchManager(data.profileData.isBranchManager || false)
             }
 
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Branch Manager APIs
+    const getBranchManagerDashboard = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/stylist/branch-manager-dashboard', { headers: { stoken: sToken } })
+            if (data.success) {
+                setDashData(data.dashData)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    const getBranchManagerAppointments = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/stylist/branch-manager-appointments', { headers: { stoken: sToken } })
+            if (data.success) {
+                setAppointments(data.appointments)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    const getBranchManagerStylists = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/stylist/branch-manager-stylists', { headers: { stoken: sToken } })
+            if (data.success) {
+                return data.stylists
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return []
+        }
+    }
+
+    const getBranchManagerInfo = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/stylist/branch-manager-info', { headers: { stoken: sToken } })
+            if (data.success) {
+                setBranchInfo(data.branchInfo)
+            } else {
+                toast.error(data.message)
+            }
         } catch (error) {
             console.log(error)
             toast.error(error.message)
@@ -130,7 +192,9 @@ const StylistContextProvider = (props) => {
         setAppointments, completeAppointment,
         cancelAppointment, 
         dashData, setDashData, getDashData,
-        profileData, setProfileData, getProfileData
+        profileData, setProfileData, getProfileData,
+        isBranchManager, branchInfo,
+        getBranchManagerDashboard, getBranchManagerAppointments, getBranchManagerStylists, getBranchManagerInfo
     }
 
     return (

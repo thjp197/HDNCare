@@ -3,6 +3,7 @@ import { useContext, useEffect } from 'react'
 import { StylistContext } from '../../context/StylistContext'
 import { AppContext } from '../../context/AppContext'
 import { assets } from '../../assets/assets'
+import { isAppointmentExpired } from '../../utils/appointmentUtils'
 
 const StylistAppointments = () => {
 
@@ -130,6 +131,8 @@ const StylistAppointments = () => {
                 </p>
               : item.isCompleted
                 ?<p className='inline-flex w-fit justify-self-start items-center rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-medium font-sans text-green-700'>Hoàn thành</p>
+              : isAppointmentExpired(item)
+                ?<p className='inline-flex w-fit justify-self-start items-center rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-xs font-medium font-sans text-gray-700'>Hết hạn</p>
                 :<div className='flex gap-2'>
               <img onClick={() => openCancelConfirmModal(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
               <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Hoàn thành" />

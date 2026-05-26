@@ -7,7 +7,7 @@ import { assets } from '../assets/assets'
 const Sidebar = () => {
 
   const {aToken} = useContext(AdminContext)
-  const {sToken} = useContext(StylistContext)
+  const {sToken, isBranchManager} = useContext(StylistContext)
 
   return (
     <div className='min-h-screen bg-white border-r'>
@@ -31,6 +31,11 @@ const Sidebar = () => {
             <NavLink className={({isActive})=> `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#f2f3ff] border-r-4 border-primary' : ''}`} to={'/stylists-list'}>
               <img src={assets.people_icon} alt="" />
               <p>Danh sách chuyên viên</p>
+            </NavLink>
+
+            <NavLink className={({isActive})=> `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#f2f3ff] border-r-4 border-primary' : ''}`} to={'/branch-management'}>
+              <img src={assets.add_icon} alt="" />
+              <p>Quản lý Chi nhánh</p>
             </NavLink>
 
             <NavLink className={({isActive})=> `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#f2f3ff] border-r-4 border-primary' : ''}`} to={'/discount-codes'}>
@@ -60,6 +65,28 @@ const Sidebar = () => {
               <img src={assets.people_icon} alt="" />
               <p>Hồ sơ chuyên viên</p>
             </NavLink>
+
+            {isBranchManager && (
+              <>
+                <hr className='my-2 border-gray-300' />
+                <p className='text-sm font-semibold text-gray-600 px-3 md:px-9 py-2'>QUẢN LÝ CHI NHÁNH</p>
+                
+                <NavLink className={({isActive})=> `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#f2f3ff] border-r-4 border-primary' : ''}`} to={'/branch-manager-dashboard'}>
+                  <img src={assets.home_icon} alt="" />
+                  <p>Bảng điều khiển Chi nhánh</p>
+                </NavLink>
+
+                <NavLink className={({isActive})=> `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#f2f3ff] border-r-4 border-primary' : ''}`} to={'/branch-manager-appointments'}>
+                  <img src={assets.appointment_icon} alt="" />
+                  <p>Lịch hẹn Chi nhánh</p>
+                </NavLink>
+
+                <NavLink className={({isActive})=> `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#f2f3ff] border-r-4 border-primary' : ''}`} to={'/branch-manager-stylists'}>
+                  <img src={assets.people_icon} alt="" />
+                  <p>Nhân viên Chi nhánh</p>
+                </NavLink>
+              </>
+            )}
           </ul>
       }
           

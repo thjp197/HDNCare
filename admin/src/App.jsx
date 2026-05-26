@@ -13,6 +13,10 @@ import StylistsList from './pages/Admin/StylistsList';
 import EditStylist from './pages/Admin/EditStylist';
 import PenalizedUsers from './pages/Admin/PenalizedUsers';
 import DiscountCodes from './pages/Admin/DiscountCodes';
+import BranchManagement from './pages/Admin/BranchManagement';
+import BranchManagerDashboard from './pages/BranchManager/BranchManagerDashboard';
+import BranchManagerAppointments from './pages/BranchManager/BranchManagerAppointments';
+import BranchManagerStylists from './pages/BranchManager/BranchManagerStylists';
 import { StylistContext } from './context/StylistContext';
 import StylistDashboard from './pages/Stylist/StylistDashboard';
 import StylistAppointment from './pages/Stylist/StylistAppointment';
@@ -38,9 +42,15 @@ const App = () => {
           <Route path='/all-appointments' element={<AllAppointments />}/>  
           <Route path='/add-stylist' element={<AddStylist />}/>  
           <Route path='/stylists-list' element={<StylistsList />}/>  
+          <Route path='/branch-management' element={<BranchManagement />}/>
           <Route path='/discount-codes' element={<DiscountCodes />}/>
           <Route path='/penalized-users' element={<PenalizedUsers />}/>
           <Route path='/edit-stylist/:stylistId' element={<EditStylist />}/>
+
+          {/* branch manager routes */}
+          <Route path='/branch-manager-dashboard' element={<BranchManagerDashboard />}/>  
+          <Route path='/branch-manager-appointments' element={<BranchManagerAppointments />}/>  
+          <Route path='/branch-manager-stylists' element={<BranchManagerStylists />}/>  
 
           {/* stylist routes */}
           <Route path='/stylist-dashboard' element={<StylistDashboard />}/>  

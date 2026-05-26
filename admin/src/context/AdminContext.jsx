@@ -11,6 +11,7 @@ const AdminContextProvider = (props) => {
     const [penalizedUsers, setPenalizedUsers] = useState([])
     const [discountCodes, setDiscountCodes] = useState([])
     const [dashData, setDashData] = useState(false)
+    const [branchesInfo, setBranchesInfo] = useState([])
 
 
     const backendUrl =
@@ -283,6 +284,79 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Branch Management Functions
+    const getBranchesInfo = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/get-branches-info', { headers: { aToken } })
+
+            if (data.success) {
+                setBranchesInfo(data.branchesData)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    const assignBranch = async (stylistId, branch) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/assign-branch', { stylistId, branch }, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getBranchesInfo()
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false }
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
+    }
+
+    const assignBranchManager = async (stylistId, branch) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/assign-branch-manager', { stylistId, branch }, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getBranchesInfo()
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false }
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
+    }
+
+    const removeBranchManager = async (stylistId) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/remove-branch-manager', { stylistId }, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getBranchesInfo()
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false }
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
+    }
+
     const value = {
         aToken, setAToken,
         backendUrl,
@@ -292,7 +366,8 @@ const AdminContextProvider = (props) => {
         appointments, getAllAppointments, setAppointments, cancelAppointment,
         penalizedUsers, getPenalizedUsers, resetUserPenalty, updateUserPenalty,
         dashData, getDashData,
-        discountCodes, addDiscountCode, getAllDiscountCodes, updateDiscountCode, deleteDiscountCode
+        discountCodes, addDiscountCode, getAllDiscountCodes, updateDiscountCode, deleteDiscountCode,
+        branchesInfo, getBranchesInfo, assignBranch, assignBranchManager, removeBranchManager
     }
 
     return (
