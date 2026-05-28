@@ -30,7 +30,7 @@ export const specialityData = [
   },
   {
     speciality: "Nhuộm tóc",
-    image: "/hair-dye.png",
+    image: "/hair-dying.png",
   },
   {
     speciality: "Chăm sóc cơ thể",

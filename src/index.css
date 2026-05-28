@@ -148,7 +148,7 @@ body {
 }
 
 .chat-header button:hover {
-  background: #593bab;
+  background: #5f2d46;
 }
 
 .chat-body {
@@ -273,11 +273,12 @@ body {
   }
 
   .chatbot-popup {
-    width: 100%;
-    right: 0;
-    bottom: 0;
-    height: 100%;
-    border-radius: 0;
+    width: min(360px, calc(100vw - 32px));
+    right: 16px;
+    bottom: 82px;
+    height: min(68vh, 520px);
+    max-height: calc(100vh - 120px);
+    border-radius: 15px;
     /* Không cần thêm z-index ở đây vì nó sẽ kế thừa từ trên */
   }
 
@@ -285,13 +286,44 @@ body {
     padding: 12px 15px;
   }
 
+  .header-info svg {
+    width: 31px;
+    height: 31px;
+  }
+
+  .header-info .logo-text {
+    font-size: 1.1rem;
+  }
+
   .chat-body {
-    height: calc(90% - 55px);
-    padding : 25px 15px;
+    gap: 14px;
+    height: calc(100% - 132px);
+    margin-bottom: 72px;
+    padding: 16px 12px;
+  }
+
+  .chat-body .message {
+    gap: 8px;
+  }
+
+  .chat-body .bot-message svg {
+    width: 31px;
+    height: 31px;
+  }
+
+  .chat-body .message .message-text {
+    max-width: 82%;
+    padding: 10px 14px;
+    font-size: 0.9rem;
   }
 
   .chat-footer {
-    padding: 10px 15px 15px;
+    padding: 10px 12px 14px;
+  }
+
+  .chat-form .message-input {
+    height: 42px;
+    padding: 0 14px;
   }
 
 }

@@ -40,8 +40,8 @@ const Login = () => {
   }
 
   return (
-    <form onSubmit={onSubmitHandler} className="min-h-[80vh] flex items-center">
-      <div className="flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-[#5E5E5E] text-sm shadow-lg">
+    <form onSubmit={onSubmitHandler} className="flex min-h-[80vh] items-center px-4">
+      <div className="m-auto flex w-full max-w-96 flex-col items-start gap-3 rounded-xl border p-6 text-sm text-[#5E5E5E] shadow-lg sm:p-8">
             <p className='text-2xl font-semibold m-auto'><span className='text-primary'>{roleLabel} </span>đăng nhập</p>
             <div className="w-full">
                 <p>Email</p>

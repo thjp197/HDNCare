@@ -16,12 +16,12 @@ const Dashboard = () => {
 
   return (
     dashData && (
-      <div className="m-5 w-full space-y-6 font-sans">
+      <div className="w-full space-y-6 p-4 font-sans sm:p-5">
         <div className="rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50 via-pink-50 to-amber-50 p-5 shadow-sm">
           <p className="text-sm text-rose-600/80 font-sans">
             Bảng kiểm soát quản trị viên
           </p>
-          <h2 className="mt-1 text-2xl font-bold font-sans text-gray-800">
+          <h2 className="mt-1 text-xl font-bold font-sans text-gray-800 sm:text-2xl">
             Tổng Quan Hoạt Động HDNCare
           </h2>
         </div>
@@ -99,7 +99,7 @@ const Dashboard = () => {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Tổng Doanh Thu</p>
-              <p className="text-3xl font-bold text-gray-800">
+              <p className="break-words text-2xl font-bold text-gray-800 sm:text-3xl">
                 {(dashData.earnings || 0).toLocaleString("vi-VN")} <span className="text-lg">{currency}</span>
               </p>
             </div>
@@ -117,7 +117,7 @@ const Dashboard = () => {
           <div className="divide-y font-sans divide-gray-100">
             {dashData.latestAppointments.slice(0, 5).map((item, index) => (
               <div
-                className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-rose-50/40"
+                className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-rose-50/40 sm:items-center sm:px-6"
                 key={index}
               >
                 <img
@@ -125,7 +125,7 @@ const Dashboard = () => {
                   src={item.styData.image}
                   alt="Ảnh chuyên viên"
                 />
-                <div className="flex-1 text-sm">
+                <div className="min-w-0 flex-1 text-sm">
                   <p className="font-medium font-sans text-gray-800">
                     {item.styData.name}
                   </p>

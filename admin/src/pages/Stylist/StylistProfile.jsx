@@ -98,14 +98,14 @@ const StylistProfile = () => {
   }
 
   return profileData && (
-    <div className='m-5 w-full'>
+    <div className='w-full p-4 sm:p-5'>
       <div className='bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden'>
 
         {/* Header banner */}
         <div className='h-32 bg-gradient-to-r from-rose-100 via-pink-50 to-amber-50' />
 
         {/* Avatar + name row */}
-        <div className='px-8 pb-6'>
+        <div className='px-4 pb-6 sm:px-8'>
           <div className='flex flex-col sm:flex-row items-start sm:items-end gap-5 -mt-16'>
             <img
               className='w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-md'
@@ -113,7 +113,7 @@ const StylistProfile = () => {
             />
             <div className='pb-1'>
               <p className='text-2xl font-bold text-gray-800'>{profileData.name}</p>
-              <div className='flex items-center gap-2 mt-1 text-gray-500 text-sm'>
+              <div className='flex flex-wrap items-center gap-2 mt-1 text-gray-500 text-sm'>
                 <span>{profileData.degree} · {profileData.speciality}</span>
                 <span className='px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs'>{profileData.experience}</span>
               </div>
@@ -175,7 +175,7 @@ const StylistProfile = () => {
           </div>
 
           {/* Actions */}
-          <div className='flex gap-3 mt-8'>
+          <div className='flex flex-col gap-3 mt-8 sm:flex-row'>
             {isEdit ? (
               <>
                 <button onClick={updateProfile} className='px-8 py-2.5 bg-primary text-white rounded-full text-sm font-medium hover:opacity-90 transition-all'>Lưu thay đổi</button>
@@ -224,7 +224,7 @@ const StylistProfile = () => {
               />
             </div>
 
-            <div className='mt-6 flex justify-end gap-3'>
+            <div className='mt-6 flex flex-col justify-end gap-3 sm:flex-row'>
               <button onClick={closePasswordForm} className='px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50'>Hủy</button>
               <button onClick={submitChangePassword} disabled={isChangingPassword} className='px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 disabled:opacity-60'>
                 {isChangingPassword ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}

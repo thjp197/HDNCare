@@ -3,6 +3,7 @@ import { useContext, useEffect } from 'react'
 import { StylistContext } from '../../context/StylistContext'
 import { AppContext } from '../../context/AppContext'
 import { assets } from '../../assets/assets'
+import { isAppointmentExpired } from '../../utils/appointmentUtils'
 
 const StylistAppointments = () => {
 
@@ -59,11 +60,11 @@ const StylistAppointments = () => {
   };
 
   return (
-    <div className="w-full max-w-8xl m-5 ">
+    <div className="w-full p-4 sm:p-5">
 
       <p className='mb-3 text-lg font-medium font-sans'>Tất cả lịch hẹn</p>
 
-      <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
+      <div className='max-h-[80vh] overflow-y-auto rounded border bg-white text-sm'>
         <div className='max-sm:hidden grid grid-cols-[0.5fr_2fr_1fr_1fr_2fr_1.2fr_1fr_1fr] gap-1 py-3 px-6 border-b'>
           <p>#</p>
           <p>Người dùng</p>
@@ -75,12 +76,12 @@ const StylistAppointments = () => {
           <p>Hành động</p>
         </div>
         {[...appointments].reverse().map((item, index) => (
-          <div className='relative flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_2fr_1fr_1fr_2fr_1.2fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
+          <div className='relative grid grid-cols-2 gap-3 border-b px-4 py-4 text-gray-500 hover:bg-gray-50 sm:grid-cols-[0.5fr_2fr_1fr_1fr_2fr_1.2fr_1fr_1fr] sm:items-center sm:gap-1 sm:px-6 sm:py-3' key={index}>
             <p className='max-sm:hidden'>{index}</p>
-            <div className='flex items-center gap-2'>
-              <img src={item.userData.image} className='w-8 rounded-full' alt="" /> <p>{item.userData.name}</p>
+            <div className='flex min-w-0 items-center gap-2 max-sm:order-1'>
+              <img src={item.userData.image} className='w-8 rounded-full' alt="" /> <p className='truncate'>{item.userData.name}</p>
             </div>
-            <div>
+            <div className='max-sm:order-3'>
               <p
                 className={`text-xs inline px-2 py-0.5 rounded-full border font-medium ${
                   item.cancelled
@@ -96,10 +97,10 @@ const StylistAppointments = () => {
               </p>
             </div>
             <p className='max-sm:hidden'>{calculateAge(item.userData.dob)}</p>
-            <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
+            <p className='max-sm:order-4 max-sm:col-start-1'>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
 
             {item.selectedStyleImage ? (
-              <div className='relative'>
+              <div className='relative max-sm:order-2 max-sm:justify-self-end'>
                 <img
                   src={item.selectedStyleImage}
                   className='h-10 w-10 rounded-lg object-contain border border-[#e6ced6] cursor-pointer'
@@ -111,10 +112,11 @@ const StylistAppointments = () => {
                 />
               </div>
             ) : (
-              <p className='text-xs text-gray-400'>Không có</p>
+              <p className='text-xs text-gray-400 max-sm:order-2 max-sm:justify-self-end'>Không có</p>
             )}
 
-            <p>{currency}{item.amount}</p>
+            <p className='max-sm:order-5 max-sm:col-start-1'>{currency}{item.amount}</p>
+            <div className='max-sm:order-6 max-sm:col-start-2 max-sm:row-start-3 max-sm:row-span-2 max-sm:justify-self-end max-sm:self-center sm:contents'>
             {
               item.cancelled 
               ? <p 
@@ -130,11 +132,14 @@ const StylistAppointments = () => {
                 </p>
               : item.isCompleted
                 ?<p className='inline-flex w-fit justify-self-start items-center rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-medium font-sans text-green-700'>Hoàn thành</p>
+              : isAppointmentExpired(item)
+                ?<p className='inline-flex w-fit justify-self-start items-center rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-xs font-medium font-sans text-gray-700'>Hết hạn</p>
                 :<div className='flex gap-2'>
               <img onClick={() => openCancelConfirmModal(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
               <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Hoàn thành" />
             </div>
             }
+            </div>
             
           </div>
         ))}

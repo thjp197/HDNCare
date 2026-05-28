@@ -11,6 +11,32 @@ const MyAppointments = () => {
     useContext(AppContext);
   const [searchParams] = useSearchParams();
 
+  // Helper function to check if appointment is expired
+  const isAppointmentExpired = (appointment) => {
+    // If already cancelled or completed, it's not expired
+    if (appointment.cancelled || appointment.isCompleted) {
+      return false;
+    }
+    
+    // Parse date and time
+    const [dayStr, monthStr, yearStr] = appointment.slotDate.split("_");
+    const day = parseInt(dayStr);
+    const month = parseInt(monthStr);
+    const year = parseInt(yearStr);
+    
+    // Extract hour and minute from slotTime
+    const timeMatch = appointment.slotTime.match(/(\d{1,2}):(\d{2})/);
+    if (!timeMatch) return false;
+    
+    const hour = parseInt(timeMatch[1]);
+    const minute = parseInt(timeMatch[2]);
+    const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
+    const now = new Date();
+    
+    // If appointment time is in the past, it's expired
+    return appointmentDateTime < now;
+  };
+
   useEffect(() => {
     if (!token) {
       navigate("/login");
@@ -599,108 +625,143 @@ const MyAppointments = () => {
           return (
             <div
               key={item._id || index}
-              className="grid grid-cols-1 md:grid-cols-4 gap-4 border border-gray-200 rounded-lg p-4 mb-4 bg-white shadow-sm hover:shadow-md transition"
+              className={`grid grid-cols-1 md:grid-cols-4 gap-4 border rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition ${
+                isAppointmentExpired(item)
+                  ? "border-gray-300 bg-gray-100 opacity-60"
+                  : "border-gray-200 bg-white"
+              }`}
             >
               <div>
                 <img
                   src={stylistImage}
                   alt={stylistName}
-                  className="w-32 h-32 object-cover rounded"
+                  className={`w-32 h-32 object-cover rounded ${
+                    isAppointmentExpired(item) ? "opacity-50" : ""
+                  }`}
                 />
               </div>
               <div className="md:col-span-2">
-                <p className="font-bold text-lg">{stylistName}</p>
-                <p className="text-gray-600 text-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className={`font-bold text-lg ${
+                    isAppointmentExpired(item) ? "text-gray-500" : ""
+                  }`}>{stylistName}</p>
+                  {isAppointmentExpired(item) && (
+                    <span className="px-2 py-1 bg-gray-400 text-white text-xs font-semibold rounded">
+                      Hết hạn
+                    </span>
+                  )}
+                </div>
+                <p className={`text-sm ${
+                  isAppointmentExpired(item) ? "text-gray-500" : "text-gray-600"
+                }`}>
                   {item.styData?.speciality || stylist?.speciality}
                 </p>
-                <p className="text-sm mt-2">
+                <p className={`text-sm mt-2 ${
+                  isAppointmentExpired(item) ? "text-gray-500" : ""
+                }`}>
                   <span className="font-semibold">Địa chỉ:</span>
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className={`text-sm ${
+                  isAppointmentExpired(item) ? "text-gray-500" : "text-gray-700"
+                }`}>
                   {item.styData?.address?.line1 || stylist?.address?.line1}
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className={`text-sm ${
+                  isAppointmentExpired(item) ? "text-gray-500" : "text-gray-700"
+                }`}>
                   {item.styData?.address?.line2 || stylist?.address?.line2}
                 </p>
-                <p className="text-sm mt-2">
+                <p className={`text-sm mt-2 ${
+                  isAppointmentExpired(item) ? "text-gray-500" : ""
+                }`}>
                   <span className="font-semibold">Thời gian:</span>{" "}
                   {slotDateFormat(item.slotDate)} | {item.slotTime}
                 </p>
-                <p className="text-sm mt-2">
+                <p className={`text-sm mt-2 ${
+                  isAppointmentExpired(item) ? "text-gray-500" : ""
+                }`}>
                   <span className="font-semibold">Chi phí:</span>{" "}
                   {item.amount?.toLocaleString("vi-VN")} VND
                 </p>
               </div>
               <div className="flex flex-col gap-2 justify-center">
-                {!item.cancelled && !item.payment && !item.isCompleted && (
-                  <button
-                    onClick={() => openPaymentTypeModal(item._id)}
-                    disabled={paymentLoading[item._id]}
-                    className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán"}
+                {isAppointmentExpired(item) ? (
+                  <button className="px-4 py-2 bg-gray-400 text-white rounded cursor-default font-semibold">
+                    Hết hạn
                   </button>
-                )}
-                {!item.cancelled && !item.payment && item.depositPaid && !item.isCompleted && (
+                ) : (
                   <>
-                    <button className="px-4 py-2 border border-emerald-500 text-emerald-600 rounded cursor-default">
-                      ✓ Đã cọc {Number(item.depositAmount || Math.round((item.amount || 0) * 0.2)).toLocaleString("vi-VN")} VND
-                    </button>
-                    <button
-                      onClick={() => { setPaymentModalType("full"); setAppointmentToPay(item._id); setDiscountCode(""); setDiscountAmount(0); setFinalAmount(0); setPaymentModalOpen(true); }}
-                      disabled={paymentLoading[item._id]}
-                      className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán phần còn lại"}
-                    </button>
-                  </>
-                )}
-                {!item.cancelled && item.payment && !item.isCompleted && (
-                  <>
-                    <button className="px-4 py-2 bg-green-500 text-white rounded cursor-default">
-                      ✓ Đã thanh toán
-                    </button>
-                    <button
-                      onClick={() => openRescheduleModal(item._id)}
-                      disabled={item.rescheduleCount >= 1}
-                      className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-400"
-                      title={item.rescheduleCount >= 1 ? "Đã đổi lịch" : ""}
-                    >
-                      Đổi lịch hẹn
-                    </button>
-                    <button
-                      onClick={() => openCancelModal(item._id)}
-                      className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
-                    >
-                      Hủy lịch hẹn
-                    </button>
-                  </>
-                )}
-                {!item.cancelled && !item.payment && !item.isCompleted &&(
-                  <>
-                    <button
-                      onClick={() => openRescheduleModal(item._id)}
-                      disabled={item.rescheduleCount >= 1}
-                      className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-400"
-                      title={item.rescheduleCount >= 1 ? "Đã đổi lịch" : ""}
-                    >
-                      Đổi lịch hẹn
-                    </button>
-                    <button
-                      onClick={() => openCancelModal(item._id)}
-                      className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
-                    >
-                      Hủy lịch hẹn
-                    </button>
-                  </>
-                )}
-                {item.cancelled && !item.isCompleted &&(
-                  <button className="sm:min-w-48 py-2 border border-red-500 rounded text-red-500 cursor-default">
-                    ✕ Đã hủy
-                  </button>
-                )}
+                    {!item.cancelled && !item.payment && !item.isCompleted && (
+                      <button
+                        onClick={() => openPaymentTypeModal(item._id)}
+                        disabled={paymentLoading[item._id]}
+                        className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán"}
+                      </button>
+                    )}
+                    {!item.cancelled && !item.payment && item.depositPaid && !item.isCompleted && (
+                      <>
+                        <button className="px-4 py-2 border border-emerald-500 text-emerald-600 rounded cursor-default">
+                          ✓ Đã cọc {Number(item.depositAmount || Math.round((item.amount || 0) * 0.2)).toLocaleString("vi-VN")} VND
+                        </button>
+                        <button
+                          onClick={() => { setPaymentModalType("full"); setAppointmentToPay(item._id); setDiscountCode(""); setDiscountAmount(0); setFinalAmount(0); setPaymentModalOpen(true); }}
+                          disabled={paymentLoading[item._id]}
+                          className="px-4 py-2 bg-primary text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {paymentLoading[item._id] ? "Đang xử lý..." : "Thanh toán phần còn lại"}
+                        </button>
+                      </>
+                    )}
+                    {!item.cancelled && item.payment && !item.isCompleted && (
+                      <>
+                        <button className="px-4 py-2 bg-green-500 text-white rounded cursor-default">
+                          ✓ Đã thanh toán
+                        </button>
+                        <button
+                          onClick={() => openRescheduleModal(item._id)}
+                          disabled={item.rescheduleCount >= 1}
+                          className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-400"
+                          title={item.rescheduleCount >= 1 ? "Đã đổi lịch" : ""}
+                        >
+                          Đổi lịch hẹn
+                        </button>
+                        <button
+                          onClick={() => openCancelModal(item._id)}
+                          className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
+                        >
+                          Hủy lịch hẹn
+                        </button>
+                      </>
+                    )}
+                    {!item.cancelled && !item.payment && !item.isCompleted &&(
+                      <>
+                        <button
+                          onClick={() => openRescheduleModal(item._id)}
+                          disabled={item.rescheduleCount >= 1}
+                          className="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-400"
+                          title={item.rescheduleCount >= 1 ? "Đã đổi lịch" : ""}
+                        >
+                          Đổi lịch hẹn
+                        </button>
+                        <button
+                          onClick={() => openCancelModal(item._id)}
+                          className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 transition"
+                        >
+                          Hủy lịch hẹn
+                        </button>
+                      </>
+                    )}
+                    {item.cancelled && !item.isCompleted &&(
+                      <button className="sm:min-w-48 py-2 border border-red-500 rounded text-red-500 cursor-default">
+                        ✕ Đã hủy
+                      </button>
+                    )}
 
-                {item.isCompleted && <button className="sm:min-w-48 py-2 border border-green-500 rounded text-green-500">Hoàn thành</button>}
+                    {item.isCompleted && <button className="sm:min-w-48 py-2 border border-green-500 rounded text-green-500">Hoàn thành</button>}
+                  </>
+                )}
               </div>
             </div>
           );

@@ -3,6 +3,7 @@ import { assets } from "../../assets/assets";
 import { useContext } from "react";
 import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
+import { isAppointmentExpired } from "../../utils/appointmentUtils";
 
 const AllAppointments = () => {
   const { aToken, appointments, cancelAppointment, getAllAppointments } =
@@ -49,10 +50,10 @@ const AllAppointments = () => {
   };
 
   return (
-    <div className="w-full max-w-8xl m-5 ">
+    <div className="w-full p-4 sm:p-5">
       <p className="mb-3 text-lg font-medium font-sans">Tất cả lịch hẹn</p>
 
-      <div className="bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll">
+      <div className="max-h-[80vh] overflow-y-auto rounded border bg-white text-sm">
         <div className="hidden sm:grid grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center py-3 px-6 border-b">
           <p>#</p>
           <p>Người dùng</p>
@@ -63,24 +64,34 @@ const AllAppointments = () => {
           <p>Phí</p>
           <p>Hành động</p>
         </div>
-        {appointments.map((item, index) => (
+        {appointments.map((item, index) => {
+          const isExpired = isAppointmentExpired(item);
+          return (
           <div
-            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] gap-4 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
+            className={`grid grid-cols-2 gap-3 border-b px-4 py-4 sm:grid-cols-[0.5fr_2.8fr_2fr_1fr_3fr_3fr_1fr_1.5fr] sm:items-center sm:gap-4 sm:px-6 sm:py-3 ${
+              isExpired
+                ? "bg-gray-100 text-gray-400 hover:bg-gray-150"
+                : "text-gray-500 hover:bg-gray-50"
+            }`}
             key={index}
           >
             <p className="max-sm:hidden">{index + 1}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2 max-sm:order-1">
               <img
                 src={item.userData.image}
-                className="w-8 rounded-full"
+                className={`w-8 rounded-full ${
+                  isExpired ? "opacity-50" : ""
+                }`}
                 alt=""
               />{" "}
-              <p>{item.userData.name}</p>
+              <p className="truncate">{item.userData.name}</p>
             </div>
-            <div>
+            <div className="max-sm:order-3">
               <p
                 className={`text-xs inline px-2 py-0.5 rounded-full border font-medium ${
-                  item.cancelled
+                  isExpired
+                    ? "bg-gray-300 text-gray-600 border-gray-400"
+                    : item.cancelled
                     ? "bg-red-100 text-red-700 border-red-300"
                     : item.isCompleted
                     ? "bg-green-100 text-green-700 border-green-300"
@@ -91,7 +102,9 @@ const AllAppointments = () => {
                     : "bg-yellow-100 text-yellow-800 border-yellow-300"
                 }`}
               >
-                {item.depositPaid && !item.payment
+                {isExpired
+                  ? "Hết hạn"
+                  : item.depositPaid && !item.payment
                   ? `Đã cọc - ${(Number(item.depositAmount) || Math.round(Number(item.amount || 0) * 0.2)).toLocaleString("vi-VN")} ${currency}`
                   : item.payment
                   ? "Trực tuyến"
@@ -99,21 +112,28 @@ const AllAppointments = () => {
               </p>
             </div>
             <p className="max-sm:hidden">{calculateAge(item.userData.dob)}</p>
-            <p>
+            <p className="max-sm:order-4 max-sm:col-span-2">
               {slotDateFormat(item.slotDate)}, {item.slotTime}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2 max-sm:order-2">
               <img
                 src={item.styData.image}
-                className="w-8 rounded-full bg-gray-200"
+                className={`w-8 rounded-full bg-gray-200 ${
+                  isExpired ? "opacity-50" : ""
+                }`}
                 alt=""
               />{" "}
-              <p>{item.styData.name}</p>
+              <p className="truncate">{item.styData.name}</p>
             </div>
-            <p className="whitespace-nowrap">
+            <p className="whitespace-nowrap max-sm:order-5">
               {item.amount} {currency}
             </p>
-            {item.cancelled ? (
+            <div className="max-sm:order-6 sm:contents">
+            {isExpired ? (
+              <button className="inline-flex w-fit justify-self-start items-center rounded border border-gray-400 bg-gray-300 px-3 py-1.5 text-xs font-semibold font-sans text-gray-700 cursor-default hover:bg-gray-350 transition">
+                Hết hạn
+              </button>
+            ) : item.cancelled ? (
               <p
                 onClick={() =>
                   openCancellationReasonModal(
@@ -135,8 +155,10 @@ const AllAppointments = () => {
                 alt=""
               />
             )}
+            </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal hiển thị lý do hủy */}

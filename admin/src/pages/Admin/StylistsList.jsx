@@ -11,16 +11,16 @@ const StylistsList = () => {
   }, [aToken])
 
   return (
-   <div className='m-5 max-h-[90vh] overflow-y-scroll font-sans'>
-      <h1 className='text-lg font-medium font-sans'>All Stylists</h1>
-      <div className='w-full flex flex-wrap gap-4 pt-5 gap-y-6'>
+   <div className='max-h-[90vh] overflow-y-auto p-4 font-sans sm:p-5'>
+      <h1 className='text-lg font-medium font-sans'>Tất cả chuyên viên</h1>
+      <div className='grid w-full grid-cols-1 gap-4 gap-y-6 pt-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'>
         {stylists.map((item, index) => (
           <div
             onClick={() => navigate(`/edit-stylist/${item._id}`)}
-            className='border border-[#C9D8FF] rounded-xl max-w-56 overflow-hidden cursor-pointer group'
+            className='group w-full overflow-hidden rounded-xl border border-[#C9D8FF] cursor-pointer'
             key={index}
           >
-            <img className='bg-[#EAEFFF] group-hover:bg-primary transition-all duration-500' src={item.image} alt="" />
+            <img className='h-auto w-full bg-[#EAEFFF] transition-all duration-500 group-hover:bg-primary' src={item.image} alt="" />
             <div className='p-4'>
               <p className='text-[#262626] text-lg font-medium font-sans'>{item.name}</p>
               <p className='text-[#5C5C5C] text-sm font-sans'>{item.speciality}</p>

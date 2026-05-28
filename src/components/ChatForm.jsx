@@ -15,9 +15,6 @@ const ChatForm = ({ chatHistory, setChatHistory, generateBotResponse }) => {
         setTimeout(() => {
             // Hiển thị trạng thái Thinking...
             setChatHistory((history) => [...history, { role: "model", text: "Thinking..." }]);
-
-            // ❌ Đã xóa chuỗi ép buộc "Using the details provided above..."
-            // Chỉ truyền đúng lịch sử cũ và tin nhắn mới tinh xuống hàm xử lý
             generateBotResponse(chatHistory, userMessage); 
         }, 600);
     }

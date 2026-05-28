@@ -1,10 +1,11 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { assets } from "../assets/assets";
 import RelatedStylist from "../components/RelatedStylists";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { io } from "socket.io-client";
 
 const Appointment = () => {
   const { styId } = useParams();
@@ -15,8 +16,8 @@ const Appointment = () => {
     token,
     getStylistsData,
     userData,
-  } =
-    useContext(AppContext);
+  } = useContext(AppContext);
+
   const dayOfWeek = [
     "Chủ nhật",
     "Thứ hai",
@@ -28,85 +29,78 @@ const Appointment = () => {
   ];
 
   const navigate = useNavigate();
+  const socketRef = useRef(null);
+  const getStylistsDataRef = useRef(getStylistsData);
 
   const [styInfo, setStyInfo] = useState(null);
   const [stySlots, setStySlots] = useState([]);
   const [slotIndex, setSlotIndex] = useState(0);
   const [slotTime, setSlotTime] = useState("");
+  const [serverNow, setServerNow] = useState(Date.now());
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedStyleImage, setSelectedStyleImage] = useState(null);
 
+  const buildSlotDate = (date) =>
+    `${date.getDate()}_${date.getMonth() + 1}_${date.getFullYear()}`;
+
   const fetchStyInfo = () => {
-    const styInfo = stylists.find((sty) => sty._id === styId);
-    setStyInfo(styInfo || null);
+    const selectedStylist = stylists.find((sty) => sty._id === styId);
+    setStyInfo(selectedStylist || null);
   };
 
-  const getAvailabelSlots = async () => {
-    if (!styInfo) {
-      return;
-    }
+  const getAvailabelSlots = () => {
+    if (!styInfo) return;
 
-    setStySlots([]);
     const bookedSlots = styInfo.slots_booked || {};
+    const now = new Date(serverNow);
+    const nextSlots = [];
 
-    // Lấy ngày hiện tại
-    let today = new Date();
+    for (let i = 0; i < 7; i += 1) {
+      const slotDay = new Date(now);
+      slotDay.setDate(now.getDate() + i);
+      slotDay.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i < 7; i++) {
-      // getting date
-      let currentDate = new Date(today);
-      currentDate.setDate(today.getDate() + i);
+      const slots = [];
 
-      // setting end time date
-      let endTime = new Date();
-      endTime.setDate(today.getDate() + i);
-      endTime.setHours(21, 0, 0, 0); // 21 PM
+      for (let hour = 9; hour < 21; hour += 1) {
+        const currentDate = new Date(slotDay);
+        currentDate.setHours(hour, 0, 0, 0);
 
-      // setting hours
-      if (today.getDate() === currentDate.getDate()) {
-        currentDate.setHours(
-          currentDate.getHours() > 9 ? currentDate.getHours() + 1 : 9,
-        ); // from 9 AM
-        currentDate.setMinutes(currentDate.getMinutes() > 30 ? 0 : 0);
-      } else {
-        currentDate.setHours(9); // from 9 AM
-        currentDate.setMinutes(0);
-      }
+        if (currentDate.getTime() <= now.getTime()) {
+          continue;
+        }
 
-      let timeSlots = [];
-
-      while (currentDate < endTime) {
-        let formattedTime = currentDate.toLocaleTimeString([], {
+        const formattedTime = currentDate.toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         });
 
-        let day = currentDate.getDate();
-        let month = currentDate.getMonth() + 1; // Tháng bắt đầu từ 0
-        let year = currentDate.getFullYear();
-
-        const slotDate = day + "_" + month + "_" + year;
-        const slotTime = formattedTime;
-
-        const isSlotAvailable =
-          bookedSlots[slotDate] && bookedSlots[slotDate].includes(slotTime)
-            ? false
-            : true;
+        const slotDate = buildSlotDate(currentDate);
+        const isSlotAvailable = !(
+          bookedSlots[slotDate] && bookedSlots[slotDate].includes(formattedTime)
+        );
 
         if (isSlotAvailable) {
-          // add slot to array
-          timeSlots.push({
+          slots.push({
             datetime: new Date(currentDate),
             time: formattedTime,
           });
         }
-
-        // Increment by 60 minutes
-        currentDate.setMinutes(currentDate.getMinutes() + 60);
       }
 
-      setStySlots((prev) => [...prev, timeSlots]);
+      nextSlots.push({
+        date: new Date(slotDay),
+        slots,
+      });
     }
+
+    setStySlots(nextSlots);
+    setSlotTime((prevSlotTime) => {
+      const selectedDaySlots = nextSlots[slotIndex]?.slots || [];
+      return selectedDaySlots.some((slot) => slot.time === prevSlotTime)
+        ? prevSlotTime
+        : "";
+    });
   };
 
   const bookAppointment = async () => {
@@ -116,19 +110,30 @@ const Appointment = () => {
     }
 
     try {
-      const date = stySlots[slotIndex][0].datetime;
+      const selectedDay = stySlots[slotIndex];
+      const selectedSlot = selectedDay?.slots?.find(
+        (item) => item.time === slotTime,
+      );
 
-      let day = date.getDate();
-      let month = date.getMonth() + 1; // Tháng bắt đầu từ 0
-      let year = date.getFullYear();
+      if (!selectedSlot) {
+        toast.warn("Vui lòng chọn khung giờ còn khả dụng");
+        return;
+      }
 
-      const slotDate = day + "_" + month + "_" + year;
+      if (selectedSlot.datetime.getTime() <= serverNow) {
+        setSlotTime("");
+        toast.error("Khung giờ này đã qua, vui lòng chọn khung giờ khác");
+        return;
+      }
+
+      const slotDate = buildSlotDate(selectedDay.date);
 
       const { data } = await axios.post(
         backendUrl + "/api/user/book-appointment",
         { styId, slotDate, slotTime, selectedStyleImage },
         { headers: { token } },
       );
+
       if (data.success) {
         toast.success(data.message);
         getStylistsData();
@@ -147,6 +152,10 @@ const Appointment = () => {
   };
 
   useEffect(() => {
+    getStylistsDataRef.current = getStylistsData;
+  }, [getStylistsData]);
+
+  useEffect(() => {
     fetchStyInfo();
   }, [stylists, styId]);
 
@@ -154,11 +163,41 @@ const Appointment = () => {
     if (styInfo) {
       getAvailabelSlots();
     }
-  }, [styInfo]);
+  }, [styInfo, serverNow, slotIndex]);
 
   useEffect(() => {
-    console.log(stySlots);
-  }, [stySlots]);
+    const socket = io(backendUrl, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      socket.emit("join-stylist-slots", styId);
+    });
+
+    socket.on("server-time", ({ serverTime }) => {
+      if (Number.isFinite(Number(serverTime))) {
+        setServerNow(Number(serverTime));
+      }
+    });
+
+    socket.on("stylist-slots-updated", (payload) => {
+      if (!payload?.styId || payload.styId === styId) {
+        if (Number.isFinite(Number(payload?.serverTime))) {
+          setServerNow(Number(payload.serverTime));
+        }
+        getStylistsDataRef.current();
+      }
+    });
+
+    return () => {
+      socket.emit("leave-stylist-slots", styId);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [backendUrl, styId]);
 
   return (
     styInfo && (
@@ -174,7 +213,6 @@ const Appointment = () => {
           </div>
 
           <div className="flex-1 border border-gray-400 rounded-lg p-8 py-7 bg-white mx-2 sm:mx-0 mt-[-80px] sm:mt-0">
-            {/* Sty Info : tên, bằng cấp, kinh nghiệm */}
             <p className="flex items-center gap-2 text-2xl font-medium text-gray-900">
               {styInfo.name}
               <img className="w-5" src={assets.verified_icon} alt="" />
@@ -189,7 +227,6 @@ const Appointment = () => {
               </button>
             </div>
 
-            {/* Thông tin Stylist */}
             <div>
               <p className="flex items-center gap-1 text-sm font-medium text-gray-900 mt-3">
                 Thông tin nhà tạo mẫu <img src={assets.info_icon} alt="" />
@@ -219,48 +256,58 @@ const Appointment = () => {
               Chia sẻ hình ảnh của bạn
             </button>
           </div>
+
           <div className="flex gap-3 items-center w-full mt-4 overflow-x-auto">
-  {stySlots.length &&
-    stySlots.map((item, index) => (
-      <div
-        onClick={() => setSlotIndex(index)}
-        key={index}
-        /* - Thay đổi: w-20 h-20 (hoặc w-16 h-16) để tạo hình vuông cân đối.
-           - flex-shrink-0: Đảm bảo ô không bị méo khi hàng quá dài.
-           - flex flex-col justify-center: Để căn chữ vào đúng tâm hình tròn.
-        */
-        className={`flex flex-col items-center justify-center w-20 h-20 flex-shrink-0 rounded-full cursor-pointer transition-all ${
-          slotIndex === index 
-            ? "bg-primary text-white border-primary shadow-lg" 
-            : "border border-[#DDDDDD] text-[#565656]"
-        }`}
-      >
-        <p className="text-sm font-medium">
-          {item[0] && dayOfWeek[item[0].datetime.getDay()]}
-        </p>
-        <p className="text-lg font-bold">
-          {item[0] && item[0].datetime.getDate()}
-        </p>
-      </div>
-    ))}
-</div>
+            {stySlots.length > 0 &&
+              stySlots.map((item, index) => (
+                <div
+                  onClick={() => {
+                    setSlotIndex(index);
+                    setSlotTime("");
+                  }}
+                  key={buildSlotDate(item.date)}
+                  className={`flex flex-col items-center justify-center w-20 h-20 flex-shrink-0 rounded-full cursor-pointer transition-all ${
+                    slotIndex === index
+                      ? "bg-primary text-white border-primary shadow-lg"
+                      : "border border-[#DDDDDD] text-[#565656]"
+                  }`}
+                >
+                  <p className="text-sm font-medium">
+                    {dayOfWeek[item.date.getDay()]}
+                  </p>
+                  <p className="text-lg font-bold">{item.date.getDate()}</p>
+                </div>
+              ))}
+          </div>
 
           <div className="flex items-center gap-3 w-full overflow-x-auto mt-4 pb-2 border-b-0 shadow-none">
-            {stySlots.length &&
-              stySlots[slotIndex].map((item, index) => (
+            {stySlots[slotIndex]?.slots?.length > 0 ? (
+              stySlots[slotIndex].slots.map((item) => (
                 <p
                   onClick={() => setSlotTime(item.time)}
-                  key={index}
-                  className={`text-sm font-light  flex-shrink-0 px-5 py-2 rounded-full cursor-pointer ${item.time === slotTime ? "bg-primary text-white" : "text-[#949494] border border-[#B4B4B4]"}`}
+                  key={`${buildSlotDate(item.datetime)}-${item.time}`}
+                  className={`text-sm font-light flex-shrink-0 px-5 py-2 rounded-full cursor-pointer ${
+                    item.time === slotTime
+                      ? "bg-primary text-white"
+                      : "text-[#949494] border border-[#B4B4B4]"
+                  }`}
                 >
                   {item.time.toLowerCase()}
                 </p>
-              ))}
+              ))
+            ) : (
+              <p className="text-sm text-[#949494]">
+                Không còn khung giờ khả dụng trong ngày này.
+              </p>
+            )}
           </div>
 
           <button
             onClick={bookAppointment}
-            className="bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6"
+            disabled={!slotTime}
+            className={`bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6 ${
+              slotTime ? "" : "opacity-60 cursor-not-allowed"
+            }`}
           >
             Đặt lịch
           </button>
@@ -312,7 +359,11 @@ const Appointment = () => {
                       <button
                         key={imgUrl}
                         onClick={() => setSelectedStyleImage(imgUrl)}
-                        className={`relative overflow-hidden rounded-xl border-2 transition-all ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-[#ead5dd]"}`}
+                        className={`relative overflow-hidden rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? "border-primary ring-2 ring-primary/20"
+                            : "border-[#ead5dd]"
+                        }`}
                       >
                         <img
                           src={imgUrl}
@@ -354,7 +405,7 @@ const Appointment = () => {
             </div>
           </div>
         )}
-        {/* Listing related stylists */}
+
         <RelatedStylist speciality={styInfo.speciality} docId={styId} />
       </div>
     )

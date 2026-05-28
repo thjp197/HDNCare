@@ -97,7 +97,7 @@ const DiscountCodes = () => {
   }
 
   return (
-    <div className='m-5 w-full'>
+    <div className='w-full p-4 sm:p-5'>
       <p className='mb-6 text-lg font-medium font-sans'>Quản Lý Mã Giảm Giá</p>
 
       <button
@@ -108,7 +108,7 @@ const DiscountCodes = () => {
       </button>
 
       <div className='overflow-x-auto rounded border bg-white text-sm'>
-        <div className='grid grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_1fr_1.5fr] items-center gap-3 border-b bg-gray-50 px-5 py-3 font-semibold text-gray-700'>
+        <div className='grid min-w-[860px] grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_1fr_1.5fr] items-center gap-3 border-b bg-gray-50 px-5 py-3 font-semibold text-gray-700'>
           <p>Mã Giảm Giá</p>
           <p>Loại Giảm</p>
           <p>Giá Trị</p>
@@ -121,7 +121,7 @@ const DiscountCodes = () => {
         {discountCodes.map((code) => (
           <div
             key={code._id}
-            className='grid grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_1fr_1.5fr] items-center gap-3 border-b px-5 py-3 text-gray-600 hover:bg-gray-50'
+            className='grid min-w-[860px] grid-cols-[2fr_1.5fr_1.5fr_1.5fr_1.5fr_1fr_1.5fr] items-center gap-3 border-b px-5 py-3 text-gray-600 hover:bg-gray-50'
           >
             <p className='font-medium text-gray-800'>{code.code}</p>
             <p>{code.discountType === 'percentage' ? 'Phần trăm' : 'Cố định'}</p>
@@ -174,13 +174,13 @@ const DiscountCodes = () => {
       {/* Modal */}
       {showModal && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'>
-          <div className='w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg'>
+          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 shadow-lg sm:p-6'>
             <h2 className='mb-4 text-xl font-bold text-gray-800'>
               {editingCode ? 'Chỉnh Sửa Mã Giảm Giá' : 'Thêm Mã Giảm Giá'}
             </h2>
 
             <form onSubmit={handleSubmit} className='space-y-4'>
-              <div className='grid grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
                   <label className='mb-1 block text-sm font-medium text-gray-700'>Mã Giảm Giá *</label>
                   <input
@@ -208,7 +208,7 @@ const DiscountCodes = () => {
                 </div>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
                   <label className='mb-1 block text-sm font-medium text-gray-700'>
                     Giá Trị Giảm *
@@ -236,7 +236,7 @@ const DiscountCodes = () => {
                 </div>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
                   <label className='mb-1 block text-sm font-medium text-gray-700'>Hạn Hết Hạn</label>
                   <input
@@ -274,7 +274,7 @@ const DiscountCodes = () => {
                 />
               </div>
 
-              <div className='flex justify-end gap-3 pt-4'>
+              <div className='flex flex-col justify-end gap-3 pt-4 sm:flex-row'>
                 <button
                   type='button'
                   onClick={handleCloseModal}

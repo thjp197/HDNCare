@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useContext, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AppContext } from '../context/AppContext';
@@ -15,6 +15,8 @@ const Navbar = () => {
       const logout = () => {
         setToken(false)
         localStorage.removeItem('token')
+        // THÊM DÒNG NÀY: Quét sạch bộ nhớ chat của AI khi khách đăng xuất
+        localStorage.removeItem('hdncare_chat_history')
         navigate('/')
       }
 
@@ -67,10 +69,17 @@ const Navbar = () => {
           <img onClick={() => setShowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
 
         {/* ---- Mobile Menu ---- */}
-        <div className={`md:hidden ${showMenu ? 'fixed w-full' : 'h-0 w-0'} right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}>
+        <div className={`md:hidden ${showMenu ? 'fixed w-full' : 'h-0 w-0'} right-0 top-0 bottom-0 z-[10000] overflow-hidden bg-white transition-all`}>
           <div className='flex items-center justify-between px-5 py-6'>
             <img src={assets.logo} className='w-36' alt="" />
-            <img onClick={() => setShowMenu(false)} src={assets.cross_icon} className='w-7' alt="" />
+            <button
+              type='button'
+              onClick={() => setShowMenu(false)}
+              aria-label='Đóng menu'
+              className='flex items-center justify-center w-10 h-10 text-3xl font-light leading-none text-gray-500 rounded-full hover:bg-gray-100'
+            >
+              ×
+            </button>
           </div>
           <ul className='flex flex-col items-center gap-2 mt-5 px-5 text-lg font-medium'>
             <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded full inline-block'>TRANG CHỦ</p></NavLink>

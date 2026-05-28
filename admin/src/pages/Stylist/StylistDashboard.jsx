@@ -2,14 +2,16 @@ import React, { useContext, useEffect } from 'react'
 import { StylistContext } from '../../context/StylistContext'
 import { assets } from '../../assets/assets'
 import { AppContext } from '../../context/AppContext'
+import { isAppointmentExpired } from '../../utils/appointmentUtils'
 
 const StylistDashboard = () => {
 
-  const { sToken, dashData, getDashData, completeAppointment, cancelAppointment } = useContext(StylistContext)
+  const { sToken, dashData, getDashData, completeAppointment, cancelAppointment, getProfileData } = useContext(StylistContext)
   const {currency, slotDateFormat} = useContext(AppContext)
 
   useEffect(() => {
     if (sToken) {
+      getProfileData()
       getDashData()
     }
   }, [sToken])
@@ -22,10 +24,10 @@ const StylistDashboard = () => {
   }
 
   return dashData && (
-    <div className='m-5 mt-3'>
+    <div className='w-full space-y-4 p-4 sm:p-5'>
       <div className='rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50 via-pink-50 to-amber-50 p-5 shadow-sm'>
         <p className='text-sm text-rose-600/80 font-sans'>Bảng Quản Lý Lịch Hẹn</p>
-        <h2 className='mt-1 text-2xl font-bold font-sans text-gray-800'>Tổng quan hoạt động của bạn tại HDNCare</h2>
+        <h2 className='mt-1 text-xl font-bold font-sans text-gray-800 sm:text-2xl'>Tổng quan hoạt động của bạn tại HDNCare</h2>
       </div>
 
       <div className='grid grid-cols-1 mt-3 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
@@ -36,7 +38,7 @@ const StylistDashboard = () => {
               <img className='w-12 font-sans' src={assets.earning_icon} alt='Chuyen vien' />
             </div>
             <div>
-              <p className='text-2xl font-bold text-gray-800'>{dashData.earnings} {currency}</p>
+              <p className='break-words text-xl font-bold text-gray-800 sm:text-2xl'>{dashData.earnings} {currency}</p>
               <p className='text-sm font-medium text-gray-500'>Thu nhập</p>
               
             </div>
@@ -80,9 +82,9 @@ const StylistDashboard = () => {
       
               <div className='divide-y font-sans divide-gray-100'>
                 {dashData.latestAppointments.slice(0, 5).map((item, index) => (
-                  <div className='flex items-center gap-3 px-6 py-3 transition-colors hover:bg-rose-50/40' key={index}>
+                  <div className='flex items-start gap-3 px-4 py-3 transition-colors hover:bg-rose-50/40 sm:items-center sm:px-6' key={index}>
                     <img className='w-10 rounded-full ring-2 ring-white' src={item.userData.image} alt='Anh chuyen vien' />
-                    <div className='flex-1 text-sm'>
+                    <div className='min-w-0 flex-1 text-sm'>
                       <p className='font-medium font-sans text-gray-800'>{item.userData.name}</p>
                       <p className='text-gray-600 font-sans'>Đặt Lịch: {slotDateFormat(item.slotDate)}</p>
                     </div>
@@ -91,6 +93,8 @@ const StylistDashboard = () => {
                                  ? <p className='text-red-400 text-xs font-medium font-sans'>Hủy hẹn</p>
                                  : item.isCompleted
                                    ?<p className='text-green-500 text-xs font-medium font-sans'>Hoàn thành</p>
+                                   : isAppointmentExpired(item)
+                                   ?<p className='text-gray-400 text-xs font-medium font-sans'>Hết hạn</p>
                                    :<div className='flex gap-2'>
                                  <img onClick={() => handleCancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="Hủy" />
                                  <img onClick={() => completeAppointment(item._id)} className='w-10 cursor-pointer' src={assets.tick_icon} alt="Hoàn thành" />
