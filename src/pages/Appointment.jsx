@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { assets } from "../assets/assets";
 import RelatedStylist from "../components/RelatedStylists";
@@ -9,6 +9,7 @@ import { io } from "socket.io-client";
 
 const Appointment = () => {
   const { styId } = useParams();
+  const { search } = useLocation();
   const {
     stylists,
     currencySymbol,
@@ -39,6 +40,9 @@ const Appointment = () => {
   const [serverNow, setServerNow] = useState(Date.now());
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedStyleImage, setSelectedStyleImage] = useState(null);
+  const quickBookingParams = new URLSearchParams(search);
+  const selectedBookingDate = quickBookingParams.get("date") || "";
+  const selectedBookingTime = quickBookingParams.get("time") || "";
 
   const buildSlotDate = (date) =>
     `${date.getDate()}_${date.getMonth() + 1}_${date.getFullYear()}`;
@@ -164,6 +168,36 @@ const Appointment = () => {
       getAvailabelSlots();
     }
   }, [styInfo, serverNow, slotIndex]);
+
+  useEffect(() => {
+    if (!selectedBookingDate || !selectedBookingTime || !stySlots.length) {
+      return;
+    }
+
+    const targetDate = new Date(`${selectedBookingDate}T00:00:00`);
+    if (Number.isNaN(targetDate.getTime())) {
+      return;
+    }
+
+    const matchedDayIndex = stySlots.findIndex(
+      (item) =>
+        item.date.getFullYear() === targetDate.getFullYear() &&
+        item.date.getMonth() === targetDate.getMonth() &&
+        item.date.getDate() === targetDate.getDate(),
+    );
+
+    if (matchedDayIndex >= 0) {
+      setSlotIndex(matchedDayIndex);
+
+      const matchedSlot = stySlots[matchedDayIndex].slots.find(
+        (item) => item.time === selectedBookingTime,
+      );
+
+      if (matchedSlot) {
+        setSlotTime(selectedBookingTime);
+      }
+    }
+  }, [selectedBookingDate, selectedBookingTime, stySlots]);
 
   useEffect(() => {
     const socket = io(backendUrl, {

@@ -1,5 +1,6 @@
 import React from 'react'
 import SpecialityMenu from '../components/SpecialityMenu'
+import QuickBookingBar from '../components/QuickBookingBar'
 import TopStylist from '../components/TopStylist'
 import Banner from '../components/Banner'
 
@@ -10,6 +11,7 @@ const Home = () => {
           <Banner/>
         </div>
         <SpecialityMenu/>
+        <QuickBookingBar/>
         <TopStylist/>
     </div>
   )
