@@ -293,9 +293,7 @@ const branchManagerDashboard = async (req, res) => {
         const styId = req.styId
         const isBranchManager = req.isBranchManager
         const branch = req.branch
-        
-        console.log('Branch Manager Dashboard Request:', { styId, isBranchManager, branch })
-        
+
         if (!isBranchManager || !branch) {
             return res.json({ success: false, message: 'Bạn không phải là trưởng chi nhánh hoặc chưa được gán chi nhánh' })
         }

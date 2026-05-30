@@ -1,15 +1,22 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
+import { formatBookingDate, getBranchDisplayLabel } from "../utils/quickBooking";
 
 const Stylists = () => {
   const { speciality } = useParams();
+  const [searchParams] = useSearchParams();
   const [filteredStylists, setFilteredStylists] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
   const [searchName, setSearchName] = useState("");
   const navigate = useNavigate();
 
   const { stylists } = useContext(AppContext);
+  const selectedBranch = searchParams.get("branch") || "";
+  const quickBookingService = searchParams.get("service") || "";
+  const selectedService = quickBookingService || speciality || "";
+  const selectedDate = searchParams.get("date") || "";
+  const selectedTime = searchParams.get("time") || "";
 
   const normalizeSpeciality = (value = "") =>
     value
@@ -20,18 +27,33 @@ const Stylists = () => {
       .trim();
 
   const isSpecialityActive = (value) =>
-    normalizeSpeciality(speciality) === normalizeSpeciality(value);
+    normalizeSpeciality(selectedService) === normalizeSpeciality(value);
 
   const handleSpecialityClick = (value) => {
-    navigate(isSpecialityActive(value) ? "/stylists" : `/stylists/${value}`);
+    const preservedParams = new URLSearchParams();
+    if (selectedBranch) preservedParams.set("branch", selectedBranch);
+    if (selectedDate) preservedParams.set("date", selectedDate);
+    if (selectedTime) preservedParams.set("time", selectedTime);
+
+    const targetPath = isSpecialityActive(value)
+      ? "/stylists"
+      : `/stylists/${value}`;
+
+    navigate(
+      `${targetPath}${preservedParams.toString() ? `?${preservedParams.toString()}` : ""}`,
+    );
   };
 
   const applyFilter = () => {
     let result = stylists;
 
+    if (selectedBranch) {
+      result = result.filter((stylist) => stylist.branch === selectedBranch);
+    }
+
     // Filter by speciality
-    if (speciality) {
-      const normalizedSpeciality = normalizeSpeciality(speciality);
+    if (selectedService) {
+      const normalizedSpeciality = normalizeSpeciality(selectedService);
       result = result.filter(
         (stylist) =>
           normalizeSpeciality(stylist.speciality) === normalizedSpeciality,
@@ -51,11 +73,23 @@ const Stylists = () => {
 
   useEffect(() => {
     applyFilter();
-  }, [speciality, stylists, searchName]);
+  }, [selectedBranch, selectedService, stylists, searchName]);
 
   return (
     <div>
       <p className="text-gray-600">Tất cả chuyên viên</p>
+
+      {(selectedBranch || quickBookingService || selectedDate || selectedTime) && (
+        <div className="mt-4 mb-6 rounded-2xl border border-orange-100 bg-orange-50/70 px-4 py-3 text-sm text-slate-700">
+          <p className="font-semibold text-slate-900">Lọc theo đặt lịch nhanh</p>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+            {selectedBranch && <span>Chi nhánh: {getBranchDisplayLabel(selectedBranch)}</span>}
+            {quickBookingService && <span>Dịch vụ: {quickBookingService}</span>}
+            {selectedDate && <span>Ngày: {formatBookingDate(selectedDate)}</span>}
+            {selectedTime && <span>Giờ: {selectedTime}</span>}
+          </div>
+        </div>
+      )}
       
       {/* Search Bar */}
       <div className="mt-6 mb-8">
@@ -127,7 +161,13 @@ const Stylists = () => {
           {filteredStylists.map((item, index) => (
             <div
               onClick={() => {
-                navigate(`/appointment/${item._id}`);
+                  const params = new URLSearchParams();
+                  if (selectedBranch) params.set("branch", selectedBranch);
+                  if (selectedService) params.set("service", selectedService);
+                  if (selectedDate) params.set("date", selectedDate);
+                  if (selectedTime) params.set("time", selectedTime);
+
+                  navigate(`/appointment/${item._id}${params.toString() ? `?${params.toString()}` : ""}`);
                 window.scrollTo(0, 0);
               }}
               className="border border-blue-200 rounded-xl overflow-hidden cursor-pointer hover:translate-y-[-10px] transition-all duration-500"

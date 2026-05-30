@@ -5,15 +5,15 @@ import axios from 'axios'
 
 const BranchManagement = () => {
   const { aToken, backendUrl, branchesInfo, getBranchesInfo, assignBranch, assignBranchManager, removeBranchManager } = useContext(AdminContext)
-  const [selectedBranch, setSelectedBranch] = useState(null)
+  const [selectedBranch, setSelectedBranch] = useState('Chi nhánh 1')
   const [selectedStylistForBranch, setSelectedStylistForBranch] = useState({})
   const [allStylists, setAllStylists] = useState([])
   const [loading, setLoading] = useState(false)
 
   const branches = [
-    { id: 'Chi nhánh 1', name: 'Chi nhánh 1', location: 'Gò Vấp' },
-    { id: 'Chi nhánh 2', name: 'Chi nhánh 2', location: 'Bình Thạnh' },
-    { id: 'Chi nhánh 3', name: 'Chi nhánh 3', location: 'Quận 7' },
+    { id: 'Chi nhánh 1', name: 'Chi nhánh 1', location: '70 Lê Đức Thọ' },
+    { id: 'Chi nhánh 2', name: 'Chi nhánh 2', location: '43 Nơ Trang Long' },
+    { id: 'Chi nhánh 3', name: 'Chi nhánh 3', location: '59 Trần Xuân Soạn' },
   ]
 
   useEffect(() => {
