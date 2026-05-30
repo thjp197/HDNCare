@@ -1,18 +1,21 @@
 export const QUICK_BOOKING_BRANCHES = [
   {
     value: 'Chi nhánh 1',
-    label: 'Chi nhánh 1',
-    description: '70 Lê Đức Thọ',
+    label: 'Bình Thạnh',
+    description: '43 Nơ Trang Long',
+    displayLabel: 'Bình Thạnh - 43 Nơ Trang Long',
   },
   {
     value: 'Chi nhánh 2',
-    label: 'Chi nhánh 2',
-    description: '43 Nơ Trang Long',
+    label: 'Gò Vấp',
+    description: '70 Lê Đức Thọ',
+    displayLabel: 'Gò Vấp - 70 Lê Đức Thọ',
   },
   {
     value: 'Chi nhánh 3',
-    label: 'Chi nhánh 3',
+    label: 'Quận 7',
     description: '59 Trần Xuân Soạn',
+    displayLabel: 'Quận 7 - 59 Trần Xuân Soạn',
   },
 ];
 
@@ -23,7 +26,7 @@ export const getBranchDisplayLabel = (branchValue = '') => {
     return branchValue;
   }
 
-  return `${branch.label} - ${branch.description}`;
+  return branch.displayLabel || `${branch.label} - ${branch.description}`;
 };
 
 export const QUICK_BOOKING_HOURS = Array.from({ length: 12 }, (_, index) => {

@@ -6,6 +6,7 @@ import RelatedStylist from "../components/RelatedStylists";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { io } from "socket.io-client";
+import { formatBookingDate, getBranchDisplayLabel } from "../utils/quickBooking";
 
 const Appointment = () => {
   const { styId } = useParams();
@@ -43,6 +44,8 @@ const Appointment = () => {
   const quickBookingParams = new URLSearchParams(search);
   const selectedBookingDate = quickBookingParams.get("date") || "";
   const selectedBookingTime = quickBookingParams.get("time") || "";
+  const selectedBookingBranch = quickBookingParams.get("branch") || "";
+  const selectedBookingService = quickBookingParams.get("service") || "";
 
   const buildSlotDate = (date) =>
     `${date.getDate()}_${date.getMonth() + 1}_${date.getFullYear()}`;
@@ -236,6 +239,18 @@ const Appointment = () => {
   return (
     styInfo && (
       <div>
+        {(selectedBookingBranch || selectedBookingService || selectedBookingDate || selectedBookingTime) && (
+          <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50/80 px-4 py-3 text-sm text-slate-700">
+            <p className="font-semibold text-slate-900">Thông tin đã chọn từ đặt lịch nhanh</p>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              {selectedBookingBranch && <span>Chi nhánh: {getBranchDisplayLabel(selectedBookingBranch)}</span>}
+              {selectedBookingService && <span>Dịch vụ: {selectedBookingService}</span>}
+              {selectedBookingDate && <span>Ngày: {formatBookingDate(selectedBookingDate)}</span>}
+              {selectedBookingTime && <span>Giờ: {selectedBookingTime}</span>}
+            </div>
+          </div>
+        )}
+
         {/* Stylist Details */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div>
