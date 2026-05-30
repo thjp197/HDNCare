@@ -81,6 +81,7 @@ const Navbar = () => {
               ×
             </button>
           </div>
+          
           <ul className='flex flex-col items-center gap-2 mt-5 px-5 text-lg font-medium'>
             <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded full inline-block'>TRANG CHỦ</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/stylists' ><p className='px-4 py-2 rounded full inline-block'>TẤT CẢ CHUYÊN VIÊN</p></NavLink>
