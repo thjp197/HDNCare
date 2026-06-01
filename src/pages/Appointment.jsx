@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { assets } from "../assets/assets";
@@ -7,6 +7,89 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { formatBookingDate, getBranchDisplayLabel } from "../utils/quickBooking";
+
+const buildSlotDate = (date) =>
+  `${date.getDate()}_${date.getMonth() + 1}_${date.getFullYear()}`;
+
+const formatSlotTime = (date) =>
+  `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+const normalizeSlotTime = (value = "") => {
+  const rawValue = String(value).trim();
+  const timeMatch = rawValue.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i);
+
+  if (!timeMatch) {
+    return rawValue;
+  }
+
+  let hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const period = timeMatch[3]?.toUpperCase();
+
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || minutes > 59) {
+    return rawValue;
+  }
+
+  if (period === "PM" && hours < 12) {
+    hours += 12;
+  }
+
+  if (period === "AM" && hours === 12) {
+    hours = 0;
+  }
+
+  if (hours > 23) {
+    return rawValue;
+  }
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};
+
+const getAvailableSlots = (styInfo, serverNow) => {
+  if (!styInfo) return [];
+
+  const bookedSlots = styInfo.slots_booked || {};
+  const now = new Date(serverNow);
+  const nextSlots = [];
+
+  for (let i = 0; i < 7; i += 1) {
+    const slotDay = new Date(now);
+    slotDay.setDate(now.getDate() + i);
+    slotDay.setHours(0, 0, 0, 0);
+
+    const slots = [];
+
+    for (let hour = 9; hour < 21; hour += 1) {
+      const currentDate = new Date(slotDay);
+      currentDate.setHours(hour, 0, 0, 0);
+
+      if (currentDate.getTime() <= now.getTime()) {
+        continue;
+      }
+
+      const formattedTime = formatSlotTime(currentDate);
+      const slotDate = buildSlotDate(currentDate);
+      const bookedSlotTimes = Array.isArray(bookedSlots[slotDate])
+        ? bookedSlots[slotDate].map(normalizeSlotTime)
+        : [];
+      const isSlotAvailable = !bookedSlotTimes.includes(formattedTime);
+
+      if (isSlotAvailable) {
+        slots.push({
+          datetime: new Date(currentDate),
+          time: formattedTime,
+        });
+      }
+    }
+
+    nextSlots.push({
+      date: new Date(slotDay),
+      slots,
+    });
+  }
+
+  return nextSlots;
+};
 
 const Appointment = () => {
   const { styId } = useParams();
@@ -34,81 +117,54 @@ const Appointment = () => {
   const socketRef = useRef(null);
   const getStylistsDataRef = useRef(getStylistsData);
 
-  const [styInfo, setStyInfo] = useState(null);
-  const [stySlots, setStySlots] = useState([]);
-  const [slotIndex, setSlotIndex] = useState(0);
+  const [slotIndex, setSlotIndex] = useState(null);
   const [slotTime, setSlotTime] = useState("");
-  const [serverNow, setServerNow] = useState(Date.now());
+  const [serverNow, setServerNow] = useState(() => Date.now());
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedStyleImage, setSelectedStyleImage] = useState(null);
   const quickBookingParams = new URLSearchParams(search);
   const selectedBookingDate = quickBookingParams.get("date") || "";
-  const selectedBookingTime = quickBookingParams.get("time") || "";
+  const selectedBookingTime = normalizeSlotTime(quickBookingParams.get("time") || "");
   const selectedBookingBranch = quickBookingParams.get("branch") || "";
   const selectedBookingService = quickBookingParams.get("service") || "";
 
-  const buildSlotDate = (date) =>
-    `${date.getDate()}_${date.getMonth() + 1}_${date.getFullYear()}`;
+  const styInfo = useMemo(
+    () => stylists.find((sty) => sty._id === styId) || null,
+    [stylists, styId],
+  );
 
-  const fetchStyInfo = () => {
-    const selectedStylist = stylists.find((sty) => sty._id === styId);
-    setStyInfo(selectedStylist || null);
-  };
+  const stySlots = useMemo(
+    () => getAvailableSlots(styInfo, serverNow),
+    [styInfo, serverNow],
+  );
 
-  const getAvailabelSlots = () => {
-    if (!styInfo) return;
+  let quickBookingDayIndex = -1;
+  if (selectedBookingDate && stySlots.length) {
+    const targetDate = new Date(`${selectedBookingDate}T00:00:00`);
 
-    const bookedSlots = styInfo.slots_booked || {};
-    const now = new Date(serverNow);
-    const nextSlots = [];
-
-    for (let i = 0; i < 7; i += 1) {
-      const slotDay = new Date(now);
-      slotDay.setDate(now.getDate() + i);
-      slotDay.setHours(0, 0, 0, 0);
-
-      const slots = [];
-
-      for (let hour = 9; hour < 21; hour += 1) {
-        const currentDate = new Date(slotDay);
-        currentDate.setHours(hour, 0, 0, 0);
-
-        if (currentDate.getTime() <= now.getTime()) {
-          continue;
-        }
-
-        const formattedTime = currentDate.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        const slotDate = buildSlotDate(currentDate);
-        const isSlotAvailable = !(
-          bookedSlots[slotDate] && bookedSlots[slotDate].includes(formattedTime)
-        );
-
-        if (isSlotAvailable) {
-          slots.push({
-            datetime: new Date(currentDate),
-            time: formattedTime,
-          });
-        }
-      }
-
-      nextSlots.push({
-        date: new Date(slotDay),
-        slots,
-      });
+    if (!Number.isNaN(targetDate.getTime())) {
+      quickBookingDayIndex = stySlots.findIndex(
+        (item) =>
+          item.date.getFullYear() === targetDate.getFullYear() &&
+          item.date.getMonth() === targetDate.getMonth() &&
+          item.date.getDate() === targetDate.getDate(),
+      );
     }
+  }
 
-    setStySlots(nextSlots);
-    setSlotTime((prevSlotTime) => {
-      const selectedDaySlots = nextSlots[slotIndex]?.slots || [];
-      return selectedDaySlots.some((slot) => slot.time === prevSlotTime)
-        ? prevSlotTime
-        : "";
-    });
-  };
+  const quickBookingSlotTime =
+    quickBookingDayIndex >= 0 && selectedBookingTime
+      ? stySlots[quickBookingDayIndex]?.slots.find(
+          (item) => item.time === selectedBookingTime,
+        )?.time || ""
+      : "";
+
+  const selectedSlotIndex = slotIndex ?? (quickBookingDayIndex >= 0 ? quickBookingDayIndex : 0);
+  const selectedDaySlots = stySlots[selectedSlotIndex]?.slots || [];
+  const selectedManualSlotTime = selectedDaySlots.some((item) => item.time === slotTime)
+    ? slotTime
+    : "";
+  const selectedSlotTime = selectedManualSlotTime || (slotIndex === null ? quickBookingSlotTime : "");
 
   const bookAppointment = async () => {
     if (!token) {
@@ -117,9 +173,9 @@ const Appointment = () => {
     }
 
     try {
-      const selectedDay = stySlots[slotIndex];
+      const selectedDay = stySlots[selectedSlotIndex];
       const selectedSlot = selectedDay?.slots?.find(
-        (item) => item.time === slotTime,
+        (item) => item.time === selectedSlotTime,
       );
 
       if (!selectedSlot) {
@@ -137,7 +193,7 @@ const Appointment = () => {
 
       const { data } = await axios.post(
         backendUrl + "/api/user/book-appointment",
-        { styId, slotDate, slotTime, selectedStyleImage },
+        { styId, slotDate, slotTime: selectedSlotTime, selectedStyleImage },
         { headers: { token } },
       );
 
@@ -161,46 +217,6 @@ const Appointment = () => {
   useEffect(() => {
     getStylistsDataRef.current = getStylistsData;
   }, [getStylistsData]);
-
-  useEffect(() => {
-    fetchStyInfo();
-  }, [stylists, styId]);
-
-  useEffect(() => {
-    if (styInfo) {
-      getAvailabelSlots();
-    }
-  }, [styInfo, serverNow, slotIndex]);
-
-  useEffect(() => {
-    if (!selectedBookingDate || !selectedBookingTime || !stySlots.length) {
-      return;
-    }
-
-    const targetDate = new Date(`${selectedBookingDate}T00:00:00`);
-    if (Number.isNaN(targetDate.getTime())) {
-      return;
-    }
-
-    const matchedDayIndex = stySlots.findIndex(
-      (item) =>
-        item.date.getFullYear() === targetDate.getFullYear() &&
-        item.date.getMonth() === targetDate.getMonth() &&
-        item.date.getDate() === targetDate.getDate(),
-    );
-
-    if (matchedDayIndex >= 0) {
-      setSlotIndex(matchedDayIndex);
-
-      const matchedSlot = stySlots[matchedDayIndex].slots.find(
-        (item) => item.time === selectedBookingTime,
-      );
-
-      if (matchedSlot) {
-        setSlotTime(selectedBookingTime);
-      }
-    }
-  }, [selectedBookingDate, selectedBookingTime, stySlots]);
 
   useEffect(() => {
     const socket = io(backendUrl, {
@@ -316,7 +332,7 @@ const Appointment = () => {
                   }}
                   key={buildSlotDate(item.date)}
                   className={`flex flex-col items-center justify-center w-20 h-20 flex-shrink-0 rounded-full cursor-pointer transition-all ${
-                    slotIndex === index
+                    selectedSlotIndex === index
                       ? "bg-primary text-white border-primary shadow-lg"
                       : "border border-[#DDDDDD] text-[#565656]"
                   }`}
@@ -330,13 +346,13 @@ const Appointment = () => {
           </div>
 
           <div className="flex items-center gap-3 w-full overflow-x-auto mt-4 pb-2 border-b-0 shadow-none">
-            {stySlots[slotIndex]?.slots?.length > 0 ? (
-              stySlots[slotIndex].slots.map((item) => (
+            {selectedDaySlots.length > 0 ? (
+              selectedDaySlots.map((item) => (
                 <p
                   onClick={() => setSlotTime(item.time)}
                   key={`${buildSlotDate(item.datetime)}-${item.time}`}
                   className={`text-sm font-light flex-shrink-0 px-5 py-2 rounded-full cursor-pointer ${
-                    item.time === slotTime
+                    item.time === selectedSlotTime
                       ? "bg-primary text-white"
                       : "text-[#949494] border border-[#B4B4B4]"
                   }`}
@@ -353,9 +369,9 @@ const Appointment = () => {
 
           <button
             onClick={bookAppointment}
-            disabled={!slotTime}
+            disabled={!selectedSlotTime}
             className={`bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6 ${
-              slotTime ? "" : "opacity-60 cursor-not-allowed"
+              selectedSlotTime ? "" : "opacity-60 cursor-not-allowed"
             }`}
           >
             Đặt lịch

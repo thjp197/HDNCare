@@ -64,7 +64,23 @@ const Navbar = () => {
                 </div>
               )}
             </div>
-            :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-primary md:block'>Tạo tài khoản</button>
+            :<div className='hidden items-center rounded-full bg-primary px-5 py-3 text-sm font-medium text-white shadow-sm md:flex'>
+              <button
+                type='button'
+                onClick={() => navigate('/login?mode=login')}
+                className='transition-opacity hover:opacity-80'
+              >
+                Đăng nhập
+              </button>
+              <span className='mx-3 text-white/70'>|</span>
+              <button
+                type='button'
+                onClick={() => navigate('/login?mode=signup')}
+                className='transition-opacity hover:opacity-80'
+              >
+                Đăng ký
+              </button>
+            </div>
           }
           <img onClick={() => setShowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
 

@@ -10,8 +10,8 @@ const Home = () => {
         <div className='-mx-4 sm:-mx-[10%]'>
           <Banner/>
         </div>
-        <SpecialityMenu/>
         <QuickBookingBar/>
+        <SpecialityMenu/>
         <TopStylist/>
     </div>
   )

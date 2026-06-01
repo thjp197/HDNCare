@@ -32,17 +32,6 @@ const QuickBookingBar = () => {
   });
 
   useEffect(() => {
-    if (availableTimes.length === 0) {
-      setBookingTime('');
-      return;
-    }
-
-    if (!availableTimes.some((item) => item.value === bookingTime)) {
-      setBookingTime(availableTimes[0].value);
-    }
-  }, [availableTimes, bookingTime]);
-
-  useEffect(() => {
     const handleOutsideClick = (event) => {
       if (dateTimeMenuRef.current && !dateTimeMenuRef.current.contains(event.target)) {
         setIsDateTimeOpen(false);
@@ -53,19 +42,23 @@ const QuickBookingBar = () => {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
+  const effectiveBookingTime = availableTimes.some((item) => item.value === bookingTime)
+    ? bookingTime
+    : availableTimes[0]?.value || '';
+
   const handleSearch = () => {
-    if (!branch || !bookingDate || !bookingTime || !service) {
+    if (!branch || !bookingDate || !effectiveBookingTime || !service) {
       return;
     }
 
-    if (bookingDate === todayValue && !availableTimes.some((item) => item.value === bookingTime)) {
+    if (bookingDate === todayValue && !availableTimes.some((item) => item.value === effectiveBookingTime)) {
       return;
     }
 
     const params = new URLSearchParams({
       branch,
       date: bookingDate,
-      time: bookingTime,
+      time: effectiveBookingTime,
       service,
     });
 
@@ -75,12 +68,12 @@ const QuickBookingBar = () => {
 
   const selectedBranchData = QUICK_BOOKING_BRANCHES.find((item) => item.value === branch);
   const selectedDateLabel = formatBookingDate(bookingDate);
-  const selectedTimeLabel = bookingTime || 'Chọn giờ';
+  const selectedTimeLabel = effectiveBookingTime || 'Chọn giờ';
 
   return (
-    <div className='px-4 py-5 sm:px-0 sm:py-6'>
+    <div className='px-4 py-4 sm:px-0 sm:py-5'>
       <div className='mx-auto max-w-6xl'>
-        <div className='mb-4 text-center'>
+        <div className='mb-3 text-center'>
           <h2 className='text-xl font-semibold text-slate-900 sm:text-2xl'>
             Đặt lịch nhanh
           </h2>
@@ -89,16 +82,16 @@ const QuickBookingBar = () => {
           </p>
         </div>
 
-        <div className='overflow-visible rounded-[24px] bg-white/95 shadow-[0_18px_50px_rgba(15,23,42,0.12)] ring-1 ring-black/5'>
+        <div className='overflow-visible rounded-[20px] bg-white/95 shadow-[0_18px_50px_rgba(15,23,42,0.12)] ring-1 ring-black/5'>
           <div className='grid grid-cols-1 lg:grid-cols-[1.05fr_1.25fr_1fr_auto]'>
-            <div className='border-b border-slate-200/80 px-4 py-3.5 lg:border-b-0 lg:border-r'>
+            <div className='border-b border-slate-200/80 px-4 py-3 lg:border-b-0 lg:border-r lg:rounded-tl-[20px]'>
               <p className='text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500'>
                 Chi nhánh
               </p>
               <select
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
-                className='mt-1.5 w-full bg-transparent text-[15px] font-medium text-slate-900 outline-none'
+                className='mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[15px] font-medium text-slate-900 outline-none transition-colors hover:border-slate-300 focus:border-[#5D1735] focus:ring-[#5D1735]/15'
               >
                 {QUICK_BOOKING_BRANCHES.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -111,7 +104,7 @@ const QuickBookingBar = () => {
               </p>
             </div>
 
-            <div className='border-b border-slate-200/80 px-4 py-3.5 lg:border-b-0 lg:border-r'>
+            <div className='border-b border-slate-200/80 px-4 py-3 lg:border-b-0 lg:border-r'>
               <p className='text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500'>
                 Ngày & giờ
               </p>
@@ -119,12 +112,9 @@ const QuickBookingBar = () => {
                 <button
                   type='button'
                   onClick={() => setIsDateTimeOpen((prev) => !prev)}
-                  className='flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition-colors hover:border-slate-300'
+                  className='flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-left transition-colors hover:border-slate-300 focus:border-[#5D1735] focus:outline-none focus:ring-2 focus:ring-[#5D1735]/15'
                 >
                   <div>
-                    <span className='block text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500'>
-                      Chọn ngày / giờ
-                    </span>
                     <span className='mt-1 block text-sm font-medium text-slate-900'>
                       {selectedDateLabel || 'Chọn ngày'} · {selectedTimeLabel}
                     </span>
@@ -171,9 +161,9 @@ const QuickBookingBar = () => {
                                 setIsDateTimeOpen(false);
                               }}
                               className={`rounded-xl border px-3 py-2 text-sm font-medium transition-all ${
-                                bookingTime === item.value
-                                  ? 'border-[#F97316] bg-[#F97316] text-white'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#F97316] hover:text-[#F97316]'
+                                effectiveBookingTime === item.value
+                                  ? 'border-[#5D1735] bg-[#5D1735] text-white'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#5D1735] hover:text-[#5D1735]'
                               }`}
                             >
                               {item.label}
@@ -194,14 +184,14 @@ const QuickBookingBar = () => {
               </p>
             </div>
 
-            <div className='border-b border-slate-200/80 px-4 py-3.5 lg:border-b-0 lg:border-r'>
+            <div className='border-b border-slate-200/80 px-4 py-3 lg:border-b-0 lg:border-r'>
               <p className='text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500'>
                 Dịch vụ
               </p>
               <select
                 value={service}
                 onChange={(e) => setService(e.target.value)}
-                className='mt-1.5 w-full bg-transparent text-[15px] font-medium text-slate-900 outline-none'
+                className='mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[15px] font-medium text-slate-900 outline-none transition-colors hover:border-slate-300 focus:border-[#5D1735] focus:ring-[#5D1735]/15'
               >
                 {specialityData.map((item) => (
                   <option key={item.speciality} value={item.speciality}>
@@ -218,23 +208,23 @@ const QuickBookingBar = () => {
               type='button'
               onClick={handleSearch}
               disabled={!availableTimes.length}
-              className='min-h-[78px] bg-[#F97316] px-7 py-4 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#ea6a05] hover:shadow-lg disabled:cursor-not-allowed disabled:bg-[#f59e6f] lg:min-w-[120px]'
+              className='min-h-[62px] bg-[#5D1735] px-7 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#751d43] hover:shadow-lg disabled:cursor-not-allowed disabled:bg-[#b88a9d] lg:min-w-[120px] rounded-br-[20px] rounded-tr-[20px]'
             >
               Tìm lịch
             </button>
           </div>
 
-          <div className='flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 py-2.5 text-xs text-slate-600 sm:text-sm'>
+          {/* <div className='flex flex-wrap items-center justify-between gap-2 rounded-b-[20px] border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 py-2 text-xs text-slate-600 sm:text-sm'>
             <span>
               Đang chọn: <strong className='text-slate-900'>{selectedBranchData ? getBranchDisplayLabel(branch) : branch}</strong>
             </span>
             <span>
-              {selectedDateLabel} - {bookingTime}
+              {selectedDateLabel} - {effectiveBookingTime}
             </span>
             <span>
               Dịch vụ: <strong className='text-slate-900'>{service}</strong>
             </span>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
