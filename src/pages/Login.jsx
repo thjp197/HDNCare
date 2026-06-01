@@ -2,15 +2,16 @@ import React, { useState, useContext, useEffect } from 'react'
 import { AppContext } from '../context/AppContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 
 const Login = () => {
 
   const { backendUrl, token, setToken, setShowBannedAccountModal } = useContext(AppContext)
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const [state, setState] = useState('Sign Up')
+  const state = searchParams.get('mode') === 'login' ? 'Login' : 'Sign Up'
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -81,7 +82,7 @@ const Login = () => {
     if (token) {
       navigate('/')
     }
-  }, [token])
+  }, [token, navigate])
 
   return (
     <form onSubmit={onSubmitHandler} className='min-h-[80vh] flex items-center'>
@@ -120,8 +121,8 @@ const Login = () => {
         }
         <button type="submit" className='bg-primary text-white w-full py-2 my-2 rounded-md text-base'>{state === 'Sign Up' ? 'Tạo tài khoản' : 'Đăng nhập'}</button>
         {state === 'Sign Up'
-          ? <p>Đã có tài khoản? <span onClick={() => setState('Login')} className='text-primary underline cursor-pointer'>Đăng nhập tại đây</span></p>
-          : <p>Chưa có tài khoản? <span onClick={() => setState('Sign Up')} className='text-primary underline cursor-pointer'>Nhấn tại đây</span></p>
+          ? <p>Đã có tài khoản? <span onClick={() => setSearchParams({ mode: 'login' })} className='text-primary underline cursor-pointer'>Đăng nhập tại đây</span></p>
+          : <p>Chưa có tài khoản? <span onClick={() => setSearchParams({ mode: 'signup' })} className='text-primary underline cursor-pointer'>Nhấn tại đây</span></p>
         }
       </div>
     </form>
