@@ -14,9 +14,9 @@ const BranchManagement = () => {
   const [newBranch, setNewBranch] = useState('')
 
   const branches = [
-    { id: 'Chi nhánh 1', name: 'Chi nhánh 1', location: '70 Lê Đức Thọ' },
-    { id: 'Chi nhánh 2', name: 'Chi nhánh 2', location: '43 Nơ Trang Long' },
-    { id: 'Chi nhánh 3', name: 'Chi nhánh 3', location: '59 Trần Xuân Soạn' },
+    { id: 'Chi nhánh 1', name: 'Gò Vấp', location: '70 Lê Đức Thọ' },
+    { id: 'Chi nhánh 2', name: 'Bình Thạnh', location: '43 Nơ Trang Long' },
+    { id: 'Chi nhánh 3', name: 'Quận 7', location: '59 Trần Xuân Soạn' },
   ]
 
   useEffect(() => {
