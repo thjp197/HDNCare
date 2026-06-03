@@ -242,7 +242,7 @@ const MyProfile = () => {
               />
             )}
 
-            <div>
+            <div className="min-w-0">
               <p className="text-xs tracking-[0.2em] text-[#7b1e3a] font-semibold uppercase">
                 Tài khoản của bạn
               </p>
@@ -260,22 +260,22 @@ const MyProfile = () => {
                   {userData.name}
                 </p>
               )}
-              <p className="text-[#6f4d56] mt-1">{userData.email}</p>
+              <p className="text-[#6f4d56] mt-1 break-words max-w-xs sm:max-w-lg">{userData.email}</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full sm:w-auto">
             {isEdit ? (
               <button
                 onClick={updateUserProfileData}
-                className="px-5 py-2.5 rounded-xl bg-primary text-white hover:opacity-90 transition-all"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary text-white hover:opacity-90 transition-all"
               >
                 Lưu thông tin
               </button>
             ) : (
               <button
                 onClick={() => setIsEdit(true)}
-                className="px-5 py-2.5 rounded-xl border border-primary text-primary hover:bg-primary hover:text-white transition-all"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-primary text-primary hover:bg-primary hover:text-white transition-all"
               >
                 Chỉnh sửa hồ sơ
               </button>
@@ -283,7 +283,7 @@ const MyProfile = () => {
 
             <button
               onClick={() => setShowLibraryModal(true)}
-              className="px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-white hover:bg-[#fff5f8] transition-all inline-flex items-center gap-2"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-white hover:bg-[#fff5f8] transition-all inline-flex items-center gap-2 justify-center sm:justify-start"
             >
               <Images className="w-4 h-4" />
               Thư viện ảnh của bạn
@@ -291,7 +291,7 @@ const MyProfile = () => {
 
             <button
               onClick={() => setShowPasswordForm(true)}
-              className="px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-[#fff4f7] hover:bg-[#fdeaf0] transition-all"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-[#fff4f7] hover:bg-[#fdeaf0] transition-all"
             >
               Đổi mật khẩu
             </button>

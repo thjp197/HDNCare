@@ -9,11 +9,14 @@ const BranchManagement = () => {
   const [selectedStylistForBranch, setSelectedStylistForBranch] = useState({})
   const [allStylists, setAllStylists] = useState([])
   const [loading, setLoading] = useState(false)
+  const [showEditBranchModal, setShowEditBranchModal] = useState(false)
+  const [selectedStylist, setSelectedStylist] = useState(null)
+  const [newBranch, setNewBranch] = useState('')
 
   const branches = [
-    { id: 'Chi nhánh 1', name: 'Chi nhánh 1', location: '70 Lê Đức Thọ' },
-    { id: 'Chi nhánh 2', name: 'Chi nhánh 2', location: '43 Nơ Trang Long' },
-    { id: 'Chi nhánh 3', name: 'Chi nhánh 3', location: '59 Trần Xuân Soạn' },
+    { id: 'Chi nhánh 1', name: 'Gò Vấp', location: '70 Lê Đức Thọ' },
+    { id: 'Chi nhánh 2', name: 'Bình Thạnh', location: '43 Nơ Trang Long' },
+    { id: 'Chi nhánh 3', name: 'Quận 7', location: '59 Trần Xuân Soạn' },
   ]
 
   useEffect(() => {
@@ -70,6 +73,33 @@ const BranchManagement = () => {
     setLoading(true)
     const result = await removeBranchManager(stylistId)
     setLoading(false)
+  }
+
+  const handleEditBranch = (stylist) => {
+    setSelectedStylist(stylist)
+    setNewBranch(stylist.branch || '')
+    setShowEditBranchModal(true)
+  }
+
+  const handleSaveNewBranch = async () => {
+    if (!selectedStylist || !newBranch) {
+      toast.error('Vui lòng chọn chi nhánh')
+      return
+    }
+
+    if (newBranch === selectedStylist.branch) {
+      toast.info('Nhân viên đã ở chi nhánh này rồi')
+      return
+    }
+
+    setLoading(true)
+    const result = await assignBranch(selectedStylist._id, newBranch)
+    setLoading(false)
+
+    if (result && result.success) {
+      setShowEditBranchModal(false)
+      getBranchesInfo()
+    }
   }
 
   const getUnassignedStylists = () => {
@@ -139,7 +169,7 @@ const BranchManagement = () => {
                 {currentBranchInfo.stylists.map((stylist) => (
                   <div
                     key={stylist._id}
-                    className='flex flex-col gap-3 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between'
+                    className='flex flex-col gap-3 rounded-lg border border-gray-200 p-4'
                   >
                     <div>
                       <p className='font-semibold'>{stylist.name}</p>
@@ -151,15 +181,24 @@ const BranchManagement = () => {
                         </span>
                       )}
                     </div>
-                    {!stylist.isBranchManager && (
+                    <div className='flex gap-2 flex-col sm:flex-row'>
+                      {!stylist.isBranchManager && (
+                        <button
+                          onClick={() => handleAssignManager(stylist._id)}
+                          disabled={loading}
+                          className='px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:bg-gray-400'
+                        >
+                          Gán quản lý
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleAssignManager(stylist._id)}
+                        onClick={() => handleEditBranch(stylist)}
                         disabled={loading}
-                        className='px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:bg-gray-400'
+                        className='px-3 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 disabled:bg-gray-400'
                       >
-                        Gán quản lý
+                        Chỉnh sửa chi nhánh
                       </button>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -202,6 +241,53 @@ const BranchManagement = () => {
       {!selectedBranch && (
         <div className='text-center py-12'>
           <p className='text-gray-600 text-lg'>Vui lòng chọn một chi nhánh để bắt đầu</p>
+        </div>
+      )}
+
+      {/* Modal Chỉnh Sửa Chi Nhánh */}
+      {showEditBranchModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+          <div className='bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4'>
+            <h2 className='text-xl font-bold mb-4'>Chỉnh Sửa Chi Nhánh</h2>
+            
+            {selectedStylist && (
+              <div className='mb-4'>
+                <p className='text-gray-700 font-medium mb-1'>Nhân viên: <span className='font-bold'>{selectedStylist.name}</span></p>
+                <p className='text-gray-600 mb-4'>Chuyên ngành: {selectedStylist.speciality}</p>
+                <p className='text-gray-600 mb-4'>Chi nhánh hiện tại: <span className='font-semibold text-blue-600'>{selectedStylist.branch}</span></p>
+
+                <label className='block text-gray-700 font-medium mb-2'>Chọn Chi Nhánh Mới:</label>
+                <select
+                  value={newBranch}
+                  onChange={(e) => setNewBranch(e.target.value)}
+                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500'
+                >
+                  <option value=''>-- Chọn chi nhánh --</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name} - {branch.location}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className='flex gap-3 pt-4'>
+              <button
+                onClick={() => setShowEditBranchModal(false)}
+                className='flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium'
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSaveNewBranch}
+                disabled={loading}
+                className='flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-medium disabled:bg-gray-400'
+              >
+                {loading ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

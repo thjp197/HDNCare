@@ -21,6 +21,8 @@ const EditStylist = () => {
   const [address1, setAddress1] = useState('')
   const [address2, setAddress2] = useState('')
   const [currentImage, setCurrentImage] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (stylists.length === 0) getAllStylists()
@@ -67,6 +69,25 @@ const EditStylist = () => {
       }
     } catch (error) {
       toast.error(error.message)
+    }
+  }
+
+  const handleDeleteStylist = async () => {
+    try {
+      setIsDeleting(true)
+      const { data } = await axios.post(backendUrl + '/api/admin/delete-stylist', { stylistId }, { headers: { aToken } })
+      if (data.success) {
+        toast.success(data.message)
+        getAllStylists()
+        navigate('/stylists-list')
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
@@ -143,8 +164,26 @@ const EditStylist = () => {
         <div className='flex flex-col gap-3 mt-6 sm:flex-row'>
           <button type='submit' className='bg-primary text-white px-10 py-3 rounded-full'>Lưu thay đổi</button>
           <button type='button' onClick={() => navigate('/stylists-list')} className='border px-10 py-3 rounded-full'>Hủy</button>
+          <button type='button' onClick={() => setShowDeleteModal(true)} className='border border-red-300 text-red-600 px-10 py-3 rounded-full hover:bg-red-50'>Xóa nhân viên</button>
         </div>
       </div>
+
+      {showDeleteModal && (
+        <div className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4'>
+          <div className='w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-2xl p-6'>
+            <p className='text-xl font-semibold text-gray-800'>Xác nhận xóa nhân viên</p>
+            <p className='text-sm text-gray-600 mt-2'>Bạn có chắc chắn muốn xóa nhân viên <span className='font-semibold'>{name}</span> khỏi hệ thống?</p>
+            <p className='text-xs text-red-600 mt-3 font-medium'>⚠️ Hành động này không thể hoàn tác và sẽ xóa tất cả lịch hẹn liên quan.</p>
+
+            <div className='mt-6 flex flex-col gap-3 sm:flex-row justify-end'>
+              <button onClick={() => setShowDeleteModal(false)} className='px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50'>Hủy</button>
+              <button onClick={handleDeleteStylist} disabled={isDeleting} className='px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60'>
+                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }

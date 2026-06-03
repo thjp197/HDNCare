@@ -126,7 +126,7 @@ const AllAppointments = () => {
               <p className="truncate">{item.styData.name}</p>
             </div>
             <p className="whitespace-nowrap max-sm:order-5">
-              {item.amount} {currency}
+              {Number(item.amount || 0).toLocaleString('vi-VN')} {currency}
             </p>
             <div className="max-sm:order-6 sm:contents">
             {isExpired ? (

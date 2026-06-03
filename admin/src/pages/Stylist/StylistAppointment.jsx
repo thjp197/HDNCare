@@ -115,7 +115,7 @@ const StylistAppointments = () => {
               <p className='text-xs text-gray-400 max-sm:order-2 max-sm:justify-self-end'>Không có</p>
             )}
 
-            <p className='max-sm:order-5 max-sm:col-start-1'>{currency}{item.amount}</p>
+            <p className='max-sm:order-5 max-sm:col-start-1'>{currency}{Number(item.amount || 0).toLocaleString('vi-VN')}</p>
             <div className='max-sm:order-6 max-sm:col-start-2 max-sm:row-start-3 max-sm:row-span-2 max-sm:justify-self-end max-sm:self-center sm:contents'>
             {
               item.cancelled 
