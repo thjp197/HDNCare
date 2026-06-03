@@ -68,7 +68,7 @@ const BranchManagerDashboard = () => {
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>
             <div className='bg-white border border-gray-200 rounded-lg p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition'>
               <div className='bg-blue-100 p-3 rounded'>
-                <img src={assets.money_icon} className='w-6 h-6' alt="earnings" />
+                <img src={assets.earning_icon} className='w-6 h-6' alt="earnings" />
               </div>
               <div>
                 <p className='text-gray-600 text-sm'>Doanh Thu</p>

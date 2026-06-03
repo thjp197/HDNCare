@@ -483,6 +483,28 @@ const removeBranchManager = async (req, res) => {
   }
 }
 
+// API to delete stylist
+const deleteStylist = async (req, res) => {
+  try {
+    const { stylistId } = req.body
+
+    if (!stylistId) {
+      return res.json({ success: false, message: "Thiếu ID nhân viên" })
+    }
+
+    // Delete all appointments related to this stylist
+    await appointmentModel.deleteMany({ stylistId })
+
+    // Delete the stylist
+    await stylistModel.findByIdAndDelete(stylistId)
+    res.json({ success: true, message: "Xóa nhân viên thành công" })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 export {
   addStylist,
   loginAdmin,
@@ -499,4 +521,5 @@ export {
   assignBranch,
   assignBranchManager,
   removeBranchManager,
+  deleteStylist,
 };

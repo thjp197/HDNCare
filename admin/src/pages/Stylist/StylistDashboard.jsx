@@ -38,7 +38,7 @@ const StylistDashboard = () => {
               <img className='w-12 font-sans' src={assets.earning_icon} alt='Chuyen vien' />
             </div>
             <div>
-              <p className='break-words text-xl font-bold text-gray-800 sm:text-2xl'>{dashData.earnings} {currency}</p>
+              <p className='break-words text-xl font-bold text-gray-800 sm:text-2xl'>{dashData.earnings.toLocaleString('vi-VN')} {currency}</p>
               <p className='text-sm font-medium text-gray-500'>Thu nhập</p>
               
             </div>

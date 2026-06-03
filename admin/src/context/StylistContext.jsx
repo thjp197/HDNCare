@@ -186,6 +186,27 @@ const StylistContextProvider = (props) => {
         }
     }
 
+    const updateStylistBranch = async (stylistId, branch) => {
+        try {
+            const { data } = await axios.post(
+                backendUrl + '/api/admin/update-stylist-branch',
+                { stylistId, branch },
+                { headers: { stoken: sToken } }
+            )
+            if (data.success) {
+                toast.success(data.message)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
     const value = {
         sToken, setSToken, backendUrl, 
         appointments, getAppointments, 
@@ -194,7 +215,8 @@ const StylistContextProvider = (props) => {
         dashData, setDashData, getDashData,
         profileData, setProfileData, getProfileData,
         isBranchManager, branchInfo,
-        getBranchManagerDashboard, getBranchManagerAppointments, getBranchManagerStylists, getBranchManagerInfo
+        getBranchManagerDashboard, getBranchManagerAppointments, getBranchManagerStylists, getBranchManagerInfo,
+        updateStylistBranch
     }
 
     return (
