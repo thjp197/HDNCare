@@ -35,6 +35,7 @@ export const bookingTools = [{
           customerName: { type: "STRING", description: "Tên của khách hàng" },
           customerPhone: { type: "STRING", description: "Số điện thoại của khách hàng" },
           stylistName: { type: "STRING", description: "Tên nhân viên khách chọn" },
+          branchName: { type: "STRING", description: "Tên chi nhánh khách chọn (VD: Gò Vấp, Bình Thạnh, Quận 7)" },
           slotDate: { type: "STRING", description: "Ngày đặt (Format: DD_MM_YYYY)" },
           slotTime: { type: "STRING", description: "Giờ đặt (Format: HH:mm AM/PM)" }
         },

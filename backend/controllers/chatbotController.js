@@ -289,7 +289,8 @@ export const handleChatbotMessage = async (req, res) => {
 
             // --- XỬ LÝ TẠO LỊCH MỚI ---
             else if (call.name === "createBooking") {
-                const { customerName, customerPhone, stylistName, slotDate, slotTime } = call.args;
+                // 1. Nhận thêm branchName từ AI
+                const { customerName, customerPhone, stylistName, branchName, slotDate, slotTime } = call.args;
 
                 const stylist = await stylistModel.findOne({ name: stylistName });
                 let user = await userModel.findOne({ phone: customerPhone });
@@ -301,6 +302,7 @@ export const handleChatbotMessage = async (req, res) => {
                     const appointmentData = {
                         userId: finalUserId, 
                         styId: stylist._id.toString(),
+                        branch: branchName, // 2. Lưu chi nhánh vào DB
                         slotDate,
                         slotTime,
                         userData: finalUserData, 
