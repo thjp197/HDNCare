@@ -50,11 +50,7 @@ const StylistContextProvider = (props) => {
                         item._id === appointmentId
                             ? {
                                 ...item,
-                                cancelled: true,
-                                cancellationReasons: item.cancellationReasons?.length
-                                    ? item.cancellationReasons
-                                    : ['Hủy bởi quản trị viên/chuyên viên'],
-                                cancellationDetails: item.cancellationDetails || 'Đơn đã bị hủy và được giữ lại để theo dõi.',
+                                isCompleted: true
                               }
                             : item
                     )

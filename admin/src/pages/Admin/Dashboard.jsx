@@ -4,13 +4,14 @@ import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
 
 const Dashboard = () => {
-  const { aToken, getDashData, cancelAppointment, dashData } =
+  const { aToken, getDashData, cancelAppointment, dashData, branchesInfo, getBranchesInfo } =
     useContext(AdminContext);
   const { slotDateFormat, currency } = useContext(AppContext);
 
   useEffect(() => {
     if (aToken) {
       getDashData();
+      getBranchesInfo();
     }
   }, [aToken]);
 
@@ -87,6 +88,42 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {branchesInfo && branchesInfo.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {branchesInfo.map((branch, index) => {
+              const colors = [
+                { bg: 'bg-purple-100/70', bgLight: 'bg-purple-50' },
+                { bg: 'bg-orange-100/70', bgLight: 'bg-orange-50' },
+                { bg: 'bg-indigo-100/70', bgLight: 'bg-indigo-50' }
+              ]
+              const color = colors[index]
+              return (
+                <div
+                  key={branch.name}
+                  className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <span className={`absolute -right-8 -top-8 h-24 w-24 rounded-full ${color.bg} transition-transform duration-300 group-hover:scale-125`}></span>
+                  <div className="relative flex items-center gap-4">
+                    <div className={`rounded-xl ${color.bgLight} p-2`}>
+                      <img
+                        className="w-12 font-sans"
+                        src={assets.earning_icon}
+                        alt={branch.name}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">{branch.name}</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {(branch.revenue || 0).toLocaleString("vi-VN")} <span className="text-lg">{currency}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <span className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-100/70 transition-transform duration-300 group-hover:scale-125"></span>
           <div className="relative flex items-center gap-4">
@@ -100,7 +137,9 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-gray-500">Tổng Doanh Thu</p>
               <p className="break-words text-2xl font-bold text-gray-800 sm:text-3xl">
-                {(dashData.earnings || 0).toLocaleString("vi-VN")} <span className="text-lg">{currency}</span>
+                {branchesInfo && branchesInfo.length > 0 
+                  ? (branchesInfo.reduce((sum, branch) => sum + (branch.revenue || 0), 0)).toLocaleString("vi-VN")
+                  : (dashData.earnings || 0).toLocaleString("vi-VN")} <span className="text-lg">{currency}</span>
               </p>
             </div>
           </div>

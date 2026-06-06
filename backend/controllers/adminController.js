@@ -397,12 +397,28 @@ const getBranchesInfo = async (req, res) => {
     for (const branch of branches) {
       const stylists = await stylistModel.find({ branch }).select('-password')
       const manager = stylists.find(s => s.isBranchManager)
+      
+      // Calculate revenue for this branch
+      const stylistIds = stylists.map(s => s._id.toString())
+      console.log(`Branch: ${branch}, Stylists: ${stylists.length}, IDs:`, stylistIds)
+      
+      const branchAppointments = await appointmentModel.find({ styId: { $in: stylistIds } })
+      console.log(`Appointments found: ${branchAppointments.length}`)
+      
+      const branchRevenue = branchAppointments.reduce((sum, item) => {
+        if (item.isCompleted) {
+          console.log(`Appointment completed: ${item._id}, Amount: ${item.amount}`)
+          return sum + Number(item.amount || 0)
+        }
+        return sum
+      }, 0)
 
       branchesData.push({
         name: branch,
         stylistCount: stylists.length,
         stylists,
-        manager: manager || null
+        manager: manager || null,
+        revenue: branchRevenue
       })
     }
 
