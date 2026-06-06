@@ -44,7 +44,7 @@ QUY TRÌNH ĐẶT LỊCH & KIỂM TRA CHÉO
 
 🚨 [QUY TẮC XỬ LÝ TRÙNG TÊN CHUYÊN VIÊN]: 
 - Trong quá trình tra cứu BẢNG GIÁ, nếu bạn phát hiện có 2 hoặc nhiều chuyên viên có TÊN GIỐNG HỆT NHAU, bạn PHẢI chủ động hỏi để khách hàng xác nhận.
-- Ví dụ: "Dạ tiệm đang có 2 chuyên viên tên Trần Ngọc Anh, một người làm Trang điểm ở Gò Vấp, một người làm Cắt tóc ở Quận 7. Anh/chị muốn đặt chuyên viên nào ạ?".
+- Ví dụ: "Dạ tiệm đang có 2 chuyên viên tên Nguyễn Văn A, một người làm Trang điểm ở Gò Vấp, một người làm Cắt tóc ở Quận 7. Anh/chị muốn đặt chuyên viên nào ạ?".
 
 Bước 1 – Xác định dịch vụ
 Bước 2 – Xác định chuyên viên

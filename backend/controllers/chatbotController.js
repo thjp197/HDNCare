@@ -4,6 +4,7 @@ import { bookingTools } from '../config/geminiTools.js';
 import appointmentModel from '../models/appointmentModel.js';
 import stylistModel from '../models/stylistModel.js';
 import userModel from '../models/userModel.js';
+import { emitStylistSlotsUpdated } from '../utils/socket.js';
 
 const getGeminiClient = () => {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
@@ -47,7 +48,9 @@ const validateBookingTime = (dateStr, timeStr) => {
             };
         }
 
-        return { isValid: true };
+        const normalizedDate = `${day}_${month}_${year}`; 
+        const normalizedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`; 
+        return { isValid: true, normalizedDate, normalizedTime };
     } catch (e) {
         return { isValid: false, message: "Định dạng thời gian không hợp lệ." };
     }
@@ -57,8 +60,9 @@ export const handleChatbotMessage = async (req, res) => {
     try {
         const { message, history, currentUser } = req.body;
 
+        let dbUser = null;
         if (currentUser && currentUser.email) {
-            const dbUser = await userModel.findOne({ email: currentUser.email });
+            dbUser = await userModel.findOne({ email: currentUser.email });
             if (dbUser && dbUser.isBanned) {
                 return res.json({ 
                     success: true, 
@@ -104,8 +108,11 @@ export const handleChatbotMessage = async (req, res) => {
         - Bước 5: Kiểm tra thông tin tại trang Xác nhận và tiến hành Thanh toán.
         [ĐẶC QUYỀN AI]: Ngay sau khi đăng nhập thành công, khách hoàn toàn có thể nhắn tin yêu cầu Chatbot đặt lịch, dời lịch hoặc huỷ lịch ngay tại khung chat.`;
 
-        customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN & CHÍNH SÁCH HUỶ]:
-        👉 CÁCH THANH TOÁN: Truy cập "Lịch sử đặt lịch" -> Nhấn "Thanh toán" -> Chọn Ví HDNCare hoặc VNPay.
+        customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN SAU KHI ĐẶT LỊCH THÀNH CÔNG]:
+        Sau khi đặt lịch thành công, BẠN BẮT BUỘC PHẢI hướng dẫn khách hàng chi tiết 2 phương thức thanh toán sau:
+        + Thanh toán tiền mặt: đến chi nhánh đã đặt lịch và thanh toán bằng tiền mặt
+        + Thanh toán chuyển khoản: Tìm lịch hẹn vừa đặt trong phần Lịch hẹn của tôi, nhấn nút **Thanh toán** và lựa chọn phương thức chuyển khoản.
+        
         👉 CÁCH NẠP TIỀN VÍ: Truy cập "Trang cá nhân" -> "Ví của tôi" -> Nhập số tiền -> Nạp qua VNPay.
         [BẢO MẬT]: Tuyệt đối KHÔNG yêu cầu cung cấp số thẻ, mã CVV, OTP vào khung chat.
         [CHÍNH SÁCH HUỶ LỊCH QUAN TRỌNG]: Huỷ trước 2 tiếng: Hoàn 100%. Huỷ dưới 2 tiếng: Mất cọc HOẶC khấu trừ 20% phí thanh toán toàn bộ, và bị tính 1 lần vi phạm (5 lần sẽ bị ban).`;
@@ -157,6 +164,8 @@ export const handleChatbotMessage = async (req, res) => {
                     }]);
                     return res.json({ success: true, reply: errorResult.response.text() });
                 }
+                const normalizedDate = timeValidation.normalizedDate;
+                const normalizedTime = timeValidation.normalizedTime;
 
                 // TÌM THEO MẢNG ĐỂ BẮT TRƯỜNG HỢP TRÙNG TÊN
                 const stylists = await stylistModel.find({ name: stylistName });
@@ -180,8 +189,8 @@ export const handleChatbotMessage = async (req, res) => {
 
                 const isBooked = await appointmentModel.findOne({
                     styId: stylist._id.toString(),
-                    slotDate: slotDate,
-                    slotTime: slotTime,
+                    slotDate: normalizedDate,
+                    slotTime: normalizedTime,
                     cancelled: false
                 });
 
@@ -205,12 +214,21 @@ export const handleChatbotMessage = async (req, res) => {
             else if (call.name === "cancelAppointment") {
                 const { customerPhone, slotDate, slotTime } = call.args;
 
-                const appointment = await appointmentModel.findOne({
-                    slotDate: slotDate,
-                    slotTime: slotTime,
-                    "userData.phone": customerPhone,
+                const timeValidation = validateBookingTime(slotDate, slotTime);
+                const normalizedDate = timeValidation.isValid ? timeValidation.normalizedDate : slotDate;
+                const normalizedTime = timeValidation.isValid ? timeValidation.normalizedTime : slotTime;
+
+                let query = {
+                    slotDate: normalizedDate,
+                    slotTime: normalizedTime,
                     cancelled: false
-                });
+                };
+                if (dbUser) {
+                    query.userId = dbUser._id.toString();
+                } else {
+                    query["userData.phone"] = customerPhone;
+                }
+                const appointment = await appointmentModel.findOne(query);
 
                 let dbResult = {};
                 let isBannedFlag = false;
@@ -239,7 +257,8 @@ export const handleChatbotMessage = async (req, res) => {
                     const stylist = await stylistModel.findById(appointment.styId);
                     if (stylist && stylist.slots_booked && stylist.slots_booked[appointment.slotDate]) {
                         stylist.slots_booked[appointment.slotDate] = stylist.slots_booked[appointment.slotDate].filter(t => t !== appointment.slotTime);
-                        await stylist.save();
+                        await stylistModel.findByIdAndUpdate(stylist._id, { slots_booked: stylist.slots_booked });
+                        emitStylistSlotsUpdated(stylist._id, { action: "cancelled", slotDate: appointment.slotDate, slotTime: appointment.slotTime });
                     }
 
                     if (timeUntilAppointment > TWO_HOURS_IN_MS) {
@@ -247,7 +266,7 @@ export const handleChatbotMessage = async (req, res) => {
                         dbResult = { success: true, message: "Huỷ lịch thành công. Đã áp dụng chính sách hoàn 100% tiền (nếu có) và không tính lỗi vi phạm." };
                     } else {
                         let penaltyMsg = "";
-                        let user = await userModel.findOne({ phone: customerPhone });
+                        let user = dbUser || await userModel.findOne({ phone: customerPhone });
                         
                         if (user) {
                             user.penaltyCount = (user.penaltyCount || 0) + 1;
@@ -287,6 +306,10 @@ export const handleChatbotMessage = async (req, res) => {
             else if (call.name === "rescheduleAppointment") {
                 const { customerPhone, oldSlotDate, oldSlotTime, newSlotDate, newSlotTime } = call.args;
 
+                const oldTimeValidation = validateBookingTime(oldSlotDate, oldSlotTime);
+                const normalizedOldDate = oldTimeValidation.isValid ? oldTimeValidation.normalizedDate : oldSlotDate;
+                const normalizedOldTime = oldTimeValidation.isValid ? oldTimeValidation.normalizedTime : oldSlotTime;
+
                 const timeValidation = validateBookingTime(newSlotDate, newSlotTime);
                 if (!timeValidation.isValid) {
                     const errorResult = await chat.sendMessage([{
@@ -294,13 +317,20 @@ export const handleChatbotMessage = async (req, res) => {
                     }]);
                     return res.json({ success: true, reply: errorResult.response.text() });
                 }
+                const normalizedNewDate = timeValidation.normalizedDate;
+                const normalizedNewTime = timeValidation.normalizedTime;
 
-                const appointment = await appointmentModel.findOne({
-                    slotDate: oldSlotDate,
-                    slotTime: oldSlotTime,
-                    "userData.phone": customerPhone,
+                let query = {
+                    slotDate: normalizedOldDate,
+                    slotTime: normalizedOldTime,
                     cancelled: false
-                });
+                };
+                if (dbUser) {
+                    query.userId = dbUser._id.toString();
+                } else {
+                    query["userData.phone"] = customerPhone;
+                }
+                const appointment = await appointmentModel.findOne(query);
 
                 let dbResult = {};
                 if (!appointment) {
@@ -308,16 +338,34 @@ export const handleChatbotMessage = async (req, res) => {
                 } else {
                     const isConflict = await appointmentModel.findOne({
                         styId: appointment.styId,
-                        slotDate: newSlotDate,
-                        slotTime: newSlotTime,
+                        slotDate: normalizedNewDate,
+                        slotTime: normalizedNewTime,
                         cancelled: false
                     });
 
                     if (isConflict) {
                         dbResult = { success: false, message: "Khung giờ mới đã có khách đặt, vui lòng chọn giờ khác." };
                     } else {
-                        appointment.slotDate = newSlotDate;
-                        appointment.slotTime = newSlotTime;
+                        const stylist = await stylistModel.findById(appointment.styId);
+                        if (stylist && stylist.slots_booked) {
+                            let slots_booked = stylist.slots_booked;
+                            if (slots_booked[normalizedOldDate]) {
+                                slots_booked[normalizedOldDate] = slots_booked[normalizedOldDate].filter(t => t !== normalizedOldTime);
+                            }
+                            if (slots_booked[normalizedNewDate]) {
+                                if (!slots_booked[normalizedNewDate].includes(normalizedNewTime)) {
+                                    slots_booked[normalizedNewDate].push(normalizedNewTime);
+                                }
+                            } else {
+                                slots_booked[normalizedNewDate] = [normalizedNewTime];
+                            }
+                            await stylistModel.findByIdAndUpdate(stylist._id, { slots_booked });
+                            emitStylistSlotsUpdated(stylist._id, { action: "cancelled", slotDate: normalizedOldDate, slotTime: normalizedOldTime });
+                            emitStylistSlotsUpdated(stylist._id, { action: "booked", slotDate: normalizedNewDate, slotTime: normalizedNewTime });
+                        }
+
+                        appointment.slotDate = normalizedNewDate;
+                        appointment.slotTime = normalizedNewTime;
                         await appointment.save();
                         dbResult = { success: true, message: "Đã dời lịch thành công sang thời gian mới." };
                     }
@@ -333,6 +381,10 @@ export const handleChatbotMessage = async (req, res) => {
             else if (call.name === "createBooking") {
                 const { customerName, customerPhone, stylistName, branchName, slotDate, slotTime } = call.args;
 
+                const timeValidation = validateBookingTime(slotDate, slotTime);
+                const normalizedDate = timeValidation.isValid ? timeValidation.normalizedDate : slotDate;
+                const normalizedTime = timeValidation.isValid ? timeValidation.normalizedTime : slotTime;
+
                 // CẬP NHẬT: LỌC TRÙNG TÊN LÚC LƯU DATABASE KẾT HỢP VỚI CHI NHÁNH ĐỂ LƯU ĐÚNG NGƯỜI
                 const stylists = await stylistModel.find({ name: stylistName });
                 let stylist = null;
@@ -343,10 +395,8 @@ export const handleChatbotMessage = async (req, res) => {
                     stylist = stylists.find(s => s.branch === branchName || s.branchName === branchName) || stylists[0];
                 }
 
-                let user = await userModel.findOne({ phone: customerPhone });
-
-                let finalUserId = user ? user._id.toString() : "GUEST";
-                let finalUserData = user ? user : { name: customerName, phone: customerPhone, isGuest: true };
+                let finalUserId = dbUser ? dbUser._id.toString() : "GUEST";
+                let finalUserData = dbUser ? dbUser : { name: customerName, phone: customerPhone, isGuest: true };
                 
 
                 if (stylist) {
@@ -354,8 +404,8 @@ export const handleChatbotMessage = async (req, res) => {
                         userId: finalUserId, 
                         styId: stylist._id.toString(),
                         branch: branchName || stylist.branch || 'Chưa phân bổ',
-                        slotDate,
-                        slotTime,
+                        slotDate: normalizedDate,
+                        slotTime: normalizedTime,
                         userData: finalUserData, 
                         styData: stylist,
                         amount: stylist.fees || 250000,
@@ -367,6 +417,17 @@ export const handleChatbotMessage = async (req, res) => {
 
                     const newAppointment = new appointmentModel(appointmentData);
                     await newAppointment.save(); 
+
+                    let slots_booked = stylist.slots_booked || {};
+                    if (slots_booked[normalizedDate]) {
+                        if (!slots_booked[normalizedDate].includes(normalizedTime)) {
+                            slots_booked[normalizedDate].push(normalizedTime);
+                        }
+                    } else {
+                        slots_booked[normalizedDate] = [normalizedTime];
+                    }
+                    await stylistModel.findByIdAndUpdate(stylist._id, { slots_booked });
+                    emitStylistSlotsUpdated(stylist._id, { action: "booked", slotDate: normalizedDate, slotTime: normalizedTime });
 
                     const dbResult = { success: true, message: "Lịch hẹn đã được lưu thành công." };
                     const finalResult = await chat.sendMessage([{
