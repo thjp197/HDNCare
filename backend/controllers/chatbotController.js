@@ -37,15 +37,16 @@ export const handleChatbotMessage = async (req, res) => {
         // --- 2. LẤY BẢNG GIÁ VÀ KINH NGHIỆM REAL-TIME TỪ DATABASE ---
         const stylistsList = await stylistModel.find({});
         let realtimePricingInfo = `\n\n[BẢNG GIÁ DỊCH VỤ VÀ CHUYÊN VIÊN MỚI NHẤT (REAL-TIME CẬP NHẬT TỪ DATABASE)]:
-        Hãy sử dụng thông tin giá tiền và kinh nghiệm dưới đây để báo giá, tư vấn cho khách (Tuyệt đối không dùng giá cũ ở bất kỳ đâu): \n`;
+        CẢNH BÁO TỐI CAO: BẠN PHẢI KIỂM TRA KỸ CHUYÊN MÔN CỦA NHÂN VIÊN. TUYỆT ĐỐI TỪ CHỐI ĐẶT LỊCH NẾU KHÁCH YÊU CẦU DỊCH VỤ KHÔNG KHỚP VỚI CHUYÊN MÔN CỦA HỌ!\n`;
         
         if (stylistsList && stylistsList.length > 0) {
             stylistsList.forEach(sty => {
                 const price = sty.fees ? sty.fees.toLocaleString('vi-VN') + ' VNĐ' : '250.000 VNĐ';
-                const specialty = sty.specialty || 'Dịch vụ làm đẹp';
-                const experience = sty.experience ? `${sty.experience} kinh nghiệm` : 'Chuyên viên chuyên nghiệp';
+                // CẬP NHẬT: Xử lý triệt để lỗi chính tả từ MongoDB và đổi từ khoá dự phòng
+                const specialty = sty.specialty || sty.speciality || 'Không xác định'; 
+                const experience = sty.experience ? `${sty.experience}` : 'Chưa rõ';
                 
-                realtimePricingInfo += `- Chuyên viên ${sty.name} (Chuyên môn: ${specialty} - ${experience}): Giá dịch vụ là ${price}.\n`;
+                realtimePricingInfo += `- Chuyên viên ${sty.name} (Chuyên môn: ${specialty} - Kinh nghiệm: ${experience}): Giá dịch vụ là ${price}.\n`;
             });
         } else {
             realtimePricingInfo += "- Hệ thống đang cập nhật danh sách chuyên viên.\n";
@@ -65,7 +66,6 @@ export const handleChatbotMessage = async (req, res) => {
         - Bước 5: Kiểm tra lại toàn bộ thông tin tại trang Xác nhận (Confirm booking), tiến hành Thanh toán (RECAP + Payment) qua cổng VNPay hoặc bằng số dư Ví điện tử để hoàn tất.
         [ĐẶC QUYỀN AI]: Hãy luôn tự hào thông báo thêm với khách rằng: Ngay sau khi họ có tài khoản và đăng nhập thành công, họ hoàn toàn có thể nhắn tin yêu cầu bạn (AI Chatbot) đặt lịch, dời lịch hoặc huỷ lịch giúp họ ngay lập tức tại khung chat này mà không cần tự click qua 5 bước trên web.`;
 
-        // --- BỔ SUNG LẠI HƯỚNG DẪN THANH TOÁN TỪNG BƯỚC ---
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN & CHÍNH SÁCH HUỶ]:
         Khi khách hàng hỏi cách thanh toán hoặc nạp tiền, hãy hướng dẫn họ chi tiết theo các bước sau:
         👉 CÁCH THANH TOÁN LỊCH HẸN:
@@ -94,7 +94,6 @@ export const handleChatbotMessage = async (req, res) => {
             - KHÔNG ĐƯỢC gọi các hàm 'checkAvailability', 'createBooking', 'cancelAppointment', hay 'rescheduleAppointment' trong bất kỳ hoàn cảnh nào.`;
         }
 
-        // --- 4. KHỞI TẠO MODEL VÀ GỬI TIN NHẮN ---
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash", 
             systemInstruction: customInstruction,
@@ -120,7 +119,7 @@ export const handleChatbotMessage = async (req, res) => {
                 });
             }
             
-            // --- XỬ LÝ KIỂM TRA TRÙNG LỊCH ---
+            // --- XỬ LÝ KIỂM TRA TRÙNG LỊCH (ĐÃ CÀI CẮM GUARDRAIL) ---
             if (call.name === "checkAvailability") {
                 const { stylistName, slotDate, slotTime } = call.args;
                 const stylist = await stylistModel.findOne({ name: stylistName });
@@ -139,9 +138,13 @@ export const handleChatbotMessage = async (req, res) => {
                     cancelled: false
                 });
 
+                // CẬP NHẬT: Guardrail cũng phải kiểm tra bao phủ tên trường bị sai chính tả
+                const stylistSpecialty = stylist.specialty || stylist.speciality || 'Không xác định';
+                const aiGuardrailMsg = `[LỆNH ÉP BUỘC CHO AI: Nhân viên này có chuyên môn là '${stylistSpecialty}'. Bạn BẮT BUỘC phải đối chiếu với dịch vụ mà khách vừa yêu cầu. Nếu KHÔNG KHỚP (VD: Khách muốn Cắt tóc nhưng chuyên môn là Trang điểm), TUYỆT ĐỐI KHÔNG gọi hàm createBooking và hãy báo lỗi từ chối khách ngay lập tức!]`;
+
                 const dbResult = {
                     isAvailable: !isBooked,
-                    message: isBooked ? "Khung giờ này đã có người đặt." : "Khung giờ này đang trống."
+                    message: isBooked ? "Khung giờ này đã có người đặt." : `Khung giờ này đang trống. ${aiGuardrailMsg}`
                 };
 
                 const finalResult = await chat.sendMessage([{
@@ -151,7 +154,7 @@ export const handleChatbotMessage = async (req, res) => {
                 return res.json({ success: true, reply: finalResult.response.text() });
             } 
             
-            // --- XỬ LÝ HUỶ LỊCH (CÓ LUỒNG TÍNH THỜI GIAN VÀ PHẠT) ---
+            // --- XỬ LÝ HUỶ LỊCH ---
             else if (call.name === "cancelAppointment") {
                 const { customerPhone, slotDate, slotTime } = call.args;
 
