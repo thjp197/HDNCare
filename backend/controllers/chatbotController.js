@@ -11,6 +11,33 @@ const getGeminiClient = () => {
     return new GoogleGenerativeAI(apiKey);
 };
 
+// Hàm hỗ trợ: Kiểm tra xem ngày giờ truyền vào có nằm trong quá khứ không
+const isPastTime = (dateStr, timeStr) => {
+    try {
+        const [day, month, year] = dateStr.split('_').map(Number);
+        let hours = 0, minutes = 0;
+        
+        if (timeStr) {
+            const timeMatch = timeStr.match(/(\d+):(\d+)\s*(AM|PM|am|pm)?/i);
+            if (timeMatch) {
+                hours = parseInt(timeMatch[1], 10);
+                minutes = parseInt(timeMatch[2], 10);
+                const ampm = timeMatch[3] ? timeMatch[3].toUpperCase() : null;
+                if (ampm === 'PM' && hours < 12) hours += 12;
+                if (ampm === 'AM' && hours === 12) hours = 0;
+            }
+        }
+        
+        // Lấy giờ hiện tại chuẩn theo múi giờ Việt Nam
+        const nowInVN = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+        const bookingDate = new Date(year, month - 1, day, hours, minutes);
+        
+        return bookingDate.getTime() < nowInVN.getTime();
+    } catch (e) {
+        return false;
+    }
+};
+
 export const handleChatbotMessage = async (req, res) => {
     try {
         const { message, history, currentUser } = req.body;
@@ -28,10 +55,7 @@ export const handleChatbotMessage = async (req, res) => {
 
         const genAI = getGeminiClient();
         if (!genAI) {
-            return res.status(500).json({
-                success: false,
-                message: 'Thiếu cấu hình Gemini API key trên server.'
-            });
+            return res.status(500).json({ success: false, message: 'Thiếu cấu hình Gemini API key trên server.' });
         }
 
         // --- 2. LẤY BẢNG GIÁ VÀ KINH NGHIỆM REAL-TIME TỪ DATABASE ---
@@ -42,7 +66,6 @@ export const handleChatbotMessage = async (req, res) => {
         if (stylistsList && stylistsList.length > 0) {
             stylistsList.forEach(sty => {
                 const price = sty.fees ? sty.fees.toLocaleString('vi-VN') + ' VNĐ' : '250.000 VNĐ';
-                // CẬP NHẬT: Xử lý triệt để lỗi chính tả từ MongoDB và đổi từ khoá dự phòng
                 const specialty = sty.specialty || sty.speciality || 'Không xác định'; 
                 const experience = sty.experience ? `${sty.experience}` : 'Chưa rõ';
                 
@@ -52,10 +75,13 @@ export const handleChatbotMessage = async (req, res) => {
             realtimePricingInfo += "- Hệ thống đang cập nhật danh sách chuyên viên.\n";
         }
 
-        const today = new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+        // --- CẬP NHẬT: Lấy cả Ngày và Giờ hiện tại cực kỳ chính xác ---
+        const nowInVN = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+        const today = nowInVN.toLocaleDateString('vi-VN');
+        const currentTime = nowInVN.toLocaleTimeString('vi-VN', { hour12: false });
 
         // --- 3. CHUẨN BỊ LỜI DẶN DÒ ĐỘNG ---
-        let customInstruction = `[SYSTEM TIME CLOCK: Hôm nay là ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên ngày này và LUÔN MẶC ĐỊNH LÀ NĂM HIỆN TẠI.]\n\n` + companyInfo + realtimePricingInfo;
+        let customInstruction = `[SYSTEM TIME CLOCK: Thời điểm NGAY LÚC NÀY là ${currentTime} ngày ${today}. Hãy tự động tính toán các ngày "ngày mai", "tuần sau" dựa trên mốc này. TUYỆT ĐỐI KHÔNG CHẤP NHẬN YÊU CẦU ĐẶT LỊCH VÀO QUÁ KHỨ (Trước thời điểm này)!]\n\n` + companyInfo + realtimePricingInfo;
         
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH ĐẶT LỊCH HỆ THỐNG]:
         Khi khách hàng hỏi về quy trình, các bước đặt lịch hoặc lộ trình sử dụng dịch vụ trên website HDNCare, hãy giới thiệu rõ ràng cho họ quy trình chuẩn 5 bước sau:
@@ -119,9 +145,18 @@ export const handleChatbotMessage = async (req, res) => {
                 });
             }
             
-            // --- XỬ LÝ KIỂM TRA TRÙNG LỊCH (ĐÃ CÀI CẮM GUARDRAIL) ---
+            // --- XỬ LÝ KIỂM TRA TRÙNG LỊCH VÀ CHẶN QUÁ KHỨ ---
             if (call.name === "checkAvailability") {
                 const { stylistName, slotDate, slotTime } = call.args;
+
+                // CHẶN NGAY NẾU ĐẶT LỊCH TRONG QUÁ KHỨ
+                if (isPastTime(slotDate, slotTime)) {
+                    const errorResult = await chat.sendMessage([{
+                        functionResponse: { name: "checkAvailability", response: { error: "THỜI GIAN TRONG QUÁ KHỨ KHÔNG HỢP LỆ! Hãy từ chối khách và nhắc họ chọn lại một thời gian trong tương lai." } }
+                    }]);
+                    return res.json({ success: true, reply: errorResult.response.text() });
+                }
+
                 const stylist = await stylistModel.findOne({ name: stylistName });
                 
                 if (!stylist) {
@@ -138,7 +173,6 @@ export const handleChatbotMessage = async (req, res) => {
                     cancelled: false
                 });
 
-                // CẬP NHẬT: Guardrail cũng phải kiểm tra bao phủ tên trường bị sai chính tả
                 const stylistSpecialty = stylist.specialty || stylist.speciality || 'Không xác định';
                 const aiGuardrailMsg = `[LỆNH ÉP BUỘC CHO AI: Nhân viên này có chuyên môn là '${stylistSpecialty}'. Bạn BẮT BUỘC phải đối chiếu với dịch vụ mà khách vừa yêu cầu. Nếu KHÔNG KHỚP (VD: Khách muốn Cắt tóc nhưng chuyên môn là Trang điểm), TUYỆT ĐỐI KHÔNG gọi hàm createBooking và hãy báo lỗi từ chối khách ngay lập tức!]`;
 
@@ -206,9 +240,17 @@ export const handleChatbotMessage = async (req, res) => {
                 return res.json({ success: true, reply: finalResult.response.text() });
             }
 
-            // --- XỬ LÝ DỜI LỊCH ---
+            // --- XỬ LÝ DỜI LỊCH (KIỂM TRA QUÁ KHỨ) ---
             else if (call.name === "rescheduleAppointment") {
                 const { customerPhone, oldSlotDate, oldSlotTime, newSlotDate, newSlotTime } = call.args;
+
+                // CHẶN DỜI LỊCH VỀ QUÁ KHỨ
+                if (isPastTime(newSlotDate, newSlotTime)) {
+                    const errorResult = await chat.sendMessage([{
+                        functionResponse: { name: "rescheduleAppointment", response: { error: "THỜI GIAN MỚI TRONG QUÁ KHỨ KHÔNG HỢP LỆ! Hãy từ chối khách và nhắc họ chọn lại một thời gian trong tương lai." } }
+                    }]);
+                    return res.json({ success: true, reply: errorResult.response.text() });
+                }
 
                 const appointment = await appointmentModel.findOne({
                     slotDate: oldSlotDate,
