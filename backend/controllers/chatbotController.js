@@ -201,7 +201,7 @@ export const handleChatbotMessage = async (req, res) => {
 
                 const dbResult = {
                     isAvailable: !isBooked,
-                    message: isBooked ? "Khung giờ này đã có người đặt." : `Khung giờ này đang trống. ${aiGuardrailMsg}`
+                    message: isBooked ? "BẮT BUỘC: Bạn phải thông báo cho khách hàng là 'Khung giờ này đã có khách khác đặt mất rồi' và gợi ý khách chọn giờ khác. TUYỆT ĐỐI KHÔNG bịa lý do là quá khứ." : `Khung giờ này đang trống. ${aiGuardrailMsg}`
                 };
 
                 const finalResult = await chat.sendMessage([{
@@ -344,7 +344,7 @@ export const handleChatbotMessage = async (req, res) => {
                     });
 
                     if (isConflict) {
-                        dbResult = { success: false, message: "Khung giờ mới đã có khách đặt, vui lòng chọn giờ khác." };
+                        dbResult = { success: false, message: "BẮT BUỘC: Bạn phải thông báo cho khách là 'Khung giờ này đã có khách khác đặt' và yêu cầu chọn giờ khác. TUYỆT ĐỐI KHÔNG bịa lý do." };
                     } else {
                         const stylist = await stylistModel.findById(appointment.styId);
                         if (stylist && stylist.slots_booked) {
