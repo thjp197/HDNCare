@@ -11,7 +11,8 @@ const getGeminiClient = () => {
     return new GoogleGenerativeAI(apiKey);
 };
 
-const isPastTime = (dateStr, timeStr) => {
+// CẬP NHẬT: Hàm kiểm tra thời gian siêu việt (Chặn quá khứ + Chặn ngoài giờ)
+const validateBookingTime = (dateStr, timeStr) => {
     try {
         const [day, month, year] = dateStr.split('_').map(Number);
         let hours = 0, minutes = 0;
@@ -27,12 +28,28 @@ const isPastTime = (dateStr, timeStr) => {
             }
         }
         
+        // 1. CHẶN NGOÀI GIỜ: Chỉ nhận khách từ 08:00 đến 20:00
+        if (hours < 8 || hours > 20 || (hours === 20 && minutes > 0)) {
+            return { 
+                isValid: false, 
+                message: "NGOÀI GIỜ LÀM VIỆC! Hệ thống chỉ mở cửa từ 08:00 AM và nhận khách trễ nhất lúc 20:00 (8h tối). Hãy từ chối khách." 
+            };
+        }
+
+        // 2. CHẶN QUÁ KHỨ
         const nowInVN = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
         const bookingDate = new Date(year, month - 1, day, hours, minutes);
         
-        return bookingDate.getTime() < nowInVN.getTime();
+        if (bookingDate.getTime() < nowInVN.getTime()) {
+            return { 
+                isValid: false, 
+                message: "THỜI GIAN TRONG QUÁ KHỨ KHÔNG HỢP LỆ! Nhắc khách chọn thời gian tương lai." 
+            };
+        }
+
+        return { isValid: true };
     } catch (e) {
-        return false;
+        return { isValid: false, message: "Định dạng thời gian không hợp lệ." };
     }
 };
 
@@ -40,8 +57,8 @@ export const handleChatbotMessage = async (req, res) => {
     try {
         const { message, history, currentUser } = req.body;
 
-        if (currentUser && currentUser.phone) {
-            const dbUser = await userModel.findOne({ phone: currentUser.phone });
+        if (currentUser && currentUser.email) {
+            const dbUser = await userModel.findOne({ email: currentUser.email });
             if (dbUser && dbUser.isBanned) {
                 return res.json({ 
                     success: true, 
@@ -64,8 +81,6 @@ export const handleChatbotMessage = async (req, res) => {
                 const price = sty.fees ? sty.fees.toLocaleString('vi-VN') + ' VNĐ' : '250.000 VNĐ';
                 const specialty = sty.specialty || sty.speciality || 'Không xác định'; 
                 const experience = sty.experience ? `${sty.experience}` : 'Chưa rõ';
-                
-                // CẬP NHẬT: Lấy tên chi nhánh từ Database. Tuỳ theo cách đặt tên trường trong Schema, thường là branch hoặc branchName
                 const branch = sty.branch || sty.branchName || 'Chưa phân bổ';
                 
                 realtimePricingInfo += `- Chuyên viên ${sty.name} (Chuyên môn: ${specialty} - Chi nhánh: ${branch} - Kinh nghiệm: ${experience}): Giá dịch vụ là ${price}.\n`;
@@ -92,7 +107,8 @@ export const handleChatbotMessage = async (req, res) => {
         customInstruction += `\n\n[HƯỚNG DẪN QUY TRÌNH THANH TOÁN & CHÍNH SÁCH HUỶ]:
         👉 CÁCH THANH TOÁN: Truy cập "Lịch sử đặt lịch" -> Nhấn "Thanh toán" -> Chọn Ví HDNCare hoặc VNPay.
         👉 CÁCH NẠP TIỀN VÍ: Truy cập "Trang cá nhân" -> "Ví của tôi" -> Nhập số tiền -> Nạp qua VNPay.
-        [BẢO MẬT]: Tuyệt đối KHÔNG yêu cầu cung cấp số thẻ, mã CVV, OTP vào khung chat.`;
+        [BẢO MẬT]: Tuyệt đối KHÔNG yêu cầu cung cấp số thẻ, mã CVV, OTP vào khung chat.
+        [CHÍNH SÁCH HUỶ LỊCH QUAN TRỌNG]: Huỷ trước 2 tiếng: Hoàn 100%. Huỷ dưới 2 tiếng: Mất cọc HOẶC khấu trừ 20% phí thanh toán toàn bộ, và bị tính 1 lần vi phạm (5 lần sẽ bị ban).`;
 
         if (currentUser && currentUser.phone) {
             customInstruction += `\n\n[LƯU Ý ĐẶC BIỆT]: Bạn đang nói chuyện với khách hàng đã đăng nhập. 
@@ -134,21 +150,33 @@ export const handleChatbotMessage = async (req, res) => {
             if (call.name === "checkAvailability") {
                 const { stylistName, slotDate, slotTime } = call.args;
 
-                if (isPastTime(slotDate, slotTime)) {
+                const timeValidation = validateBookingTime(slotDate, slotTime);
+                if (!timeValidation.isValid) {
                     const errorResult = await chat.sendMessage([{
-                        functionResponse: { name: "checkAvailability", response: { error: "THỜI GIAN TRONG QUÁ KHỨ KHÔNG HỢP LỆ! Nhắc khách chọn thời gian tương lai." } }
+                        functionResponse: { name: "checkAvailability", response: { error: timeValidation.message } }
                     }]);
                     return res.json({ success: true, reply: errorResult.response.text() });
                 }
 
-                const stylist = await stylistModel.findOne({ name: stylistName });
+                // TÌM THEO MẢNG ĐỂ BẮT TRƯỜNG HỢP TRÙNG TÊN
+                const stylists = await stylistModel.find({ name: stylistName });
                 
-                if (!stylist) {
+                if (stylists.length === 0) {
                     const fallbackResult = await chat.sendMessage([{
                         functionResponse: { name: "checkAvailability", response: { error: "Không tìm thấy nhân viên này." } }
                     }]);
                     return res.json({ success: true, reply: fallbackResult.response.text() });
                 }
+
+                // NẾU PHÁT HIỆN TRÙNG TÊN: ÉP AI HỎI LẠI KHÁCH HÀNG
+                if (stylists.length > 1) {
+                    const errorResult = await chat.sendMessage([{
+                        functionResponse: { name: "checkAvailability", response: { error: "CẢNH BÁO LỖI HỆ THỐNG: Đang có nhiều nhân viên trùng tên này trong Database. Bạn PHẢI yêu cầu khách hàng xác nhận lại họ muốn đặt chuyên viên này ở Chi nhánh nào hoặc Chuyên môn gì trước khi đi tiếp." } }
+                    }]);
+                    return res.json({ success: true, reply: errorResult.response.text() });
+                }
+
+                const stylist = stylists[0];
 
                 const isBooked = await appointmentModel.findOne({
                     styId: stylist._id.toString(),
@@ -157,7 +185,6 @@ export const handleChatbotMessage = async (req, res) => {
                     cancelled: false
                 });
 
-                // CẬP NHẬT: Guardrail kiểm tra luôn cả Chi Nhánh
                 const stylistSpecialty = stylist.specialty || stylist.speciality || 'Không xác định';
                 const stylistBranch = stylist.branch || stylist.branchName || 'Không xác định';
                 
@@ -186,16 +213,38 @@ export const handleChatbotMessage = async (req, res) => {
                 });
 
                 let dbResult = {};
+                let isBannedFlag = false;
+
                 if (appointment) {
-                    const TWO_HOURS = 2 * 60 * 60 * 1000;
-                    const bookingTime = new Date(appointment.date).getTime();
-                    const timeSinceBooking = Date.now() - bookingTime;
+                    const [day, month, year] = appointment.slotDate.split('_').map(Number);
+                    let hours = 0, minutes = 0;
+                    
+                    const timeMatch = appointment.slotTime.match(/(\d+):(\d+)\s*(AM|PM|am|pm)?/i);
+                    if (timeMatch) {
+                        hours = parseInt(timeMatch[1], 10);
+                        minutes = parseInt(timeMatch[2], 10);
+                        const ampm = timeMatch[3] ? timeMatch[3].toUpperCase() : null;
+                        if (ampm === 'PM' && hours < 12) hours += 12;
+                        if (ampm === 'AM' && hours === 12) hours = 0;
+                    }
+                    
+                    const appointmentDateTime = new Date(year, month - 1, day, hours, minutes);
+                    const nowInVN = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+                    
+                    const timeUntilAppointment = appointmentDateTime.getTime() - nowInVN.getTime();
+                    const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
 
                     appointment.cancelled = true;
-                    await appointment.save();
+                    
+                    const stylist = await stylistModel.findById(appointment.styId);
+                    if (stylist && stylist.slots_booked && stylist.slots_booked[appointment.slotDate]) {
+                        stylist.slots_booked[appointment.slotDate] = stylist.slots_booked[appointment.slotDate].filter(t => t !== appointment.slotTime);
+                        await stylist.save();
+                    }
 
-                    if (timeSinceBooking <= TWO_HOURS) {
-                        dbResult = { success: true, message: "Huỷ lịch thành công. Khách huỷ TRONG VÒNG 2 tiếng, HOÀN TIỀN 100%, KHÔNG tính lỗi phạt." };
+                    if (timeUntilAppointment > TWO_HOURS_IN_MS) {
+                        appointment.cancellationReasons = ["Khách hàng huỷ lịch qua AI hợp lệ (trước 2 tiếng)"];
+                        dbResult = { success: true, message: "Huỷ lịch thành công. Đã áp dụng chính sách hoàn 100% tiền (nếu có) và không tính lỗi vi phạm." };
                     } else {
                         let penaltyMsg = "";
                         let user = await userModel.findOne({ phone: customerPhone });
@@ -205,15 +254,21 @@ export const handleChatbotMessage = async (req, res) => {
                             
                             if (user.penaltyCount >= 5) {
                                 user.isBanned = true;
-                                penaltyMsg = `TÀI KHOẢN ĐÃ BỊ KHOÁ do vi phạm 5 lần.`;
+                                isBannedFlag = true;
+                                penaltyMsg = `TÀI KHOẢN ĐÃ BỊ KHOÁ do vi phạm huỷ lịch sát giờ 5 lần.`;
                             } else {
                                 penaltyMsg = `Khách bị tính 1 lần vi phạm (Hiện tại: ${user.penaltyCount}/5 lần).`;
                             }
                             await user.save();
                         }
                         
-                        dbResult = { success: true, message: `Huỷ lịch thành công. Khách huỷ SAU 2 tiếng KHÔNG HOÀN TIỀN. ${penaltyMsg}` };
+                        appointment.cancellationReasons = ["Khách hàng huỷ lịch qua AI quá gấp (dưới 2 tiếng)"];
+                        appointment.cancellationDetails = penaltyMsg;
+                        
+                        dbResult = { success: true, message: `Huỷ lịch thành công. Hệ thống áp dụng chính sách KHÔNG hoàn cọc hoặc KHẤU TRỪ 20% phí. ${penaltyMsg}` };
                     }
+
+                    await appointment.save();
                 } else {
                     dbResult = { success: false, message: "Không tìm thấy lịch hẹn trùng khớp để huỷ." };
                 }
@@ -222,15 +277,20 @@ export const handleChatbotMessage = async (req, res) => {
                     functionResponse: { name: "cancelAppointment", response: dbResult }
                 }]);
 
-                return res.json({ success: true, reply: finalResult.response.text() });
+                return res.json({ 
+                    success: true, 
+                    reply: finalResult.response.text(),
+                    isBanned: isBannedFlag
+                });
             }
 
             else if (call.name === "rescheduleAppointment") {
                 const { customerPhone, oldSlotDate, oldSlotTime, newSlotDate, newSlotTime } = call.args;
 
-                if (isPastTime(newSlotDate, newSlotTime)) {
+                const timeValidation = validateBookingTime(newSlotDate, newSlotTime);
+                if (!timeValidation.isValid) {
                     const errorResult = await chat.sendMessage([{
-                        functionResponse: { name: "rescheduleAppointment", response: { error: "THỜI GIAN MỚI TRONG QUÁ KHỨ KHÔNG HỢP LỆ! Nhắc khách chọn thời gian tương lai." } }
+                        functionResponse: { name: "rescheduleAppointment", response: { error: timeValidation.message } }
                     }]);
                     return res.json({ success: true, reply: errorResult.response.text() });
                 }
@@ -271,20 +331,29 @@ export const handleChatbotMessage = async (req, res) => {
             }
 
             else if (call.name === "createBooking") {
-                // Nhận thêm biến branchName từ AI
                 const { customerName, customerPhone, stylistName, branchName, slotDate, slotTime } = call.args;
 
-                const stylist = await stylistModel.findOne({ name: stylistName });
+                // CẬP NHẬT: LỌC TRÙNG TÊN LÚC LƯU DATABASE KẾT HỢP VỚI CHI NHÁNH ĐỂ LƯU ĐÚNG NGƯỜI
+                const stylists = await stylistModel.find({ name: stylistName });
+                let stylist = null;
+
+                if (stylists.length === 1) {
+                    stylist = stylists[0];
+                } else if (stylists.length > 1) {
+                    stylist = stylists.find(s => s.branch === branchName || s.branchName === branchName) || stylists[0];
+                }
+
                 let user = await userModel.findOne({ phone: customerPhone });
 
                 let finalUserId = user ? user._id.toString() : "GUEST";
                 let finalUserData = user ? user : { name: customerName, phone: customerPhone, isGuest: true };
+                
 
                 if (stylist) {
                     const appointmentData = {
                         userId: finalUserId, 
                         styId: stylist._id.toString(),
-                        branch: branchName || stylist.branch || 'Chưa phân bổ', // Lưu chi nhánh
+                        branch: branchName || stylist.branch || 'Chưa phân bổ',
                         slotDate,
                         slotTime,
                         userData: finalUserData, 

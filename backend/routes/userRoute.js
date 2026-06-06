@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getProfile, updateProfile, changePassword, bookAppointment, listAppointment, cancelAppointment, rescheduleAppointment, createPaymentUrl, verifyPayment, createDepositPaymentUrl, verifyDepositPayment, getWalletData, createWalletTopupUrl, verifyWalletTopup, payAppointmentWithWallet, payAppointmentDepositWithWallet, withdrawFromWallet, updatePersonalImages, verifyDiscountCode } from "../controllers/userController.js";
+import { bookAppointment, cancelAppointment, changePassword, createDepositPaymentUrl, createPaymentUrl, createWalletTopupUrl, getProfile, getWalletData, listAppointment, loginUser, payAppointmentDepositWithWallet, payAppointmentWithWallet, registerUser, rescheduleAppointment, updatePersonalImages, updateProfile, verifyDepositPayment, verifyDiscountCode, verifyPayment, verifyWalletTopup, withdrawFromWallet } from "../controllers/userController.js";
 import authUser from "../middlewares/authUser.js";
 import upload from "../middlewares/multer.js";
 

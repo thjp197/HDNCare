@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify"; // BỔ SUNG: Import thư viện thông báo
 import { AppContext } from "../context/AppContext"; // Kéo AppContext vào để lấy data user
 import ChatbotIcon from "./ChatbotIcon";
 import ChatForm from "./ChatForm";
@@ -13,8 +14,8 @@ const Chatbot = () => {
   const [showChatbot, setChatbot] = useState(false);
   const chatBodyRef = useRef();
 
-  // Lấy token và thông tin user từ Context (để biết họ đã đăng nhập chưa)
-  const { token, userData } = useContext(AppContext); 
+  // BỔ SUNG: Lấy thêm hàm setToken từ Context để thực hiện việc đăng xuất
+  const { token, userData, setToken } = useContext(AppContext); 
 
   // 2. CẬP NHẬT: Tự động đồng bộ mảng chatHistory vào localStorage mỗi khi có tin nhắn mới
   useEffect(() => {
@@ -34,7 +35,8 @@ const Chatbot = () => {
     // Đóng gói thông tin user hiện tại (nếu có)
     const currentUserInfo = (token && userData) ? {
         name: userData.name,
-        phone: userData.phone
+        phone: userData.phone,
+        email: userData.email
     } : null;
 
     // Gửi kèm currentUser xuống Backend
@@ -60,6 +62,25 @@ const Chatbot = () => {
 
       const apiResponseText = data.reply.replace(/\*\*(.*?)\*\*/g, '$1').trim();
       updateHistory(apiResponseText);
+
+      // ===============================================
+      // [CHỐT CHẶN: ĐĂNG XUẤT TỰ ĐỘNG KHI TÀI KHOẢN BỊ KHOÁ]
+      // ===============================================
+      if (data.isBanned) {
+          toast.error("Tài khoản của bạn đã bị khóa do vi phạm chính sách hủy lịch.", { autoClose: 3000 });
+          
+          setTimeout(() => {
+              // Xoá token và bộ nhớ chat
+              if (setToken) setToken(false);
+              localStorage.removeItem('token');
+              localStorage.removeItem('hdncare_chat_history');
+              
+              // Ép tải lại trang để xoá toàn bộ state hiện tại và đá về trang chủ
+              window.location.href = '/'; 
+          }, 3000); // Đợi 3s cho khách kịp đọc thông báo rồi mới kick
+      }
+      // ===============================================
+
     } catch (error) {
       updateHistory(error.message, true);
     }
