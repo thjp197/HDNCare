@@ -1,9 +1,9 @@
-import validator from "validator";
 import bcrypt from "bcrypt";
 import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";
-import stylistModel from "../models/stylistModel.js";
+import validator from "validator";
 import appointmentModel from "../models/appointmentModel.js";
+import stylistModel from "../models/stylistModel.js";
 import userModel from "../models/userModel.js";
 import { applyUserPenalty } from "../utils/penaltyUtils.js";
 
@@ -444,6 +444,28 @@ const assignBranch = async (req, res) => {
       return res.json({ success: false, message: "Chi nhánh không hợp lệ" })
     }
 
+    // ==========================================
+    // [CHỐT CHẶN BẢO VỆ XUNG ĐỘT DỮ LIỆU]
+    // ==========================================
+    const currentStylist = await stylistModel.findById(stylistId);
+    
+    // Nếu chuyên viên đang được chuyển sang một chi nhánh MỚI (khác chi nhánh cũ)
+    if (currentStylist && currentStylist.branch && currentStylist.branch !== branch) {
+        const pendingAppointments = await appointmentModel.find({
+            styId: stylistId,
+            cancelled: false,     // Chưa bị huỷ
+            isCompleted: false    // Chưa hoàn thành
+        });
+
+        if (pendingAppointments.length > 0) {
+            return res.json({ 
+                success: false, 
+                message: `⚠️ TỪ CHỐI ĐIỀU CHUYỂN: Chuyên viên này đang kẹt ${pendingAppointments.length} lịch hẹn chưa hoàn thành ở ${currentStylist.branch}. Hãy huỷ/dời lịch trước!` 
+            });
+        }
+    }
+    // ==========================================
+
     await stylistModel.findByIdAndUpdate(stylistId, { branch })
     res.json({ success: true, message: `Đã gán stylist vào ${branch}` })
 
@@ -467,6 +489,26 @@ const assignBranchManager = async (req, res) => {
       return res.json({ success: false, message: "Chi nhánh không hợp lệ" })
     }
 
+    // ==========================================
+    // [CHỐT CHẶN TƯƠNG TỰ CHO VIỆC GÁN QUẢN LÝ]
+    // ==========================================
+    const currentStylist = await stylistModel.findById(stylistId);
+    if (currentStylist && currentStylist.branch && currentStylist.branch !== branch) {
+        const pendingAppointments = await appointmentModel.find({
+            styId: stylistId,
+            cancelled: false,
+            isCompleted: false
+        });
+
+        if (pendingAppointments.length > 0) {
+            return res.json({ 
+                success: false, 
+                message: `⚠️ TỪ CHỐI GÁN QUẢN LÝ TỚI CHI NHÁNH MỚI: Chuyên viên này đang kẹt ${pendingAppointments.length} lịch hẹn chưa hoàn thành ở chi nhánh cũ.` 
+            });
+        }
+    }
+    // ==========================================
+
     // Remove isBranchManager from current manager of this branch (if exists)
     await stylistModel.updateMany({ branch, isBranchManager: true }, { isBranchManager: false })
 
@@ -480,6 +522,8 @@ const assignBranchManager = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
+
+// ... (Giữ nguyên removeBranchManager) ...
 
 // API to remove branch manager status
 const removeBranchManager = async (req, res) => {
@@ -508,8 +552,10 @@ const deleteStylist = async (req, res) => {
       return res.json({ success: false, message: "Thiếu ID nhân viên" })
     }
 
-    // Delete all appointments related to this stylist
-    await appointmentModel.deleteMany({ stylistId })
+    // ==========================================
+    // [FIX LỖI BUG]: Đổi trường stylistId thành styId cho đúng với appointmentModel
+    // ==========================================
+    await appointmentModel.deleteMany({ styId: stylistId })
 
     // Delete the stylist
     await stylistModel.findByIdAndDelete(stylistId)
@@ -520,22 +566,88 @@ const deleteStylist = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
+// API: Ép buộc gán chi nhánh mới, tự động huỷ lịch kẹt và hoàn tiền
+const forceAssignBranch = async (req, res) => {
+  try {
+    const { stylistId, branch } = req.body;
 
+    if (!stylistId || !branch) {
+      return res.json({ success: false, message: "Thiếu thông tin" });
+    }
+
+    const validBranches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3'];
+    if (!validBranches.includes(branch)) {
+      return res.json({ success: false, message: "Chi nhánh không hợp lệ" });
+    }
+
+    const stylist = await stylistModel.findById(stylistId);
+    if (!stylist) {
+      return res.json({ success: false, message: "Không tìm thấy chuyên viên" });
+    }
+
+    // 1. Tìm tất cả các lịch hẹn bị xung đột
+    const conflictAppointments = await appointmentModel.find({
+      styId: stylistId,
+      cancelled: false,
+      isCompleted: false
+    });
+
+    // 2. Xử lý huỷ hàng loạt và hoàn tiền
+    for (const app of conflictAppointments) {
+      // Đánh dấu huỷ lịch
+      app.cancelled = true;
+      app.cancellationReasons = ["Hủy bởi hệ thống: Chuyên viên điều chuyển công tác đột xuất"];
+      app.cancellationDetails = `Hệ thống đã tự động huỷ lịch do chuyên viên chuyển sang ${branch}.`;
+
+      // Giải phóng lịch cho stylist
+      if (stylist.slots_booked && stylist.slots_booked[app.slotDate]) {
+          stylist.slots_booked[app.slotDate] = stylist.slots_booked[app.slotDate].filter((time) => time !== app.slotTime);
+      }
+
+      // HOÀN TIỀN: Nếu khách đã thanh toán, cộng trả lại tiền vào Ví HDNCare
+      if (app.payment === true && app.amount > 0) {
+        const user = await userModel.findById(app.userId);
+        if (user) {
+          user.walletBalance = (user.walletBalance || 0) + app.amount;
+          user.walletTransactions.push({
+            type: "Refund",
+            amount: app.amount,
+            date: Date.now(),
+            description: `Hoàn tiền lịch hẹn ${app._id} do chuyên viên đổi chi nhánh công tác.`
+          });
+          await user.save();
+        }
+      }
+      await app.save();
+    }
+
+    // 3. Cập nhật chi nhánh mới cho chuyên viên
+    stylist.branch = branch;
+    await stylist.save();
+
+    // 4. Bắn sự kiện Real-time qua Socket.IO (Sử dụng global io hoặc req.io)
+    // Lưu ý: req.app.get('io') là cú pháp chuẩn trong Express để lấy instance của Socket.IO
+    const io = req.app.get('io'); 
+    if (io && conflictAppointments.length > 0) {
+      io.emit("stylist_branch_changed", {
+        stylistName: stylist.name,
+        newBranch: branch,
+        affectedCount: conflictAppointments.length
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Đã ép buộc chuyển sang ${branch}. Tự động huỷ và hoàn tiền cho ${conflictAppointments.length} lịch hẹn.` 
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+}
 export {
-  addStylist,
-  loginAdmin,
-  allStylists,
-  appointmentsAdmin,
-  appointmentCancel,
-  adminDashboard,
-  updateStylist,
-  penalizedUsers,
-  resetUserPenalty,
-  updateUserPenalty,
-  getStylistsByBranch,
-  getBranchesInfo,
-  assignBranch,
-  assignBranchManager,
-  removeBranchManager,
-  deleteStylist,
+  addStylist, adminDashboard, allStylists, appointmentCancel, appointmentsAdmin, assignBranch,
+  assignBranchManager, deleteStylist, forceAssignBranch, getBranchesInfo, getStylistsByBranch, loginAdmin, penalizedUsers, removeBranchManager, resetUserPenalty, updateStylist, updateUserPenalty
 };
+

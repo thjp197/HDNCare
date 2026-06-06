@@ -7,7 +7,7 @@ import { Server } from 'socket.io'
 import connectCloudinary from './config/cloudinary.js'
 import connectDB from './config/mongodb.js'
 import adminRouter from './routes/adminRoute.js'
-import chatbotRoute from './routes/chatbotRoute.js'; // <-- CHÍNH LÀ DÒNG BỊ SÓT NÀY ĐÂY
+import chatbotRoute from './routes/chatbotRoute.js'
 import stylistRouter from './routes/stylistRoute.js'
 import userRoute from './routes/userRoute.js'
 import { getStylistRoom, setSocketServer } from './utils/socket.js'
@@ -22,11 +22,6 @@ const server = createServer(app)
 connectDB()
 connectCloudinary()
 
-// const corsOptions = {
-//   origin: true,
-//   credentials: true,
-// }
-
 const corsOptions = {
   origin: [
     'https://hdncare.onrender.com',
@@ -38,6 +33,7 @@ const corsOptions = {
   ],
   credentials: true,
 }
+
 // middlewares
 app.use(cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))
@@ -45,6 +41,9 @@ app.use(express.json({ limit: '10mb' }))
 const io = new Server(server, {
   cors: corsOptions,
 })
+
+// BỔ SUNG: Cấp quyền cho Express truy cập biến io từ bất kỳ đâu (như adminController)
+app.set('io', io);
 
 setSocketServer(io)
 
@@ -73,7 +72,7 @@ app.use('/api/admin', adminRouter)
 app.use('/api/stylist', stylistRouter)
 app.use('/api/user', userRoute)
 app.use('/api/users', userRoute)
-app.use('/api/chatbot', chatbotRoute) // DÒNG THÊM MỚI 2
+app.use('/api/chatbot', chatbotRoute) 
 app.use('/api/gemini', chatbotRoute)
 
 app.get('/', (req, res) => {

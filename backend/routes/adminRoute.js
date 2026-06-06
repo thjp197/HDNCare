@@ -1,9 +1,10 @@
 import express from "express";
-import { addStylist, loginAdmin, allStylists, appointmentsAdmin, appointmentCancel, adminDashboard, updateStylist, penalizedUsers, resetUserPenalty, updateUserPenalty, getStylistsByBranch, getBranchesInfo, assignBranch, assignBranchManager, removeBranchManager, deleteStylist } from "../controllers/adminController.js";
-import { addDiscountCode, getAllDiscountCodes, updateDiscountCode, deleteDiscountCode } from "../controllers/discountCodeController.js";
-import upload from '../middlewares/multer.js';
-import authAdmin from "../middlewares/authAdmin.js";
+// BỔ SUNG: Thêm forceAssignBranch vào cuối danh sách import
+import { addStylist, adminDashboard, allStylists, appointmentCancel, appointmentsAdmin, assignBranch, assignBranchManager, deleteStylist, forceAssignBranch, getBranchesInfo, getStylistsByBranch, loginAdmin, penalizedUsers, removeBranchManager, resetUserPenalty, updateStylist, updateUserPenalty } from "../controllers/adminController.js";
+import { addDiscountCode, deleteDiscountCode, getAllDiscountCodes, updateDiscountCode } from "../controllers/discountCodeController.js";
 import { changeAvailablity } from "../controllers/stylistController.js";
+import authAdmin from "../middlewares/authAdmin.js";
+import upload from '../middlewares/multer.js';
 
 const adminRouter = express.Router();
 
@@ -27,6 +28,8 @@ adminRouter.post("/assign-branch", authAdmin, assignBranch);
 adminRouter.post("/update-stylist-branch", authAdmin, assignBranch);
 adminRouter.post("/assign-branch-manager", authAdmin, assignBranchManager);
 adminRouter.post("/remove-branch-manager", authAdmin, removeBranchManager);
+// BỔ SUNG: Tuyến đường (route) cho API ép buộc chuyển chi nhánh
+adminRouter.post("/force-assign-branch", authAdmin, forceAssignBranch);
 
 // Discount Code Routes
 adminRouter.post("/add-discount-code", authAdmin, addDiscountCode);
