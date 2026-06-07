@@ -15,7 +15,6 @@ const changeAvailablity = async (req, res) => {
         res.json({ success: true, message: 'Tình trạng khả dụng đã được thay đổi' })
 
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -28,7 +27,6 @@ const stylistList = async (req, res) => {
         res.json({ success: true, stylists })
 
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 
@@ -56,7 +54,6 @@ const loginStylist = async (req, res) => {
         }
 
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -71,7 +68,6 @@ const appointmentsStylist = async (req, res) => {
         res.json({ success: true, appointments })
 
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -94,7 +90,6 @@ const appointmentComplete = async (req, res) => {
             return res.json({ success: false, message: 'Không tìm thấy cuộc hẹn' })
         }
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -111,13 +106,37 @@ const appointmentCancel = async (req, res) => {
         }
 
         if (appointmentData && String(appointmentData.styId) === String(styId)) {
+            // Check time to determine if penalty is allowed
+            const { slotDate, slotTime } = appointmentData
+            const [dayStr, monthStr, yearStr] = slotDate.split("_")
+            const [hourStr, minuteStr] = slotTime.split(":")
+            
+            // Create appointment datetime (treat as local time)
+            const appointmentDateTime = new Date(
+                parseInt(yearStr),
+                parseInt(monthStr) - 1,
+                parseInt(dayStr),
+                parseInt(hourStr),
+                parseInt(minuteStr)
+            )
+            
+            const now = new Date()
+            const hoursUntilAppointment = (appointmentDateTime - now) / (1000 * 60 * 60)
+            
+            // Check if cancellation violates the 2-hour rule
+            const isWithin2Hours = hoursUntilAppointment < 2 && hoursUntilAppointment >= 0
+            const isAfterAppointment = hoursUntilAppointment < 0
+            
+            // Apply penalty only if within 2 hours (violating cancellation policy)
+            const shouldPenalize = penalizeUser && isWithin2Hours
+            
             const updatedAppointment = await appointmentModel.findByIdAndUpdate(
                 appointmentId,
                 {
                     cancelled: true,
                     cancellationReasons: ['Hủy bởi quản trị viên/chuyên viên'],
-                    cancellationDetails: penalizeUser
-                        ? 'Đơn đã bị hủy và người dùng bị phạt 1 lần.'
+                    cancellationDetails: shouldPenalize
+                        ? 'Đơn đã bị hủy trong vòng 2 giờ trước giờ hẹn - Người dùng bị phạt 1 lần.'
                         : 'Đơn đã bị hủy bởi quản trị viên/chuyên viên.',
                 },
                 { returnDocument: 'after' }
@@ -125,7 +144,6 @@ const appointmentCancel = async (req, res) => {
 
             const stylistData = await stylistModel.findById(styId)
             if (stylistData) {
-                const { slotDate, slotTime } = appointmentData
                 let slots_booked = stylistData.slots_booked || {}
 
                 if (Array.isArray(slots_booked[slotDate])) {
@@ -136,11 +154,11 @@ const appointmentCancel = async (req, res) => {
             }
 
             let penaltyResult = null
-            if (penalizeUser) {
+            if (shouldPenalize) {
                 penaltyResult = await applyUserPenalty(appointmentData.userId, {
                     appointmentId,
                     source: 'stylist',
-                    reason: 'Lịch hẹn bị hủy bởi quản trị viên hoặc chuyên viên',
+                    reason: 'Lịch hẹn bị hủy trong vòng 2 giờ trước giờ hẹn',
                 })
             }
 
@@ -162,7 +180,6 @@ const appointmentCancel = async (req, res) => {
             return res.json({ success: false, message: 'Hủy cuộc hẹn thất bại' })
         }
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -200,7 +217,6 @@ const stylistDashboard = async (req, res) => {
         res.json({ success: true, dashData })
 
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -219,7 +235,6 @@ const stylistProfile = async (req, res) => {
         res.json({ success: true, profileData })
 
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -236,7 +251,6 @@ const updateStylistProfile = async (req, res) => {
         res.json({ success: true, message: 'Hồ sơ đã được cập nhật' })
 
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -282,7 +296,6 @@ const changeStylistPassword = async (req, res) => {
 
         res.json({ success: true, message: 'Đổi mật khẩu thành công' })
     } catch (error) {
-        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -324,7 +337,6 @@ const branchManagerDashboard = async (req, res) => {
         res.json({ success: true, dashData })
 
     } catch (error) {
-        console.log('Error in branchManagerDashboard:', error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -349,7 +361,6 @@ const branchManagerAppointments = async (req, res) => {
         res.json({ success: true, appointments })
 
     } catch (error) {
-        console.log('Error in branchManagerAppointments:', error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -369,7 +380,6 @@ const branchManagerStylists = async (req, res) => {
         res.json({ success: true, stylists })
 
     } catch (error) {
-        console.log('Error in branchManagerStylists:', error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -398,7 +408,6 @@ const branchManagerInfo = async (req, res) => {
         res.json({ success: true, branchInfo })
 
     } catch (error) {
-        console.log('Error in branchManagerInfo:', error)
         res.json({ success: false, message: error.message })
     }
 }
