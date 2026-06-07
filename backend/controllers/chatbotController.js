@@ -4,7 +4,7 @@ import { bookingTools } from '../config/geminiTools.js';
 import appointmentModel from '../models/appointmentModel.js';
 import stylistModel from '../models/stylistModel.js';
 import userModel from '../models/userModel.js';
-import { emitStylistSlotsUpdated } from '../utils/socket.js';
+import { emitStylistSlotsUpdated, emitUserAppointmentsUpdated } from '../utils/socket.js';
 
 const getGeminiClient = () => {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
@@ -12,10 +12,9 @@ const getGeminiClient = () => {
     return new GoogleGenerativeAI(apiKey);
 };
 
-// CẬP NHẬT: Hàm kiểm tra thời gian siêu việt (Chặn quá khứ + Chặn ngoài giờ)
-const validateBookingTime = (dateStr, timeStr) => {
+const normalizeBookingTime = (dateStr, timeStr) => {
     try {
-        const [day, month, year] = dateStr.split('_').map(Number);
+        const [day, month, year] = dateStr.split(/[_/-]/).map(Number);
         let hours = 0, minutes = 0;
         
         if (timeStr) {
@@ -28,6 +27,23 @@ const validateBookingTime = (dateStr, timeStr) => {
                 if (ampm === 'AM' && hours === 12) hours = 0;
             }
         }
+        return {
+            normalizedDate: `${day}_${month}_${year}`,
+            normalizedTime: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+            year, month, day, hours, minutes
+        };
+    } catch (e) {
+        return null;
+    }
+};
+
+// CẬP NHẬT: Hàm kiểm tra thời gian siêu việt (Chặn quá khứ + Chặn ngoài giờ)
+const validateBookingTime = (dateStr, timeStr) => {
+    try {
+        const norm = normalizeBookingTime(dateStr, timeStr);
+        if (!norm) throw new Error("Invalid");
+        
+        const { year, month, day, hours, minutes, normalizedDate, normalizedTime } = norm;
         
         // 1. CHẶN NGOÀI GIỜ: Chỉ nhận khách từ 08:00 đến 20:00
         if (hours < 8 || hours > 20 || (hours === 20 && minutes > 0)) {
@@ -48,8 +64,6 @@ const validateBookingTime = (dateStr, timeStr) => {
             };
         }
 
-        const normalizedDate = `${day}_${month}_${year}`; 
-        const normalizedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`; 
         return { isValid: true, normalizedDate, normalizedTime };
     } catch (e) {
         return { isValid: false, message: "Định dạng thời gian không hợp lệ." };
@@ -212,7 +226,7 @@ export const handleChatbotMessage = async (req, res) => {
             } 
             
             else if (call.name === "cancelAppointment") {
-                const { customerPhone, slotDate, slotTime } = call.args;
+                const { customerPhone, stylistName, slotDate, slotTime } = call.args;
 
                 const timeValidation = validateBookingTime(slotDate, slotTime);
                 const normalizedDate = timeValidation.isValid ? timeValidation.normalizedDate : slotDate;
@@ -228,6 +242,15 @@ export const handleChatbotMessage = async (req, res) => {
                 } else {
                     query["userData.phone"] = customerPhone;
                 }
+                
+                // CẬP NHẬT: Lọc thêm bằng tên chuyên viên nếu khách có nhiều lịch cùng giờ
+                if (stylistName) {
+                    const stylists = await stylistModel.find({ name: new RegExp(stylistName, "i") });
+                    if (stylists.length > 0) {
+                        query.styId = { $in: stylists.map(s => s._id.toString()) };
+                    }
+                }
+
                 const appointment = await appointmentModel.findOne(query);
 
                 let dbResult = {};
@@ -288,6 +311,7 @@ export const handleChatbotMessage = async (req, res) => {
                     }
 
                     await appointment.save();
+                    emitUserAppointmentsUpdated(appointment.userId);
                 } else {
                     dbResult = { success: false, message: "Không tìm thấy lịch hẹn trùng khớp để huỷ." };
                 }
@@ -304,11 +328,11 @@ export const handleChatbotMessage = async (req, res) => {
             }
 
             else if (call.name === "rescheduleAppointment") {
-                const { customerPhone, oldSlotDate, oldSlotTime, newSlotDate, newSlotTime } = call.args;
+                const { customerPhone, stylistName, oldSlotDate, oldSlotTime, newSlotDate, newSlotTime } = call.args;
 
-                const oldTimeValidation = validateBookingTime(oldSlotDate, oldSlotTime);
-                const normalizedOldDate = oldTimeValidation.isValid ? oldTimeValidation.normalizedDate : oldSlotDate;
-                const normalizedOldTime = oldTimeValidation.isValid ? oldTimeValidation.normalizedTime : oldSlotTime;
+                const oldTimeNorm = normalizeBookingTime(oldSlotDate, oldSlotTime);
+                const normalizedOldDate = oldTimeNorm ? oldTimeNorm.normalizedDate : oldSlotDate;
+                const normalizedOldTime = oldTimeNorm ? oldTimeNorm.normalizedTime : oldSlotTime;
 
                 const timeValidation = validateBookingTime(newSlotDate, newSlotTime);
                 if (!timeValidation.isValid) {
@@ -330,11 +354,22 @@ export const handleChatbotMessage = async (req, res) => {
                 } else {
                     query["userData.phone"] = customerPhone;
                 }
+                
+                // CẬP NHẬT: Lọc thêm bằng tên chuyên viên nếu khách có nhiều lịch cùng giờ
+                if (stylistName) {
+                    const stylists = await stylistModel.find({ name: new RegExp(stylistName, "i") });
+                    if (stylists.length > 0) {
+                        query.styId = { $in: stylists.map(s => s._id.toString()) };
+                    }
+                }
+                
                 const appointment = await appointmentModel.findOne(query);
 
                 let dbResult = {};
                 if (!appointment) {
-                    dbResult = { success: false, message: "Không tìm thấy lịch hẹn cũ trùng khớp để dời lịch." };
+                    dbResult = { success: false, message: "BẮT BUỘC: Bạn phải thông báo là 'Em không tìm thấy lịch hẹn cũ nào khớp với thông tin này'. TUYỆT ĐỐI KHÔNG thông báo thành công." };
+                } else if (appointment.rescheduleCount >= 1) {
+                    dbResult = { success: false, message: "BẮT BUỘC: Bạn phải thông báo cho khách là 'Lịch hẹn này đã được dời 1 lần rồi, hệ thống không cho phép dời thêm nữa. Bạn vui lòng hủy lịch và đặt lại'. TUYỆT ĐỐI KHÔNG tự ý dời lịch." };
                 } else {
                     const isConflict = await appointmentModel.findOne({
                         styId: appointment.styId,
@@ -366,7 +401,12 @@ export const handleChatbotMessage = async (req, res) => {
 
                         appointment.slotDate = normalizedNewDate;
                         appointment.slotTime = normalizedNewTime;
+                        appointment.rescheduleCount = (appointment.rescheduleCount || 0) + 1;
                         await appointment.save();
+                        
+                        // CẬP NHẬT GIAO DIỆN CLIENT NGAY LẬP TỨC
+                        emitUserAppointmentsUpdated(appointment.userId);
+                        
                         dbResult = { success: true, message: "Đã dời lịch thành công sang thời gian mới." };
                     }
                 }
@@ -386,7 +426,7 @@ export const handleChatbotMessage = async (req, res) => {
                 const normalizedTime = timeValidation.isValid ? timeValidation.normalizedTime : slotTime;
 
                 // CẬP NHẬT: LỌC TRÙNG TÊN LÚC LƯU DATABASE KẾT HỢP VỚI CHI NHÁNH ĐỂ LƯU ĐÚNG NGƯỜI
-                const stylists = await stylistModel.find({ name: stylistName });
+                const stylists = await stylistModel.find({ name: new RegExp(stylistName, "i") });
                 let stylist = null;
 
                 if (stylists.length === 1) {
@@ -428,6 +468,10 @@ export const handleChatbotMessage = async (req, res) => {
                     }
                     await stylistModel.findByIdAndUpdate(stylist._id, { slots_booked });
                     emitStylistSlotsUpdated(stylist._id, { action: "booked", slotDate: normalizedDate, slotTime: normalizedTime });
+                    
+                    if (finalUserId !== "GUEST") {
+                        emitUserAppointmentsUpdated(finalUserId);
+                    }
 
                     const dbResult = { success: true, message: "Lịch hẹn đã được lưu thành công." };
                     const finalResult = await chat.sendMessage([{

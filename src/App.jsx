@@ -20,7 +20,7 @@ import MyWallet from './pages/MyWallet';
 import Stylists from './pages/Stylists';
 
 // Khởi tạo kết nối Socket (đặt bên ngoài Component để tránh bị render lại nhiều lần)
-const socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:4000");
+export const socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:4000");
 
 const App = () => {
   

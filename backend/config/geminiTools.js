@@ -20,10 +20,11 @@ export const bookingTools = [{
         type: "OBJECT",
         properties: {
           customerPhone: { type: "STRING", description: "Số điện thoại của khách đã dùng để đặt lịch" },
+          stylistName: { type: "STRING", description: "Tên chuyên viên của lịch hẹn muốn huỷ" },
           slotDate: { type: "STRING", description: "Ngày đã đặt (Format: DD_MM_YYYY)" },
           slotTime: { type: "STRING", description: "Giờ đã đặt (Format: HH:mm AM/PM)" }
         },
-        required: ["customerPhone", "slotDate", "slotTime"]
+        required: ["customerPhone", "stylistName", "slotDate", "slotTime"]
       }
     },
     {
@@ -49,12 +50,13 @@ export const bookingTools = [{
         type: "OBJECT",
         properties: {
           customerPhone: { type: "STRING", description: "Số điện thoại của khách hàng đã đặt lịch" },
+          stylistName: { type: "STRING", description: "Tên chuyên viên của lịch hẹn muốn dời" },
           oldSlotDate: { type: "STRING", description: "Ngày hẹn CŨ (định dạng DD_MM_YYYY)" },
           oldSlotTime: { type: "STRING", description: "Giờ hẹn CŨ (VD: 09:00 hoặc 14:00)" },
           newSlotDate: { type: "STRING", description: "Ngày hẹn MỚI (định dạng DD_MM_YYYY)" },
           newSlotTime: { type: "STRING", description: "Giờ hẹn MỚI (VD: 10:00 hoặc 15:00)" }
         },
-        required: ["customerPhone", "oldSlotDate", "oldSlotTime", "newSlotDate", "newSlotTime"]
+        required: ["customerPhone", "stylistName", "oldSlotDate", "oldSlotTime", "newSlotDate", "newSlotTime"]
       }
     }
   ]

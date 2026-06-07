@@ -4,6 +4,7 @@ import axios from "axios";
 import { AppContext } from "../context/AppContext";
 import { assets, stylists as localStylists } from "../assets/assets";
 import { toast } from "react-toastify";
+import { socket } from "../App";
 
 const MyAppointments = () => {
   const navigate = useNavigate();
@@ -107,6 +108,21 @@ const MyAppointments = () => {
       toast.error("Không thể tải lịch hẹn của bạn");
     }
   };
+
+  useEffect(() => {
+    if (userData && userData._id) {
+      const handleAppointmentsUpdate = (data) => {
+        if (data.userId === userData._id.toString()) {
+          getUserAppointments();
+        }
+      };
+      
+      socket.on("user-appointments-updated", handleAppointmentsUpdate);
+      return () => {
+        socket.off("user-appointments-updated", handleAppointmentsUpdate);
+      };
+    }
+  }, [userData, token]);
 
   const verifyAndApplyDiscount = async () => {
     if (!discountCode.trim()) {
