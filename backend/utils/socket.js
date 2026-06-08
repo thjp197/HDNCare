@@ -16,4 +16,14 @@ const emitStylistSlotsUpdated = (styId, payload = {}) => {
   });
 };
 
-export { setSocketServer, emitStylistSlotsUpdated, getStylistRoom };
+const emitUserAppointmentsUpdated = (userId, payload = {}) => {
+  if (!ioInstance || !userId) return;
+
+  ioInstance.emit("user-appointments-updated", {
+    userId: String(userId),
+    serverTime: Date.now(),
+    ...payload,
+  });
+};
+
+export { setSocketServer, emitStylistSlotsUpdated, emitUserAppointmentsUpdated, getStylistRoom };
