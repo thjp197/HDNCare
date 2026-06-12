@@ -72,6 +72,15 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // Check if user already exists
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
+      return res.json({
+        success: false,
+        message: "Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập",
+      });
+    }
+
     // hashing user password
     const salt = await bcrypt.genSalt(10); // the more no. round the more time it will take
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -90,6 +99,16 @@ const registerUser = async (req, res) => {
     res.json({ success: true, token });
   } catch (error) {
     console.log(error);
+    // Handle MongoDB duplicate key error (E11000)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      let fieldName = "Email";
+      if (field === "phone") fieldName = "Số điện thoại";
+      return res.json({
+        success: false,
+        message: `${fieldName} này đã được sử dụng. Vui lòng sử dụng ${fieldName.toLowerCase()} khác hoặc đăng nhập`,
+      });
+    }
     res.json({ success: false, message: error.message });
   }
 };
