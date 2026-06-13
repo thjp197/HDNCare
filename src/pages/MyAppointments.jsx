@@ -269,6 +269,7 @@ const MyAppointments = () => {
     }
   };
 
+  
   const payDepositWithWallet = async (appointmentId) => {
     try {
       setPaymentLoading((prev) => ({ ...prev, [appointmentId]: true }));
