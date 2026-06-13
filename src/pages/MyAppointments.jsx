@@ -4,7 +4,7 @@ import axios from "axios";
 import { AppContext } from "../context/AppContext";
 import { assets, stylists as localStylists } from "../assets/assets";
 import { toast } from "react-toastify";
-import { socket } from "../App";
+import { socket } from "../socket";
 
 const MyAppointments = () => {
   const navigate = useNavigate();
