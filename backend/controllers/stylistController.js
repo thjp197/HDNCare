@@ -412,6 +412,40 @@ const branchManagerInfo = async (req, res) => {
     }
 }
 
+// API to toggle stylist availability for Branch Manager
+const toggleStylistAvailability = async (req, res) => {
+    try {
+        const { stylistId } = req.body
+        const isBranchManager = req.isBranchManager
+        const branch = req.branch
+
+        if (!isBranchManager || !branch) {
+            return res.json({ success: false, message: 'Bạn không phải là trưởng chi nhánh' })
+        }
+
+        // Check if stylist belongs to this branch
+        const stylist = await stylistModel.findById(stylistId)
+        if (!stylist || stylist.branch !== branch) {
+            return res.json({ success: false, message: 'Nhân viên này không thuộc chi nhánh của bạn' })
+        }
+
+        // Toggle available status
+        const updatedStylist = await stylistModel.findByIdAndUpdate(
+            stylistId,
+            { available: !stylist.available },
+            { returnDocument: 'after' }
+        )
+
+        res.json({ 
+            success: true, 
+            message: updatedStylist.available ? 'Nhân viên đã được bật hoạt động' : 'Nhân viên đã được tắt hoạt động'
+        })
+
+    } catch (error) {
+        res.json({ success: false, message: error.message })
+    }
+}
+
 export {
     changeAvailablity,
     stylistList,
@@ -426,5 +460,6 @@ export {
     branchManagerDashboard,
     branchManagerAppointments,
     branchManagerStylists,
-    branchManagerInfo
+    branchManagerInfo,
+    toggleStylistAvailability
 }
