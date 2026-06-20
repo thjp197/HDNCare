@@ -130,6 +130,12 @@ const MyAppointments = () => {
       return;
     }
 
+    // Check if trying to apply discount to deposit payment
+    if (paymentModalType === "deposit") {
+      toast.error("Mã giảm giá chỉ có thể sử dụng khi thanh toán đầy đủ");
+      return;
+    }
+
     if (!appointmentToPay) return;
 
     try {

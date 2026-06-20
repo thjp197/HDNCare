@@ -43,7 +43,7 @@ const Navbar = () => {
               <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
             <NavLink to='/ai-makeup'>
-              <li className='py-1'>AI Makeup</li>
+              <li className='py-1'>AI MAKEUP</li>
               <hr className='w-3/5 h-2 m-auto border-none outline-none bg-primary' hidden/>
             </NavLink>
         </ul>

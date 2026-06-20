@@ -803,11 +803,8 @@ const payAppointmentDepositWithWallet = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
-    // Calculate deposit amount, then subtract discount if applied - check with Number.isFinite to avoid falsy check issue
+    // Calculate deposit amount - discount codes are not allowed for deposits
     let depositAmount = calculateDepositAmount(appointmentData.amount);
-    if (Number.isFinite(Number(discountAmount)) && Number(discountAmount) > 0) {
-      depositAmount = Math.max(0, depositAmount - Number(discountAmount));
-    }
 
     if (depositAmount <= 0) {
       return res.json({ success: false, message: "Số tiền cọc không hợp lệ" });
@@ -845,18 +842,6 @@ const payAppointmentDepositWithWallet = async (req, res) => {
         depositTransactionId: walletReference,
         depositMethod: "wallet",
       };
-
-      // Handle discount code if applied
-      if (discountCode) {
-        const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
-        if (discount) {
-          discount.usedCount = (discount.usedCount || 0) + 1;
-          if (!discount.usedBy) discount.usedBy = [];
-          discount.usedBy.push(userId);
-          await discount.save();
-          updateData.discountCode = discountCode.toUpperCase();
-        }
-      }
 
       await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
     } catch (appointmentError) {
@@ -1285,11 +1270,8 @@ const createDepositPaymentUrl = async (req, res) => {
       return res.json({ success: true, message: "Lịch hẹn đã được thanh toán cọc" });
     }
 
-    // Calculate deposit amount, then subtract discount if applied - check with Number.isFinite to avoid falsy check issue
+    // Calculate deposit amount - discount codes are not allowed for deposits
     let depositAmount = calculateDepositAmount(appointmentData.amount);
-    if (Number.isFinite(Number(discountAmount)) && Number(discountAmount) > 0) {
-      depositAmount = Math.max(0, depositAmount - Number(discountAmount));
-    }
 
     if (depositAmount <= 0) {
       return res.json({ success: false, message: "Số tiền cọc không hợp lệ" });
@@ -1423,19 +1405,6 @@ const verifyDepositPayment = async (req, res) => {
       depositMethod: "vnpay",
     };
 
-    // If discount code is used, update it
-    if (discountCode) {
-      const discount = await discountCodeModel.findOne({ code: discountCode.toUpperCase() });
-      if (discount) {
-        discount.usedCount = (discount.usedCount || 0) + 1;
-        if (!discount.usedBy) discount.usedBy = [];
-        discount.usedBy.push(userId);
-        await discount.save();
-        
-        updateData.discountCode = discountCode.toUpperCase();
-      }
-    }
-
     await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
 
     res.json({ success: true, message: "Thanh toán cọc thành công" });
@@ -1467,6 +1436,11 @@ const verifyDiscountCode = async (req, res) => {
     // Verify appointment belongs to user
     if (String(appointmentData.userId) !== String(userId)) {
       return res.json({ success: false, message: "Vui lòng đăng nhập lại" });
+    }
+
+    // Check if appointment has deposit paid - discount codes are not allowed for deposits
+    if (appointmentData.depositPaid) {
+      return res.json({ success: false, message: "Mã giảm giá chỉ có thể sử dụng khi thanh toán đầy đủ" });
     }
 
     // Find discount code
