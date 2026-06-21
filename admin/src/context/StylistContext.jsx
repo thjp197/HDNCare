@@ -1,8 +1,24 @@
-import { createContext, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 export const StylistContext = createContext();
+
+const getStoredStylistToken = () => {
+    try {
+        return localStorage.getItem('sToken') || ''
+    } catch {
+        return ''
+    }
+}
+
+const clearStylistAuthStorage = () => {
+    try {
+        localStorage.removeItem('sToken')
+    } catch (error) {
+        console.warn('Unable to clear stylist auth storage', error)
+    }
+}
 
 const StylistContextProvider = (props) => {
 
@@ -11,12 +27,22 @@ const StylistContextProvider = (props) => {
         import.meta.env.VITE_BACKEND_URL ||
         'http://localhost:4000'
 
-    const [sToken, setSToken] = useState(localStorage.getItem('sToken') ? localStorage.getItem('sToken') : '')
+    const [sToken, setSToken] = useState(() => getStoredStylistToken())
     const [appointments, setAppointments] = useState([])
     const [dashData, setDashData] = useState(false)
     const [profileData, setProfileData] = useState(false)
     const [isBranchManager, setIsBranchManager] = useState(false)
     const [branchInfo, setBranchInfo] = useState(null)
+
+    const resetStylistSession = useCallback(() => {
+        setSToken('')
+        setAppointments([])
+        setDashData(false)
+        setProfileData(false)
+        setIsBranchManager(false)
+        setBranchInfo(null)
+        clearStylistAuthStorage()
+    }, [])
 
     // Getting Stylist appointment data from Database using API
     const getAppointments = async () => {
@@ -203,8 +229,36 @@ const StylistContextProvider = (props) => {
         }
     }
 
+    useEffect(() => {
+        const syncStylistSession = () => {
+            if (!sToken) return
+
+            const storedToken = getStoredStylistToken()
+            if (!storedToken || storedToken !== sToken) {
+                resetStylistSession()
+            }
+        }
+
+        syncStylistSession()
+
+        window.addEventListener('storage', syncStylistSession)
+        window.addEventListener('focus', syncStylistSession)
+        window.addEventListener('pageshow', syncStylistSession)
+        document.addEventListener('visibilitychange', syncStylistSession)
+
+        const intervalId = window.setInterval(syncStylistSession, 1000)
+
+        return () => {
+            window.removeEventListener('storage', syncStylistSession)
+            window.removeEventListener('focus', syncStylistSession)
+            window.removeEventListener('pageshow', syncStylistSession)
+            document.removeEventListener('visibilitychange', syncStylistSession)
+            window.clearInterval(intervalId)
+        }
+    }, [resetStylistSession, sToken])
+
     const value = {
-        sToken, setSToken, backendUrl, 
+        sToken, setSToken, resetStylistSession, backendUrl, 
         appointments, getAppointments, 
         setAppointments, completeAppointment,
         cancelAppointment, 

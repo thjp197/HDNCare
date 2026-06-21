@@ -1,17 +1,44 @@
-import { createContext, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import {toast} from 'react-toastify'
 export const AdminContext = createContext()
 
+const getStoredAdminToken = () => {
+    try {
+        return localStorage.getItem('aToken') || ''
+    } catch {
+        return ''
+    }
+}
+
+const clearAdminAuthStorage = () => {
+    try {
+        localStorage.removeItem('aToken')
+    } catch (error) {
+        console.warn('Unable to clear admin auth storage', error)
+    }
+}
+
 const AdminContextProvider = (props) => {
 
-    const [aToken, setAToken] = useState(localStorage.getItem('aToken')?localStorage.getItem('aToken'):'')
+    const [aToken, setAToken] = useState(() => getStoredAdminToken())
     const [stylists, setStylists] = useState([])
     const [appointments, setAppointments] = useState([])
     const [penalizedUsers, setPenalizedUsers] = useState([])
     const [discountCodes, setDiscountCodes] = useState([])
     const [dashData, setDashData] = useState(false)
     const [branchesInfo, setBranchesInfo] = useState([])
+
+    const resetAdminSession = useCallback(() => {
+        setAToken('')
+        setStylists([])
+        setAppointments([])
+        setPenalizedUsers([])
+        setDiscountCodes([])
+        setDashData(false)
+        setBranchesInfo([])
+        clearAdminAuthStorage()
+    }, [])
 
 
     const backendUrl =
@@ -357,8 +384,37 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    useEffect(() => {
+        const syncAdminSession = () => {
+            if (!aToken) return
+
+            const storedToken = getStoredAdminToken()
+            if (!storedToken || storedToken !== aToken) {
+                resetAdminSession()
+            }
+        }
+
+        syncAdminSession()
+
+        window.addEventListener('storage', syncAdminSession)
+        window.addEventListener('focus', syncAdminSession)
+        window.addEventListener('pageshow', syncAdminSession)
+        document.addEventListener('visibilitychange', syncAdminSession)
+
+        const intervalId = window.setInterval(syncAdminSession, 1000)
+
+        return () => {
+            window.removeEventListener('storage', syncAdminSession)
+            window.removeEventListener('focus', syncAdminSession)
+            window.removeEventListener('pageshow', syncAdminSession)
+            document.removeEventListener('visibilitychange', syncAdminSession)
+            window.clearInterval(intervalId)
+        }
+    }, [aToken, resetAdminSession])
+
     const value = {
         aToken, setAToken,
+        resetAdminSession,
         backendUrl,
         getAllStylists,
         stylists,

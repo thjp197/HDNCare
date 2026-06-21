@@ -1,8 +1,25 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 export const AppContext = createContext();
+
+const getStoredToken = () => {
+  try {
+    return localStorage.getItem("token") || false;
+  } catch {
+    return false;
+  }
+};
+
+const clearAuthStorage = () => {
+  try {
+    localStorage.removeItem("token");
+    localStorage.removeItem("hdncare_chat_history");
+  } catch (error) {
+    console.warn("Unable to clear auth storage", error);
+  }
+};
 
 const AppContextProvider = (props) => {
   const currencySymbol = "VND";
@@ -11,17 +28,16 @@ const AppContextProvider = (props) => {
     import.meta.env.VITE_BACKEND_URL ||
     "http://localhost:4000";
   const [stylists, setStylists] = useState([]);
-  const [token, setToken] = useState(
-    localStorage.getItem("token") ? localStorage.getItem("token") : false,
-  );
+  const [token, setToken] = useState(() => getStoredToken());
   const [userData, setUserData] = useState(false);
   const [showBannedAccountModal, setShowBannedAccountModal] = useState(false);
 
-  const resetUserSession = () => {
+  const resetUserSession = useCallback(() => {
     setToken(false);
     setUserData(false);
-    localStorage.removeItem("token");
-  };
+    setShowBannedAccountModal(false);
+    clearAuthStorage();
+  }, []);
 
   const isAuthOrBannedMessage = (message = "") => {
     const normalizedMessage = String(message).toLowerCase();
@@ -104,6 +120,34 @@ const AppContextProvider = (props) => {
   }, []);
 
   useEffect(() => {
+    const syncAuthSession = () => {
+      if (!token) return;
+
+      const storedToken = getStoredToken();
+      if (!storedToken || storedToken !== token) {
+        resetUserSession();
+      }
+    };
+
+    syncAuthSession();
+
+    window.addEventListener("storage", syncAuthSession);
+    window.addEventListener("focus", syncAuthSession);
+    window.addEventListener("pageshow", syncAuthSession);
+    document.addEventListener("visibilitychange", syncAuthSession);
+
+    const intervalId = window.setInterval(syncAuthSession, 1000);
+
+    return () => {
+      window.removeEventListener("storage", syncAuthSession);
+      window.removeEventListener("focus", syncAuthSession);
+      window.removeEventListener("pageshow", syncAuthSession);
+      document.removeEventListener("visibilitychange", syncAuthSession);
+      window.clearInterval(intervalId);
+    };
+  }, [resetUserSession, token]);
+
+  useEffect(() => {
     if (token) {
       loadUserProfileData();
     } else {
@@ -117,6 +161,7 @@ const AppContextProvider = (props) => {
     backendUrl,
     token,setToken,
     userData,setUserData,
+    resetUserSession,
     loadUserProfileData,
     patchPersonalImages,
     showBannedAccountModal, setShowBannedAccountModal,
