@@ -41,6 +41,22 @@ const MyProfile = () => {
     dob: ''
   });
 
+  const normalizeGender = (gender) => {
+    if (!gender) return "Không chọn";
+
+    const genderMap = {
+      Male: "Nam",
+      Female: "Nữ",
+      "Not Selected": "Không chọn",
+      "Chưa chọn": "Không chọn",
+      Nam: "Nam",
+      Nữ: "Nữ",
+      "Không chọn": "Không chọn",
+    };
+
+    return genderMap[gender] || gender;
+  };
+
   const updateUserProfileData = async () => {
     // Chặn không cho lưu nếu đang có lỗi
     if (errors.phone || errors.dob) {
@@ -53,7 +69,7 @@ const MyProfile = () => {
       formData.append("name", userData.name);
       formData.append("phone", userData.phone);
       formData.append("address", JSON.stringify(userData.address));
-      formData.append("gender", userData.gender);
+      formData.append("gender", normalizeGender(userData.gender));
       formData.append("dob", userData.dob);
       if (image) formData.append("image", image);
 
@@ -386,15 +402,15 @@ const MyProfile = () => {
                         gender: e.target.value,
                       }))
                     }
-                    value={userData.gender}
+                    value={normalizeGender(userData.gender)}
                   >
-                    <option value="Not Selected">Không chọn</option>
-                    <option value="Male">Nam</option>
-                    <option value="Female">Nữ</option>
+                    <option value="Không chọn">Không chọn</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
                   </select>
                 ) : (
                   <p className="text-[#2f2a28] font-medium">
-                    {userData.gender}
+                    {normalizeGender(userData.gender)}
                   </p>
                 )}
               </div>

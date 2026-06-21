@@ -14,7 +14,7 @@ const stylistSchema = new mongoose.Schema({
   address: { type: Object, required: true },
   date: { type: Number, required: true },
   slots_booked: { type: Object, default: {} },
-  branch: { type: String, enum: ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3'], default: null },
+  branch: { type: String, enum: ['Gò Vấp', 'Bình Thạnh', 'Quận 7', 'Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3'], default: null },
   isBranchManager: { type: Boolean, default: false }
 }, { minimize: false })
 

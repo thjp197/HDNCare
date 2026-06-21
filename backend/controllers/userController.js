@@ -670,6 +670,8 @@ const payAppointmentWithWallet = async (req, res) => {
     if (Number.isFinite(Number(discountAmount)) && Number(discountAmount) > 0) {
       payableAmount = Math.max(0, payableAmount - Number(discountAmount));
     }
+
+    const totalPaidAmount = paidDeposit + payableAmount;
     
     const walletBalance = Number(user.walletBalance || 0);
 
@@ -678,6 +680,7 @@ const payAppointmentWithWallet = async (req, res) => {
       const updateData = {
         payment: true,
         paymentMethod: appointmentData.depositMethod || "wallet",
+        paidAmount: totalPaidAmount,
       };
 
       if (discountCode) {
@@ -729,6 +732,7 @@ const payAppointmentWithWallet = async (req, res) => {
         payment: true,
         paymentTransactionId: walletReference,
         paymentMethod: "wallet",
+        paidAmount: totalPaidAmount,
       };
 
       // Handle discount code if applied
@@ -841,6 +845,7 @@ const payAppointmentDepositWithWallet = async (req, res) => {
         depositAmount,
         depositTransactionId: walletReference,
         depositMethod: "wallet",
+        paidAmount: depositAmount,
       };
 
       await appointmentModel.findByIdAndUpdate(appointmentId, updateData);
@@ -1338,6 +1343,7 @@ const verifyPayment = async (req, res) => {
       payment: true,
       paymentTransactionId: vnp_TransactionNo,
       paymentMethod: "vnpay",
+      paidAmount: Number(appointmentData.paidAmount || 0) + Number(vnp_Amount || 0),
     };
 
     // If discount code is used, update it
@@ -1403,6 +1409,7 @@ const verifyDepositPayment = async (req, res) => {
       depositAmount,
       depositTransactionId: vnp_TransactionNo || depositRef,
       depositMethod: "vnpay",
+      paidAmount: depositAmount,
     };
 
     await appointmentModel.findByIdAndUpdate(appointmentId, updateData);

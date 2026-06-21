@@ -13,6 +13,7 @@ const AllAppointments = () => {
   const [selectedCancellationData, setSelectedCancellationData] = useState(null);
   const [cancelConfirmModalOpen, setCancelConfirmModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
+  const [appointmentToCancelIsExpired, setAppointmentToCancelIsExpired] = useState(false);
 
   useEffect(() => {
     if (aToken) {
@@ -33,19 +34,23 @@ const AllAppointments = () => {
     setSelectedCancellationData(null);
   };
 
-  const openCancelConfirmModal = (appointmentId) => {
+  const openCancelConfirmModal = (appointmentId, isExpired = false) => {
     setAppointmentToCancel(appointmentId);
+    setAppointmentToCancelIsExpired(isExpired);
     setCancelConfirmModalOpen(true);
   };
 
   const closeCancelConfirmModal = () => {
     setCancelConfirmModalOpen(false);
     setAppointmentToCancel(null);
+    setAppointmentToCancelIsExpired(false);
   };
 
   const handleConfirmCancel = async () => {
     if (!appointmentToCancel) return;
-    await cancelAppointment(appointmentToCancel, { penalizeUser: true });
+    await cancelAppointment(appointmentToCancel, {
+      penalizeUser: !appointmentToCancelIsExpired,
+    });
     closeCancelConfirmModal();
   };
 
@@ -130,7 +135,10 @@ const AllAppointments = () => {
             </p>
             <div className="max-sm:order-6 sm:contents">
             {isExpired ? (
-              <button className="inline-flex w-fit justify-self-start items-center rounded border border-gray-400 bg-gray-300 px-3 py-1.5 text-xs font-semibold font-sans text-gray-700 cursor-default hover:bg-gray-350 transition">
+              <button
+                onClick={() => openCancelConfirmModal(item._id, true)}
+                className="inline-flex w-fit justify-self-start items-center rounded border border-gray-400 bg-gray-300 px-3 py-1.5 text-xs font-semibold font-sans text-gray-700 hover:bg-gray-350 transition"
+              >
                 Hết hạn
               </button>
             ) : item.cancelled ? (
@@ -209,8 +217,14 @@ const AllAppointments = () => {
       {cancelConfirmModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-            <h2 className="mb-3 text-xl font-bold text-gray-800">Xác nhận hủy đơn</h2>
-            <p className="text-gray-600">Bạn có muốn hủy đơn và phạt người dùng này 1 lần không?</p>
+            <h2 className="mb-3 text-xl font-bold text-gray-800">
+              {appointmentToCancelIsExpired ? "Xác nhận hủy lịch hết hạn" : "Xác nhận hủy đơn"}
+            </h2>
+            <p className="text-gray-600">
+              {appointmentToCancelIsExpired
+                ? "Bạn có muốn hủy luôn lịch hẹn này không?"
+                : "Bạn có muốn hủy đơn và phạt người dùng này 1 lần không?"}
+            </p>
 
             <div className="mt-6 flex justify-end gap-3">
               <button

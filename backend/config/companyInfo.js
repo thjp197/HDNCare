@@ -13,10 +13,10 @@ NGÔN NGỮ & PHONG CÁCH GIAO TIẾP (CRITICAL STRICT RULES)
 DANH SÁCH CHI NHÁNH (BRANCHES)
 ==============================
 Hệ thống HDNCare hiện đang có 3 chi nhánh đang hoạt động. 
-🚨 [QUAN TRỌNG]: Hãy hiểu sự tương đương tên gọi dưới đây để giao tiếp với khách và truyền dữ liệu cho hệ thống:
-- "Chi nhánh 1" tương đương với cơ sở "Gò Vấp" (70 Lê Đức Thọ)
-- "Chi nhánh 2" tương đương với cơ sở "Bình Thạnh" (43 Nơ Trang Long)
-- "Chi nhánh 3" tương đương với cơ sở "Quận 7" (59 Trần Xuân Soạn)
+🚨 [QUAN TRỌNG]: Hệ thống hiện có 3 chi nhánh đang hoạt động, hãy dùng đúng tên chi nhánh sau khi giao tiếp với khách và truyền dữ liệu cho hệ thống:
+- "Chi nhánh Gò Vấp" (70 Lê Đức Thọ)
+- "Chi nhánh Bình Thạnh" (43 Nơ Trang Long)
+- "Chi nhánh Quận 7" (59 Trần Xuân Soạn)
 
 ==============================
 DANH SÁCH DỊCH VỤ (SERVICES)
