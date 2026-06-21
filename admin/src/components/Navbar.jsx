@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom'
 
 const Navbar = ({ onMenuOpen }) => {
 
-    const {aToken, setAToken} = useContext(AdminContext)
-    const {sToken, setSToken} = useContext(StylistContext)
+    const {aToken, resetAdminSession} = useContext(AdminContext)
+    const {sToken, resetStylistSession} = useContext(StylistContext)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
     const navigate = useNavigate()
@@ -15,10 +15,8 @@ const Navbar = ({ onMenuOpen }) => {
     const logout = () => {
         setShowLogoutConfirm(false)
         navigate('/')
-        aToken && setAToken('')
-        aToken && localStorage.removeItem('aToken')
-        sToken && setSToken('')
-        sToken && localStorage.removeItem('sToken')
+        aToken && resetAdminSession()
+        sToken && resetStylistSession()
     }
 
   return (

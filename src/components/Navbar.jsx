@@ -7,16 +7,13 @@ const Navbar = () => {
 
       const navigate = useNavigate();
 
-      const { token, setToken, userData } = useContext(AppContext);
+      const { token, userData, resetUserSession } = useContext(AppContext);
 
       const [showMenu, setShowMenu] = useState(false);
       const [showProfile, setShowProfile] = useState(false);
 
       const logout = () => {
-        setToken(false)
-        localStorage.removeItem('token')
-        // THÊM DÒNG NÀY: Quét sạch bộ nhớ chat của AI khi khách đăng xuất
-        localStorage.removeItem('hdncare_chat_history')
+        resetUserSession()
         navigate('/')
       }
 

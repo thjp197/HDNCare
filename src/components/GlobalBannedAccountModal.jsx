@@ -4,12 +4,12 @@ import { AppContext } from '../context/AppContext'
 import BannedAccountModal from './BannedAccountModal'
 
 const GlobalBannedAccountModal = () => {
-  const { showBannedAccountModal, setShowBannedAccountModal, setToken } = useContext(AppContext)
+  const { showBannedAccountModal, setShowBannedAccountModal, resetUserSession } = useContext(AppContext)
   const navigate = useNavigate()
 
   const handleBannedModalClose = () => {
     setShowBannedAccountModal(false)
-    setToken(false)
+    resetUserSession()
     navigate('/login')
   }
 
@@ -17,7 +17,7 @@ const GlobalBannedAccountModal = () => {
     <BannedAccountModal 
       isOpen={showBannedAccountModal}
       onClose={handleBannedModalClose}
-      onLogout={() => setToken(false)}
+      onLogout={resetUserSession}
     />
   )
 }
