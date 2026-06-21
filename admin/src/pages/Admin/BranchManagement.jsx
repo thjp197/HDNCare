@@ -5,7 +5,7 @@ import axios from 'axios'
 
 const BranchManagement = () => {
   const { aToken, backendUrl, branchesInfo, getBranchesInfo, assignBranch, assignBranchManager, removeBranchManager } = useContext(AdminContext)
-  const [selectedBranch, setSelectedBranch] = useState('Chi nhánh 1')
+  const [selectedBranch, setSelectedBranch] = useState('Gò Vấp')
   const [selectedStylistForBranch, setSelectedStylistForBranch] = useState({})
   const [allStylists, setAllStylists] = useState([])
   const [loading, setLoading] = useState(false)
@@ -13,10 +13,20 @@ const BranchManagement = () => {
   const [selectedStylist, setSelectedStylist] = useState(null)
   const [newBranch, setNewBranch] = useState('')
 
+  const normalizeBranch = (branch) => {
+    const branchMap = {
+      'Chi nhánh 1': 'Gò Vấp',
+      'Chi nhánh 2': 'Bình Thạnh',
+      'Chi nhánh 3': 'Quận 7',
+    }
+
+    return branchMap[branch] || branch
+  }
+
   const branches = [
-    { id: 'Chi nhánh 1', name: 'Gò Vấp', location: '70 Lê Đức Thọ' },
-    { id: 'Chi nhánh 2', name: 'Bình Thạnh', location: '43 Nơ Trang Long' },
-    { id: 'Chi nhánh 3', name: 'Quận 7', location: '59 Trần Xuân Soạn' },
+    { id: 'Gò Vấp', name: 'Chi nhánh Gò Vấp', location: '70 Lê Đức Thọ' },
+    { id: 'Bình Thạnh', name: 'Chi nhánh Bình Thạnh', location: '43 Nơ Trang Long' },
+    { id: 'Quận 7', name: 'Chi nhánh Quận 7', location: '59 Trần Xuân Soạn' },
   ]
 
   useEffect(() => {
@@ -77,7 +87,7 @@ const BranchManagement = () => {
 
   const handleEditBranch = (stylist) => {
     setSelectedStylist(stylist)
-    setNewBranch(stylist.branch || '')
+    setNewBranch(normalizeBranch(stylist.branch || ''))
     setShowEditBranchModal(true)
   }
 
@@ -87,7 +97,7 @@ const BranchManagement = () => {
       return
     }
 
-    if (newBranch === selectedStylist.branch) {
+    if (newBranch === normalizeBranch(selectedStylist.branch)) {
       toast.info('Nhân viên đã ở chi nhánh này rồi')
       return
     }
@@ -136,7 +146,7 @@ const BranchManagement = () => {
 
       {selectedBranch && currentBranchInfo && (
         <div className='rounded-lg bg-white p-4 shadow-lg sm:p-6'>
-          <h2 className='text-xl font-bold mb-4'>{selectedBranch} - Chi tiết</h2>
+          <h2 className='text-xl font-bold mb-4'>Chi nhánh {selectedBranch} - Chi tiết</h2>
 
           {/* Current Manager Section */}
           <div className='mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200'>
@@ -254,7 +264,7 @@ const BranchManagement = () => {
               <div className='mb-4'>
                 <p className='text-gray-700 font-medium mb-1'>Nhân viên: <span className='font-bold'>{selectedStylist.name}</span></p>
                 <p className='text-gray-600 mb-4'>Chuyên ngành: {selectedStylist.speciality}</p>
-                <p className='text-gray-600 mb-4'>Chi nhánh hiện tại: <span className='font-semibold text-blue-600'>{selectedStylist.branch}</span></p>
+                <p className='text-gray-600 mb-4'>Chi nhánh hiện tại: <span className='font-semibold text-blue-600'>{normalizeBranch(selectedStylist.branch)}</span></p>
 
                 <label className='block text-gray-700 font-medium mb-2'>Chọn Chi Nhánh Mới:</label>
                 <select

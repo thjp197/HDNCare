@@ -5,9 +5,64 @@ import validator from "validator";
 import appointmentModel from "../models/appointmentModel.js";
 import stylistModel from "../models/stylistModel.js";
 import userModel from "../models/userModel.js";
-import { applyUserPenalty } from "../utils/penaltyUtils.js";
+import { applyUserPenalty, processRefund } from "../utils/penaltyUtils.js";
 
 const MAX_USER_PENALTY_COUNT = 5;
+const BRANCH_LEGACY_MAP = {
+  "Chi nhánh 1": "Gò Vấp",
+  "Chi nhánh 2": "Bình Thạnh",
+  "Chi nhánh 3": "Quận 7",
+};
+
+const BRANCH_DISPLAY_MAP = {
+  "Gò Vấp": "Chi nhánh Gò Vấp",
+  "Bình Thạnh": "Chi nhánh Bình Thạnh",
+  "Quận 7": "Chi nhánh Quận 7",
+};
+
+const getBranchName = (branch) => BRANCH_LEGACY_MAP[branch] || branch;
+
+const getBranchDisplayName = (branch) => BRANCH_DISPLAY_MAP[getBranchName(branch)] || branch;
+
+const getBranchAliases = (branch) => {
+  const normalizedBranch = getBranchName(branch);
+
+  switch (normalizedBranch) {
+    case "Gò Vấp":
+      return ["Gò Vấp", "Chi nhánh 1"];
+    case "Bình Thạnh":
+      return ["Bình Thạnh", "Chi nhánh 2"];
+    case "Quận 7":
+      return ["Quận 7", "Chi nhánh 3"];
+    default:
+      return [normalizedBranch];
+  }
+};
+
+const getOverduePendingAppointments = (appointments) => {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  return appointments.filter((appointment) => {
+    if (!appointment?.slotDate) {
+      return false;
+    }
+
+    const [dayRaw, monthRaw, yearRaw] = String(appointment.slotDate).split("_");
+    const day = Number(dayRaw);
+    const month = Number(monthRaw);
+    const year = Number(yearRaw);
+
+    if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) {
+      return false;
+    }
+
+    const appointmentDayStart = new Date(year, month - 1, day);
+    appointmentDayStart.setHours(0, 0, 0, 0);
+
+    return appointmentDayStart < todayStart;
+  });
+};
 
 //API for adding stylist
 const addStylist = async (req, res) => {
@@ -374,12 +429,13 @@ const updateStylist = async (req, res) => {
 const getStylistsByBranch = async (req, res) => {
   try {
     const { branch } = req.body
+    const normalizedBranch = getBranchName(branch)
 
     if (!branch) {
       return res.json({ success: false, message: "Vui lòng chọn chi nhánh" })
     }
 
-    const stylists = await stylistModel.find({ branch }).select('-password')
+    const stylists = await stylistModel.find({ branch: { $in: getBranchAliases(normalizedBranch) } }).select('-password')
     res.json({ success: true, stylists })
 
   } catch (error) {
@@ -391,11 +447,11 @@ const getStylistsByBranch = async (req, res) => {
 // API to get all branches info
 const getBranchesInfo = async (req, res) => {
   try {
-    const branches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3']
+    const branches = ['Gò Vấp', 'Bình Thạnh', 'Quận 7']
     const branchesData = []
 
     for (const branch of branches) {
-      const stylists = await stylistModel.find({ branch }).select('-password')
+      const stylists = await stylistModel.find({ branch: { $in: getBranchAliases(branch) } }).select('-password')
       const manager = stylists.find(s => s.isBranchManager)
       
       // Calculate revenue for this branch
@@ -434,13 +490,14 @@ const getBranchesInfo = async (req, res) => {
 const assignBranch = async (req, res) => {
   try {
     const { stylistId, branch } = req.body
+    const normalizedBranch = getBranchName(branch)
 
     if (!stylistId || !branch) {
       return res.json({ success: false, message: "Thiếu thông tin" })
     }
 
-    const validBranches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3']
-    if (!validBranches.includes(branch)) {
+    const validBranches = ['Gò Vấp', 'Bình Thạnh', 'Quận 7']
+    if (!validBranches.includes(normalizedBranch)) {
       return res.json({ success: false, message: "Chi nhánh không hợp lệ" })
     }
 
@@ -450,24 +507,25 @@ const assignBranch = async (req, res) => {
     const currentStylist = await stylistModel.findById(stylistId);
     
     // Nếu chuyên viên đang được chuyển sang một chi nhánh MỚI (khác chi nhánh cũ)
-    if (currentStylist && currentStylist.branch && currentStylist.branch !== branch) {
-        const pendingAppointments = await appointmentModel.find({
+    if (currentStylist && currentStylist.branch && getBranchName(currentStylist.branch) !== normalizedBranch) {
+      const pendingAppointments = await appointmentModel.find({
             styId: stylistId,
             cancelled: false,     // Chưa bị huỷ
             isCompleted: false    // Chưa hoàn thành
         });
+      const overduePendingAppointments = getOverduePendingAppointments(pendingAppointments);
 
-        if (pendingAppointments.length > 0) {
+      if (overduePendingAppointments.length > 0) {
             return res.json({ 
                 success: false, 
-                message: `⚠️ TỪ CHỐI ĐIỀU CHUYỂN: Chuyên viên này đang kẹt ${pendingAppointments.length} lịch hẹn chưa hoàn thành ở ${currentStylist.branch}. Hãy huỷ/dời lịch trước!` 
+          message: `⚠️ TỪ CHỐI ĐIỀU CHUYỂN: Chuyên viên này đang có ${overduePendingAppointments.length} lịch hẹn quá hạn chưa xử lý ở ${getBranchDisplayName(currentStylist.branch)}. Hãy huỷ/dời lịch trước!` 
             });
         }
     }
     // ==========================================
 
-    await stylistModel.findByIdAndUpdate(stylistId, { branch })
-    res.json({ success: true, message: `Đã gán stylist vào ${branch}` })
+        await stylistModel.findByIdAndUpdate(stylistId, { branch: normalizedBranch })
+        res.json({ success: true, message: `Đã gán stylist vào ${getBranchDisplayName(normalizedBranch)}` })
 
   } catch (error) {
     console.log(error)
@@ -479,13 +537,14 @@ const assignBranch = async (req, res) => {
 const assignBranchManager = async (req, res) => {
   try {
     const { stylistId, branch } = req.body
+    const normalizedBranch = getBranchName(branch)
 
     if (!stylistId || !branch) {
       return res.json({ success: false, message: "Thiếu thông tin" })
     }
 
-    const validBranches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3']
-    if (!validBranches.includes(branch)) {
+    const validBranches = ['Gò Vấp', 'Bình Thạnh', 'Quận 7']
+    if (!validBranches.includes(normalizedBranch)) {
       return res.json({ success: false, message: "Chi nhánh không hợp lệ" })
     }
 
@@ -493,29 +552,30 @@ const assignBranchManager = async (req, res) => {
     // [CHỐT CHẶN TƯƠNG TỰ CHO VIỆC GÁN QUẢN LÝ]
     // ==========================================
     const currentStylist = await stylistModel.findById(stylistId);
-    if (currentStylist && currentStylist.branch && currentStylist.branch !== branch) {
+    if (currentStylist && currentStylist.branch && getBranchName(currentStylist.branch) !== normalizedBranch) {
         const pendingAppointments = await appointmentModel.find({
             styId: stylistId,
             cancelled: false,
             isCompleted: false
         });
+      const overduePendingAppointments = getOverduePendingAppointments(pendingAppointments);
 
-        if (pendingAppointments.length > 0) {
+      if (overduePendingAppointments.length > 0) {
             return res.json({ 
                 success: false, 
-                message: `⚠️ TỪ CHỐI GÁN QUẢN LÝ TỚI CHI NHÁNH MỚI: Chuyên viên này đang kẹt ${pendingAppointments.length} lịch hẹn chưa hoàn thành ở chi nhánh cũ.` 
+          message: `⚠️ TỪ CHỐI GÁN QUẢN LÝ TỚI CHI NHÁNH MỚI: Chuyên viên này đang có ${overduePendingAppointments.length} lịch hẹn quá hạn chưa xử lý ở ${getBranchDisplayName(currentStylist.branch)}.` 
             });
         }
     }
     // ==========================================
 
     // Remove isBranchManager from current manager of this branch (if exists)
-    await stylistModel.updateMany({ branch, isBranchManager: true }, { isBranchManager: false })
+        await stylistModel.updateMany({ branch: { $in: getBranchAliases(normalizedBranch) }, isBranchManager: true }, { isBranchManager: false })
 
     // Set the new manager
-    await stylistModel.findByIdAndUpdate(stylistId, { isBranchManager: true, branch })
+        await stylistModel.findByIdAndUpdate(stylistId, { isBranchManager: true, branch: normalizedBranch })
 
-    res.json({ success: true, message: `Đã gán stylist làm quản lý của ${branch}` })
+        res.json({ success: true, message: `Đã gán stylist làm quản lý của ${getBranchDisplayName(normalizedBranch)}` })
 
   } catch (error) {
     console.log(error)
@@ -570,13 +630,14 @@ const deleteStylist = async (req, res) => {
 const forceAssignBranch = async (req, res) => {
   try {
     const { stylistId, branch } = req.body;
+    const normalizedBranch = getBranchName(branch);
 
     if (!stylistId || !branch) {
       return res.json({ success: false, message: "Thiếu thông tin" });
     }
 
-    const validBranches = ['Chi nhánh 1', 'Chi nhánh 2', 'Chi nhánh 3'];
-    if (!validBranches.includes(branch)) {
+    const validBranches = ['Gò Vấp', 'Bình Thạnh', 'Quận 7'];
+    if (!validBranches.includes(normalizedBranch)) {
       return res.json({ success: false, message: "Chi nhánh không hợp lệ" });
     }
 
@@ -592,37 +653,29 @@ const forceAssignBranch = async (req, res) => {
       isCompleted: false
     });
 
+    const overdueConflictAppointments = getOverduePendingAppointments(conflictAppointments);
+
     // 2. Xử lý huỷ hàng loạt và hoàn tiền
-    for (const app of conflictAppointments) {
+    for (const app of overdueConflictAppointments) {
       // Đánh dấu huỷ lịch
       app.cancelled = true;
       app.cancellationReasons = ["Hủy bởi hệ thống: Chuyên viên điều chuyển công tác đột xuất"];
-      app.cancellationDetails = `Hệ thống đã tự động huỷ lịch do chuyên viên chuyển sang ${branch}.`;
+      app.cancellationDetails = `Hệ thống đã tự động huỷ lịch do chuyên viên chuyển sang ${getBranchDisplayName(normalizedBranch)}.`;
 
       // Giải phóng lịch cho stylist
       if (stylist.slots_booked && stylist.slots_booked[app.slotDate]) {
           stylist.slots_booked[app.slotDate] = stylist.slots_booked[app.slotDate].filter((time) => time !== app.slotTime);
       }
 
-      // HOÀN TIỀN: Nếu khách đã thanh toán, cộng trả lại tiền vào Ví HDNCare
-      if (app.payment === true && app.amount > 0) {
-        const user = await userModel.findById(app.userId);
-        if (user) {
-          user.walletBalance = (user.walletBalance || 0) + app.amount;
-          user.walletTransactions.push({
-            type: "Refund",
-            amount: app.amount,
-            date: Date.now(),
-            description: `Hoàn tiền lịch hẹn ${app._id} do chuyên viên đổi chi nhánh công tác.`
-          });
-          await user.save();
-        }
+      // HOÀN TIỀN: Nếu khách đã thanh toán, cộng trả lại đúng số tiền thực trả vào ví
+      if (app.payment === true || app.depositPaid === true) {
+        await processRefund(app.userId, app);
       }
       await app.save();
     }
 
     // 3. Cập nhật chi nhánh mới cho chuyên viên
-    stylist.branch = branch;
+    stylist.branch = normalizedBranch;
     await stylist.save();
 
     // 4. Bắn sự kiện Real-time qua Socket.IO (Sử dụng global io hoặc req.io)

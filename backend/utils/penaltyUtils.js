@@ -118,13 +118,19 @@ const processRefund = async (userId, appointmentData) => {
     let refundAmount = 0;
     let refundSource = "";
 
-    if (appointmentData.payment && appointmentData.amount) {
-      // Hoàn lại toàn bộ số tiền thanh toán
-      refundAmount = appointmentData.amount;
+    const actualPaidAmount = Number(appointmentData?.paidAmount || 0);
+
+    if (Number.isFinite(actualPaidAmount) && actualPaidAmount > 0) {
+      refundAmount = actualPaidAmount;
+      refundSource = "paid_amount";
+    } else if (appointmentData.payment && appointmentData.depositPaid) {
+      refundAmount = Number(appointmentData.depositAmount || 0);
+      refundSource = "deposit";
+    } else if (appointmentData.payment) {
+      refundAmount = Number(appointmentData.amount || 0);
       refundSource = "full_payment";
     } else if (appointmentData.depositPaid && appointmentData.depositAmount) {
-      // Hoàn lại cọc
-      refundAmount = appointmentData.depositAmount;
+      refundAmount = Number(appointmentData.depositAmount || 0);
       refundSource = "deposit";
     }
 

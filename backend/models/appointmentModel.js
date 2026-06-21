@@ -24,6 +24,8 @@ const appointmentSchema = new mongoose.Schema({
     depositAmount: {type: Number, default: 0},
     depositTransactionId: {type: String, default: null},
     depositMethod: {type: String, default: null},
+    paidAmount: {type: Number, default: 0},
+    discountAmount: {type: Number, default: 0},
     isCompleted: {type: Boolean, default: false},
     isExpired: {type: Boolean, default: false},
     discountCode: {type: String, default: null},
