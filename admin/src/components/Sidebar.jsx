@@ -16,6 +16,7 @@ const Sidebar = ({ isMobileOpen = false, onClose = () => {} }) => {
     { to: '/branch-management', icon: assets.add_icon, label: 'Quản lý Chi nhánh' },
     { to: '/discount-codes', icon: assets.add_icon, label: 'Mã giảm giá' },
     { to: '/penalized-users', icon: assets.list_icon, label: 'Tài khoản bị phạt' },
+    { to: '/penalty-earnings', icon: assets.list_icon, label: 'Tiền phạt hủy lịch' },
   ]
 
   const stylistLinks = [

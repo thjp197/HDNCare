@@ -12,6 +12,7 @@ import AddStylist from './pages/Admin/AddStylist';
 import StylistsList from './pages/Admin/StylistsList';
 import EditStylist from './pages/Admin/EditStylist';
 import PenalizedUsers from './pages/Admin/PenalizedUsers';
+import PenaltyEarnings from './pages/Admin/PenaltyEarnings';
 import DiscountCodes from './pages/Admin/DiscountCodes';
 import BranchManagement from './pages/Admin/BranchManagement';
 import BranchManagerDashboard from './pages/BranchManager/BranchManagerDashboard';
@@ -49,6 +50,7 @@ const App = () => {
           <Route path='/branch-management' element={<BranchManagement />}/>
           <Route path='/discount-codes' element={<DiscountCodes />}/>
           <Route path='/penalized-users' element={<PenalizedUsers />}/>
+          <Route path='/penalty-earnings' element={<PenaltyEarnings />}/>
           <Route path='/edit-stylist/:stylistId' element={<EditStylist />}/>
 
           {/* branch manager routes */}

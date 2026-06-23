@@ -1,6 +1,6 @@
 import express from "express";
 // BỔ SUNG: Thêm forceAssignBranch vào cuối danh sách import
-import { addStylist, adminDashboard, allStylists, appointmentCancel, appointmentsAdmin, assignBranch, assignBranchManager, deleteStylist, forceAssignBranch, getBranchesInfo, getStylistsByBranch, loginAdmin, penalizedUsers, removeBranchManager, resetUserPenalty, updateStylist, updateUserPenalty } from "../controllers/adminController.js";
+import { addStylist, adminDashboard, allStylists, appointmentCancel, appointmentsAdmin, assignBranch, assignBranchManager, deleteStylist, forceAssignBranch, getBranchesInfo, getStylistsByBranch, loginAdmin, penalizedUsers, penaltyEarnings, removeBranchManager, resetUserPenalty, updateStylist, updateUserPenalty } from "../controllers/adminController.js";
 import { addDiscountCode, deleteDiscountCode, getAllDiscountCodes, updateDiscountCode } from "../controllers/discountCodeController.js";
 import { changeAvailablity } from "../controllers/stylistController.js";
 import authAdmin from "../middlewares/authAdmin.js";
@@ -20,6 +20,7 @@ adminRouter.post("/update-stylist", authAdmin, upload.single("image"), updateSty
 adminRouter.get("/penalized-users", authAdmin, penalizedUsers);
 adminRouter.post("/reset-user-penalty", authAdmin, resetUserPenalty);
 adminRouter.post("/update-user-penalty", authAdmin, updateUserPenalty);
+adminRouter.post("/penalty-earnings", authAdmin, penaltyEarnings);
 
 // Branch Management Routes
 adminRouter.post("/get-stylists-by-branch", authAdmin, getStylistsByBranch);
