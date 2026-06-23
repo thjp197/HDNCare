@@ -59,7 +59,7 @@ const getAvailableSlots = (styInfo, serverNow) => {
 
     const slots = [];
 
-    for (let hour = 9; hour < 21; hour += 1) {
+    for (let hour = 8; hour < 21; hour += 1) {
       const currentDate = new Date(slotDay);
       currentDate.setHours(hour, 0, 0, 0);
 

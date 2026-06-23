@@ -471,7 +471,7 @@ const MyAppointments = () => {
     const bookedSlots = stylist.slots_booked || {};
     const slotDate = day + "_" + month + "_" + year;
     
-    let currentDate = new Date(year, month - 1, day, 9, 0, 0, 0); // Start at 9 AM
+    let currentDate = new Date(year, month - 1, day, 8, 0, 0, 0); // Start at 8 AM
     const endTime = new Date(year, month - 1, day, 21, 0, 0, 0); // End at 9 PM
     const now = new Date();
 
