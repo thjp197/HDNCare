@@ -1,12 +1,38 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { StylistContext } from '../../context/StylistContext'
-import { toast } from 'react-toastify'
 import { isAppointmentExpired } from '../../utils/appointmentUtils'
+
+const getAppointmentTimeValue = (appointment) => {
+  const [day, month, year] = String(appointment?.slotDate || '').split('_').map(Number)
+  const timeMatch = String(appointment?.slotTime || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i)
+
+  if (!day || !month || !year || !timeMatch) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  let hour = Number(timeMatch[1])
+  const minute = Number(timeMatch[2])
+  const period = timeMatch[3]?.toUpperCase()
+
+  if (period === 'PM' && hour < 12) hour += 12
+  if (period === 'AM' && hour === 12) hour = 0
+
+  const date = new Date(year, month - 1, day, hour, minute)
+  return Number.isNaN(date.getTime()) ? Number.NEGATIVE_INFINITY : date.getTime()
+}
 
 const BranchManagerAppointments = () => {
   const { sToken, getBranchManagerAppointments, appointments, cancelAppointment } = useContext(StylistContext)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
+
+  const sortedAppointments = useMemo(
+    () =>
+      [...(appointments || [])].sort(
+        (first, second) => getAppointmentTimeValue(second) - getAppointmentTimeValue(first),
+      ),
+    [appointments],
+  )
 
   useEffect(() => {
     if (sToken) {
@@ -46,8 +72,8 @@ const BranchManagerAppointments = () => {
               </tr>
             </thead>
             <tbody>
-              {appointments && appointments.length > 0 ? (
-                appointments.map((item, index) => (
+              {sortedAppointments.length > 0 ? (
+                sortedAppointments.map((item, index) => (
                   <tr key={index} className='border-b border-gray-200 hover:bg-gray-50 transition'>
                     <td className='px-4 py-4'>
                       <p className='font-medium text-gray-800'>{item.userData?.name || 'N/A'}</p>
