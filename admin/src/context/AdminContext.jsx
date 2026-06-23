@@ -28,6 +28,8 @@ const AdminContextProvider = (props) => {
     const [discountCodes, setDiscountCodes] = useState([])
     const [dashData, setDashData] = useState(false)
     const [branchesInfo, setBranchesInfo] = useState([])
+    const [penaltyEarningsData, setPenaltyEarningsData] = useState([])
+    const [penaltyStats, setPenaltyStats] = useState({})
 
     const resetAdminSession = useCallback(() => {
         setAToken('')
@@ -37,6 +39,8 @@ const AdminContextProvider = (props) => {
         setDiscountCodes([])
         setDashData(false)
         setBranchesInfo([])
+        setPenaltyEarningsData([])
+        setPenaltyStats({})
         clearAdminAuthStorage()
     }, [])
 
@@ -384,6 +388,25 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    const getPenaltyEarnings = async (filterParams = {}) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/penalty-earnings', filterParams, { headers: { aToken } })
+
+            if (data.success) {
+                setPenaltyEarningsData(data.data || [])
+                setPenaltyStats(data.stats || {})
+                return { success: true }
+            } else {
+                toast.error(data.message || 'Lỗi khi lấy dữ liệu phạt')
+                return { success: false }
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return { success: false }
+        }
+    }
+
     useEffect(() => {
         const syncAdminSession = () => {
             if (!aToken) return
@@ -421,6 +444,7 @@ const AdminContextProvider = (props) => {
         changeAvailability,
         appointments, getAllAppointments, setAppointments, cancelAppointment,
         penalizedUsers, getPenalizedUsers, resetUserPenalty, updateUserPenalty,
+        penaltyEarningsData, penaltyStats, getPenaltyEarnings,
         dashData, getDashData,
         discountCodes, addDiscountCode, getAllDiscountCodes, updateDiscountCode, deleteDiscountCode,
         branchesInfo, getBranchesInfo, assignBranch, assignBranchManager, removeBranchManager

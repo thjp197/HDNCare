@@ -699,8 +699,77 @@ const forceAssignBranch = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 }
+
+// API lấy dữ liệu tiền lợi nhuận từ các cuộc hẹn bị phạt
+const penaltyEarnings = async (req, res) => {
+  try {
+    const { dateFrom, dateTo, search } = req.body;
+
+    let query = { isPenalized: true };
+
+    // Filter theo khoảng thời gian nếu có
+    if (dateFrom || dateTo) {
+      query.penalizedAt = {};
+      if (dateFrom) {
+        query.penalizedAt.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        query.penalizedAt.$lte = toDate;
+      }
+    }
+
+    // Filter theo tên người dùng hoặc email nếu có
+    let appointments = await appointmentModel.find(query).sort({ penalizedAt: -1 });
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      appointments = appointments.filter(apt => 
+        apt.userData?.name?.toLowerCase().includes(searchLower) || 
+        apt.userData?.email?.toLowerCase().includes(searchLower) ||
+        apt.userData?.phone?.includes(search)
+      );
+    }
+
+    // Tính toán thống kê
+    const totalPenaltyAmount = appointments.reduce((sum, apt) => sum + (apt.penaltyAmount || 0), 0);
+    const totalRefundAmount = appointments.reduce((sum, apt) => sum + (apt.penaltyRefundAmount || 0), 0);
+    const totalPenalizations = appointments.length;
+
+    // Format dữ liệu để gửi về frontend
+    const formattedAppointments = appointments.map(apt => ({
+      _id: apt._id,
+      userId: apt.userId,
+      userName: apt.userData?.name || "Người dùng không xác định",
+      userEmail: apt.userData?.email || "N/A",
+      userPhone: apt.userData?.phone || "N/A",
+      stylistName: apt.styData?.name || "Chuyên gia không xác định",
+      penaltyAmount: apt.penaltyAmount,
+      refundAmount: apt.penaltyRefundAmount,
+      slotDate: apt.slotDate,
+      slotTime: apt.slotTime,
+      penalizedAt: apt.penalizedAt,
+      paidAmount: apt.paidAmount,
+    }));
+
+    res.json({
+      success: true,
+      data: formattedAppointments,
+      stats: {
+        totalPenalizations,
+        totalPenaltyAmount,
+        totalRefundAmount,
+        averagePenalty: totalPenalizations > 0 ? Math.round(totalPenaltyAmount / totalPenalizations) : 0,
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+}
 export {
   addStylist, adminDashboard, allStylists, appointmentCancel, appointmentsAdmin, assignBranch,
-  assignBranchManager, deleteStylist, forceAssignBranch, getBranchesInfo, getStylistsByBranch, loginAdmin, penalizedUsers, removeBranchManager, resetUserPenalty, updateStylist, updateUserPenalty
+  assignBranchManager, deleteStylist, forceAssignBranch, getBranchesInfo, getStylistsByBranch, loginAdmin, penalizedUsers, penaltyEarnings, removeBranchManager, resetUserPenalty, updateStylist, updateUserPenalty
 };
 

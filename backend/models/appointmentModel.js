@@ -29,7 +29,12 @@ const appointmentSchema = new mongoose.Schema({
     isCompleted: {type: Boolean, default: false},
     isExpired: {type: Boolean, default: false},
     discountCode: {type: String, default: null},
-    rescheduleCount: {type: Number, default: 0}
+    rescheduleCount: {type: Number, default: 0},
+    // BỔ SUNG: Thông tin về phạt nếu hủy sát giờ
+    isPenalized: {type: Boolean, default: false},
+    penaltyAmount: {type: Number, default: 0},
+    penaltyRefundAmount: {type: Number, default: 0},
+    penalizedAt: {type: Date, default: null}
 })
 
 const appointmentModel = mongoose.models.appointment || mongoose.model("appointment", appointmentSchema);

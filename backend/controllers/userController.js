@@ -1005,7 +1005,7 @@ const cancelAppointment = async (req, res) => {
     let refundResult = null;
 
     if (shouldPenalize) {
-      penaltyResult = await applyUserPenalty(userId, {
+      penaltyResult = await applyUserPenalty(userId, appointmentData, {
         appointmentId,
         source: "user",
         reason: "Người dùng hủy lịch sát giờ hẹn (trong vòng 2 tiếng)",
@@ -1019,10 +1019,20 @@ const cancelAppointment = async (req, res) => {
     let message = "";
     
     if (penaltyResult?.applied) {
-      if (penaltyResult.isBanned) {
-        message = "Lịch hẹn đã được hủy. Bạn bị phạt 1 lần và tài khoản đã bị khóa vì đủ 5 lần vi phạm. Không có tiền hoàn lại.";
+      if (penaltyResult.penaltyType === "deposit_only") {
+        // Thanh toán cọc → mất 100%
+        if (penaltyResult.isBanned) {
+          message = `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5). Mất 100% tiền cọc (${penaltyResult.penaltyAmount.toLocaleString("vi-VN")} VND). Tài khoản đã bị khóa vì đủ 5 lần vi phạm.`;
+        } else {
+          message = `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5). Mất 100% tiền cọc (${penaltyResult.penaltyAmount.toLocaleString("vi-VN")} VND).`;
+        }
       } else {
-        message = `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5). Không có tiền hoàn lại.`;
+        // Thanh toán đủ → mất 20%, hoàn 80%
+        if (penaltyResult.isBanned) {
+          message = `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5). Mất 20% (${penaltyResult.penaltyAmount.toLocaleString("vi-VN")} VND) và được hoàn lại 80% (${penaltyResult.refundAmount.toLocaleString("vi-VN")} VND) vào ví. Tài khoản đã bị khóa vì đủ 5 lần vi phạm.`;
+        } else {
+          message = `Lịch hẹn đã được hủy. Bạn bị phạt 1 lần (${penaltyResult.penaltyCount}/5). Mất 20% (${penaltyResult.penaltyAmount.toLocaleString("vi-VN")} VND) và được hoàn lại 80% (${penaltyResult.refundAmount.toLocaleString("vi-VN")} VND) vào ví.`;
+        }
       }
     } else if (refundResult?.success && refundResult.amount > 0) {
       message = `Lịch hẹn đã được hủy. ${refundResult.message}`;
@@ -1035,9 +1045,12 @@ const cancelAppointment = async (req, res) => {
       message,
       penaltyApplied: Boolean(penaltyResult?.applied),
       penaltyCount: penaltyResult?.penaltyCount || null,
+      penaltyAmount: penaltyResult?.penaltyAmount || 0,
+      refundAmount: penaltyResult?.refundAmount || 0,
+      penaltyType: penaltyResult?.penaltyType || null,
       userBanned: Boolean(penaltyResult?.isBanned),
       refundProcessed: refundResult?.success && refundResult.amount > 0,
-      refundAmount: refundResult?.amount || 0,
+      totalRefundAmount: refundResult?.amount || 0,
       refundMessage: refundResult?.message || null,
     });
   } catch (error) {
