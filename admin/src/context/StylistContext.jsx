@@ -119,6 +119,33 @@ const StylistContextProvider = (props) => {
 
     }
 
+    const cancelBranchManagerAppointment = async (appointmentId, options = {}) => {
+        const { penalizeUser = false } = options
+
+        try {
+            
+            const {data} = await axios.post(
+                backendUrl + '/api/stylist/branch-manager-cancel-appointment',
+                {appointmentId, penalizeUser},
+                {headers: { stoken: sToken }}
+            )
+            if (import.meta.env.DEV) {
+
+            }
+            if (data.success) {
+                toast.success(data.message)
+                getBranchManagerAppointments()
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+
+    }
+
     const getDashData = async () => {
         try {
             
@@ -261,7 +288,7 @@ const StylistContextProvider = (props) => {
         sToken, setSToken, resetStylistSession, backendUrl, 
         appointments, getAppointments, 
         setAppointments, completeAppointment,
-        cancelAppointment, 
+        cancelAppointment, cancelBranchManagerAppointment,
         dashData, setDashData, getDashData,
         profileData, setProfileData, getProfileData,
         isBranchManager, branchInfo,
