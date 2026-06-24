@@ -233,6 +233,11 @@ const appointmentCancel = async (req, res) => {
               source: "admin",
               reason: "Lịch hẹn bị hủy bởi quản trị viên hoặc chuyên viên",
             })
+          } else {
+            // Hoàn tiền khi hủy không phạt (đúng chính sách)
+            if (appointmentData.payment === true || appointmentData.depositPaid === true) {
+              await processRefund(appointmentData.userId, appointmentData)
+            }
           }
 
           const message = penaltyResult?.applied

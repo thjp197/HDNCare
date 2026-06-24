@@ -2,7 +2,7 @@ import stylistModel from "../models/stylistModel.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import appointmentModel from "../models/appointmentModel.js";
-import { applyUserPenalty } from "../utils/penaltyUtils.js";
+import { applyUserPenalty, processRefund } from "../utils/penaltyUtils.js";
 
 // API to change stylist availablity for Admin and Stylist Panel
 const changeAvailablity = async (req, res) => {
@@ -160,6 +160,11 @@ const appointmentCancel = async (req, res) => {
                     source: 'stylist',
                     reason: 'Lịch hẹn bị hủy trong vòng 2 giờ trước giờ hẹn',
                 })
+            } else if (penalizeUser === false) {
+                // Hoàn tiền khi hủy không phạt (đúng chính sách)
+                if (appointmentData.payment === true || appointmentData.depositPaid === true) {
+                    await processRefund(appointmentData.userId, appointmentData)
+                }
             }
 
             const message = penaltyResult?.applied
@@ -527,6 +532,11 @@ const branchManagerCancelAppointment = async (req, res) => {
                 source: 'branchManager',
                 reason: 'Lịch hẹn bị hủy trong vòng 2 giờ trước giờ hẹn bởi trưởng chi nhánh',
             })
+        } else if (penalizeUser === false) {
+            // Hoàn tiền khi hủy không phạt (đúng chính sách)
+            if (appointmentData.payment === true || appointmentData.depositPaid === true) {
+                await processRefund(appointmentData.userId, appointmentData)
+            }
         }
 
         const message = penaltyResult?.applied
