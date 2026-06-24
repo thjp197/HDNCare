@@ -446,6 +446,109 @@ const toggleStylistAvailability = async (req, res) => {
     }
 }
 
+// API to cancel appointment for Branch Manager
+const branchManagerCancelAppointment = async (req, res) => {
+    try {
+        const { appointmentId, penalizeUser = false } = req.body
+        const isBranchManager = req.isBranchManager
+        const branch = req.branch
+
+        if (!isBranchManager || !branch) {
+            return res.json({ success: false, message: 'Bạn không phải là trưởng chi nhánh hoặc chưa được gán chi nhánh' })
+        }
+
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Không tìm thấy lịch hẹn' })
+        }
+
+        if (appointmentData.cancelled) {
+            return res.json({ success: false, message: 'Lịch hẹn này đã được hủy trước đó' })
+        }
+
+        // Check if appointment's stylist belongs to this branch
+        const stylist = await stylistModel.findById(appointmentData.styId)
+        if (!stylist || stylist.branch !== branch) {
+            return res.json({ success: false, message: 'Lịch hẹn này không thuộc chi nhánh của bạn' })
+        }
+
+        // Cancel the appointment
+        const { slotDate, slotTime } = appointmentData
+        const [dayStr, monthStr, yearStr] = slotDate.split("_")
+        const [hourStr, minuteStr] = slotTime.split(":")
+        
+        // Create appointment datetime (treat as local time)
+        const appointmentDateTime = new Date(
+            parseInt(yearStr),
+            parseInt(monthStr) - 1,
+            parseInt(dayStr),
+            parseInt(hourStr),
+            parseInt(minuteStr)
+        )
+        
+        const now = new Date()
+        const hoursUntilAppointment = (appointmentDateTime - now) / (1000 * 60 * 60)
+        
+        // Check if cancellation violates the 2-hour rule
+        const isWithin2Hours = hoursUntilAppointment < 2 && hoursUntilAppointment >= 0
+        
+        // Apply penalty only if within 2 hours (violating cancellation policy)
+        const shouldPenalize = penalizeUser && isWithin2Hours
+        
+        const updatedAppointment = await appointmentModel.findByIdAndUpdate(
+            appointmentId,
+            {
+                cancelled: true,
+                cancellationReasons: ['Hủy bởi trưởng chi nhánh'],
+                cancellationDetails: shouldPenalize
+                    ? 'Đơn đã bị hủy trong vòng 2 giờ trước giờ hẹn - Người dùng bị phạt 1 lần.'
+                    : 'Đơn đã bị hủy bởi trưởng chi nhánh.',
+            },
+            { returnDocument: 'after' }
+        )
+
+        // Release stylist slot
+        const stylistData = await stylistModel.findById(appointmentData.styId)
+        if (stylistData) {
+            let slots_booked = stylistData.slots_booked || {}
+
+            if (Array.isArray(slots_booked[slotDate])) {
+                slots_booked[slotDate] = slots_booked[slotDate].filter((item) => item !== slotTime)
+            }
+
+            await stylistModel.findByIdAndUpdate(appointmentData.styId, { slots_booked })
+        }
+
+        let penaltyResult = null
+        if (shouldPenalize) {
+            penaltyResult = await applyUserPenalty(appointmentData.userId, {
+                appointmentId,
+                source: 'branchManager',
+                reason: 'Lịch hẹn bị hủy trong vòng 2 giờ trước giờ hẹn bởi trưởng chi nhánh',
+            })
+        }
+
+        const message = penaltyResult?.applied
+            ? penaltyResult.isBanned
+                ? 'Hủy cuộc hẹn thành công. Người dùng đã bị phạt và tài khoản đã bị khóa vì đủ 5 lần vi phạm.'
+                : `Hủy cuộc hẹn thành công. Người dùng đã bị phạt ${penaltyResult.penaltyCount}/5 lần.`
+            : 'Hủy cuộc hẹn thành công'
+
+        return res.json({
+            success: true,
+            message,
+            appointment: updatedAppointment,
+            penaltyApplied: Boolean(penaltyResult?.applied),
+            penaltyCount: penaltyResult?.penaltyCount || null,
+            userBanned: Boolean(penaltyResult?.isBanned),
+        })
+
+    } catch (error) {
+        res.json({ success: false, message: error.message })
+    }
+}
+
 export {
     changeAvailablity,
     stylistList,
@@ -461,5 +564,6 @@ export {
     branchManagerAppointments,
     branchManagerStylists,
     branchManagerInfo,
-    toggleStylistAvailability
+    toggleStylistAvailability,
+    branchManagerCancelAppointment
 }

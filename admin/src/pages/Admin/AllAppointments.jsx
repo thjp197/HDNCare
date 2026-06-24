@@ -34,6 +34,22 @@ const AllAppointments = () => {
     setSelectedCancellationData(null);
   };
 
+  const getHoursUntilAppointment = (slotDate, slotTime) => {
+    const [dayStr, monthStr, yearStr] = slotDate.split("_")
+    const [hourStr, minuteStr] = slotTime.split(":")
+    
+    const appointmentDateTime = new Date(
+      parseInt(yearStr),
+      parseInt(monthStr) - 1,
+      parseInt(dayStr),
+      parseInt(hourStr),
+      parseInt(minuteStr)
+    )
+    
+    const now = new Date()
+    return (appointmentDateTime - now) / (1000 * 60 * 60)
+  }
+
   const openCancelConfirmModal = (appointmentId, isExpired = false) => {
     setAppointmentToCancel(appointmentId);
     setAppointmentToCancelIsExpired(isExpired);
@@ -46,10 +62,10 @@ const AllAppointments = () => {
     setAppointmentToCancelIsExpired(false);
   };
 
-  const handleConfirmCancel = async () => {
+  const handleConfirmCancel = async (shouldPenalize) => {
     if (!appointmentToCancel) return;
     await cancelAppointment(appointmentToCancel, {
-      penalizeUser: !appointmentToCancelIsExpired,
+      penalizeUser: shouldPenalize,
     });
     closeCancelConfirmModal();
   };
@@ -215,31 +231,63 @@ const AllAppointments = () => {
       )}
 
       {cancelConfirmModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-            <h2 className="mb-3 text-xl font-bold text-gray-800">
-              {appointmentToCancelIsExpired ? "Xác nhận hủy lịch hết hạn" : "Xác nhận hủy đơn"}
-            </h2>
-            <p className="text-gray-600">
-              {appointmentToCancelIsExpired
-                ? "Bạn có muốn hủy luôn lịch hẹn này không?"
-                : "Bạn có muốn hủy đơn và phạt người dùng này 1 lần không?"}
-            </p>
+            <h2 className="mb-3 text-xl font-bold text-gray-800">Xác nhận hủy đơn</h2>
+            
+            {appointmentToCancel && appointments.find(a => a._id === appointmentToCancel) && (() => {
+              const appointment = appointments.find(a => a._id === appointmentToCancel)
+              const hoursUntil = getHoursUntilAppointment(appointment.slotDate, appointment.slotTime)
+              const isWithin2Hours = hoursUntil < 2 && hoursUntil >= 0
+              
+              return (
+                <>
+                  {isWithin2Hours && (
+                    <div className='mb-4 p-3 bg-red-50 border border-red-300 rounded-lg'>
+                      <p className='text-sm font-semibold text-red-700'>⚠️ Cảnh báo vi phạm chính sách</p>
+                      <p className='text-sm text-red-600 mt-1'>
+                        Lịch hẹn này còn {Math.round(hoursUntil * 60)} phút nữa. 
+                        Hủy trong vòng 2 giờ trước giờ hẹn sẽ phạt người dùng 1 lần.
+                      </p>
+                    </div>
+                  )}
+                  
+                  <p className='text-gray-600 mb-6'>
+                    {isWithin2Hours 
+                      ? 'Chỉ có thể hủy và phạt người dùng'
+                      : 'Chọn cách thức hủy lịch hẹn'
+                    }
+                  </p>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={closeCancelConfirmModal}
-                className="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 transition hover:bg-gray-300"
-              >
-                Đóng
-              </button>
-              <button
-                onClick={handleConfirmCancel}
-                className="rounded-lg bg-red-600 px-4 py-2 text-white transition hover:bg-red-700"
-              >
-                Xác nhận
-              </button>
-            </div>
+                  <div className='mt-6 flex flex-col gap-3'>
+                    <button
+                      onClick={() => handleConfirmCancel(false)}
+                      disabled={isWithin2Hours}
+                      className={`rounded-lg border-2 border-yellow-500 px-4 py-3 text-gray-800 font-medium transition ${
+                        isWithin2Hours
+                          ? 'bg-gray-100 opacity-50 cursor-not-allowed text-gray-400'
+                          : 'bg-yellow-50 hover:bg-yellow-100'
+                      }`}
+                      title={isWithin2Hours ? 'Không thể hủy không phạt trong 2 giờ trước giờ hẹn' : ''}
+                    >
+                      Hủy không phạt
+                    </button>
+                    <button
+                      onClick={() => handleConfirmCancel(true)}
+                      className='rounded-lg bg-red-600 px-4 py-3 text-white font-medium transition hover:bg-red-700'
+                    >
+                      {isWithin2Hours ? 'Hủy và phạt (bắt buộc)' : 'Hủy và phạt người dùng'}
+                    </button>
+                    <button
+                      onClick={closeCancelConfirmModal}
+                      className='rounded-lg bg-gray-200 px-4 py-2 text-gray-800 transition hover:bg-gray-300'
+                      >
+                      Đóng
+                    </button>
+                  </div>
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
