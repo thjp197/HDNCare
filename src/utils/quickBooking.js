@@ -1,26 +1,39 @@
 export const QUICK_BOOKING_BRANCHES = [
   {
-    value: 'Chi nhánh 1',
-    label: 'Bình Thạnh',
-    description: '43 Nơ Trang Long',
-    displayLabel: 'Bình Thạnh - 43 Nơ Trang Long',
-  },
-  {
-    value: 'Chi nhánh 2',
+    value: 'Gò Vấp',
     label: 'Gò Vấp',
     description: '70 Lê Đức Thọ',
     displayLabel: 'Gò Vấp - 70 Lê Đức Thọ',
   },
   {
-    value: 'Chi nhánh 3',
+    value: 'Bình Thạnh',
+    label: 'Bình Thạnh',
+    description: '43 Nơ Trang Long',
+    displayLabel: 'Bình Thạnh - 43 Nơ Trang Long',
+  },
+  {
+    value: 'Quận 7',
     label: 'Quận 7',
     description: '59 Trần Xuân Soạn',
     displayLabel: 'Quận 7 - 59 Trần Xuân Soạn',
   },
 ];
 
+const LEGACY_BRANCH_MAP = {
+  'Chi nhánh 1': 'Gò Vấp',
+  'Chi nhánh 2': 'Bình Thạnh',
+  'Chi nhánh 3': 'Quận 7',
+};
+
+export const normalizeBranchName = (branchValue = '') =>
+  LEGACY_BRANCH_MAP[branchValue] || branchValue;
+
+export const isSameBranch = (firstBranch = '', secondBranch = '') =>
+  normalizeBranchName(firstBranch) === normalizeBranchName(secondBranch);
+
 export const getBranchDisplayLabel = (branchValue = '') => {
-  const branch = QUICK_BOOKING_BRANCHES.find((item) => item.value === branchValue);
+  const normalizedBranch = normalizeBranchName(branchValue);
+  const branch = QUICK_BOOKING_BRANCHES.find((item) => item.value === normalizedBranch);
 
   if (!branch) {
     return branchValue;

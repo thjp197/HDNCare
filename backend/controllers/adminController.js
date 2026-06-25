@@ -39,6 +39,15 @@ const getBranchAliases = (branch) => {
   }
 };
 
+const getAppointmentBranch = (appointment) => {
+  const snapshotBranch =
+    appointment?.branch && appointment.branch !== "Chưa phân bổ"
+      ? appointment.branch
+      : appointment?.styData?.branch;
+
+  return getBranchName(snapshotBranch);
+};
+
 const getOverduePendingAppointments = (appointments) => {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -454,6 +463,7 @@ const getBranchesInfo = async (req, res) => {
   try {
     const branches = ['Gò Vấp', 'Bình Thạnh', 'Quận 7']
     const branchesData = []
+    const completedAppointments = await appointmentModel.find({ isCompleted: true })
 
     for (const branch of branches) {
       const stylists = await stylistModel.find({ branch: { $in: getBranchAliases(branch) } }).select('-password')
@@ -463,15 +473,20 @@ const getBranchesInfo = async (req, res) => {
       const stylistIds = stylists.map(s => s._id.toString())
       console.log(`Branch: ${branch}, Stylists: ${stylists.length}, IDs:`, stylistIds)
       
-      const branchAppointments = await appointmentModel.find({ styId: { $in: stylistIds } })
+      const branchAppointments = completedAppointments.filter((appointment) => {
+        const appointmentBranch = getAppointmentBranch(appointment)
+
+        if (appointmentBranch) {
+          return appointmentBranch === branch
+        }
+
+        return stylistIds.includes(String(appointment.styId))
+      })
       console.log(`Appointments found: ${branchAppointments.length}`)
       
       const branchRevenue = branchAppointments.reduce((sum, item) => {
-        if (item.isCompleted) {
-          console.log(`Appointment completed: ${item._id}, Amount: ${item.amount}`)
-          return sum + Number(item.amount || 0)
-        }
-        return sum
+        console.log(`Appointment completed: ${item._id}, Amount: ${item.amount}`)
+        return sum + Number(item.amount || 0)
       }, 0)
 
       branchesData.push({
@@ -777,4 +792,3 @@ export {
   addStylist, adminDashboard, allStylists, appointmentCancel, appointmentsAdmin, assignBranch,
   assignBranchManager, deleteStylist, forceAssignBranch, getBranchesInfo, getStylistsByBranch, loginAdmin, penalizedUsers, penaltyEarnings, removeBranchManager, resetUserPenalty, updateStylist, updateUserPenalty
 };
-

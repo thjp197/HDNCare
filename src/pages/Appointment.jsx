@@ -116,12 +116,14 @@ const Appointment = () => {
   const navigate = useNavigate();
   const socketRef = useRef(null);
   const getStylistsDataRef = useRef(getStylistsData);
+  const bookingRequestRef = useRef(false);
 
   const [slotIndex, setSlotIndex] = useState(null);
   const [slotTime, setSlotTime] = useState("");
   const [serverNow, setServerNow] = useState(() => Date.now());
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedStyleImage, setSelectedStyleImage] = useState(null);
+  const [isBooking, setIsBooking] = useState(false);
   const quickBookingParams = new URLSearchParams(search);
   const selectedBookingDate = quickBookingParams.get("date") || "";
   const selectedBookingTime = normalizeSlotTime(quickBookingParams.get("time") || "");
@@ -167,6 +169,10 @@ const Appointment = () => {
   const selectedSlotTime = selectedManualSlotTime || (slotIndex === null ? quickBookingSlotTime : "");
 
   const bookAppointment = async () => {
+    if (bookingRequestRef.current) {
+      return;
+    }
+
     if (!token) {
       toast.warn("Vui lòng đăng nhập để đặt lịch hẹn");
       return navigate("/login");
@@ -191,6 +197,11 @@ const Appointment = () => {
 
       const slotDate = buildSlotDate(selectedDay.date);
 
+      // Khóa đồng bộ bằng ref để lần click thứ hai bị chặn ngay cả trước khi
+      // React kịp render lại trạng thái disabled của nút.
+      bookingRequestRef.current = true;
+      setIsBooking(true);
+
       const { data } = await axios.post(
         backendUrl + "/api/user/book-appointment",
         { styId, slotDate, slotTime: selectedSlotTime, selectedStyleImage },
@@ -203,10 +214,14 @@ const Appointment = () => {
         navigate("/my-appointments");
       } else {
         toast.error(data.message);
+        getStylistsData();
       }
     } catch (error) {
       console.log(error);
       toast.error(error.message);
+    } finally {
+      bookingRequestRef.current = false;
+      setIsBooking(false);
     }
   };
 
@@ -369,12 +384,12 @@ const Appointment = () => {
 
           <button
             onClick={bookAppointment}
-            disabled={!selectedSlotTime}
+            disabled={!selectedSlotTime || isBooking}
             className={`bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6 ${
-              selectedSlotTime ? "" : "opacity-60 cursor-not-allowed"
+              selectedSlotTime && !isBooking ? "" : "opacity-60 cursor-not-allowed"
             }`}
           >
-            Đặt lịch
+            {isBooking ? "Đang đặt lịch..." : "Đặt lịch"}
           </button>
 
           {selectedStyleImage && (

@@ -1,7 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
-import { formatBookingDate, getBranchDisplayLabel } from "../utils/quickBooking";
+import {
+  formatBookingDate,
+  getBranchDisplayLabel,
+  isSameBranch,
+} from "../utils/quickBooking";
 
 const Stylists = () => {
   const { speciality } = useParams();
@@ -48,7 +52,7 @@ const Stylists = () => {
     let result = stylists;
 
     if (selectedBranch) {
-      result = result.filter((stylist) => stylist.branch === selectedBranch);
+      result = result.filter((stylist) => isSameBranch(stylist.branch, selectedBranch));
     }
 
     // Filter by speciality

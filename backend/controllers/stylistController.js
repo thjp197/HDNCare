@@ -4,6 +4,34 @@ import jwt from 'jsonwebtoken'
 import appointmentModel from "../models/appointmentModel.js";
 import { applyUserPenalty, processRefund } from "../utils/penaltyUtils.js";
 
+const BRANCH_LEGACY_MAP = {
+    "Chi nhánh 1": "Gò Vấp",
+    "Chi nhánh 2": "Bình Thạnh",
+    "Chi nhánh 3": "Quận 7",
+}
+
+const getBranchName = (branch) => BRANCH_LEGACY_MAP[branch] || branch
+
+const getBranchAliases = (branch) => {
+    const normalizedBranch = getBranchName(branch)
+
+    return [
+        normalizedBranch,
+        ...Object.entries(BRANCH_LEGACY_MAP)
+            .filter(([, branchName]) => branchName === normalizedBranch)
+            .map(([legacyBranch]) => legacyBranch),
+    ]
+}
+
+const getAppointmentBranch = (appointment) => {
+    const snapshotBranch =
+        appointment?.branch && appointment.branch !== "Chưa phân bổ"
+            ? appointment.branch
+            : appointment?.styData?.branch
+
+    return getBranchName(snapshotBranch)
+}
+
 // API to change stylist availablity for Admin and Stylist Panel
 const changeAvailablity = async (req, res) => {
     try {
@@ -308,7 +336,6 @@ const changeStylistPassword = async (req, res) => {
 // API to get branch manager dashboard
 const branchManagerDashboard = async (req, res) => {
     try {
-        const styId = req.styId
         const isBranchManager = req.isBranchManager
         const branch = req.branch
 
@@ -317,11 +344,25 @@ const branchManagerDashboard = async (req, res) => {
         }
 
         // Get all stylists in this branch
-        const branchStylists = await stylistModel.find({ branch }).select('_id')
+        const normalizedBranch = getBranchName(branch)
+        const branchStylists = await stylistModel.find({
+            branch: { $in: getBranchAliases(normalizedBranch) }
+        }).select('_id')
         const stylistIds = branchStylists.map(s => s._id)
+        const stylistIdSet = new Set(stylistIds.map(String))
 
-        // Get appointments for stylists in this branch
-        const appointments = await appointmentModel.find({ styId: { $in: stylistIds } })
+        // Use the branch captured when the appointment was booked. Fall back to
+        // the current stylist assignment only for old records without a snapshot.
+        const allAppointments = await appointmentModel.find({})
+        const appointments = allAppointments.filter((appointment) => {
+            const appointmentBranch = getAppointmentBranch(appointment)
+
+            if (appointmentBranch) {
+                return appointmentBranch === normalizedBranch
+            }
+
+            return stylistIdSet.has(String(appointment.styId))
+        })
 
         // Calculate metrics
         const earnings = appointments.reduce((sum, item) => {
@@ -332,7 +373,7 @@ const branchManagerDashboard = async (req, res) => {
         }, 0)
 
         const dashData = {
-            branch,
+            branch: normalizedBranch,
             stylists: branchStylists.length,
             appointments: appointments.length,
             earnings,

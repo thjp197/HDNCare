@@ -11,6 +11,13 @@ import { applyUserPenalty, isWithinHoursToAppointment, parseAppointmentDateTime,
 import { emitStylistSlotsUpdated } from "../utils/socket.js";
 
 const PERSONAL_LIBRARY_FOLDER = "hdn_care/personal_library";
+const BRANCH_LEGACY_MAP = {
+  "Chi nhánh 1": "Gò Vấp",
+  "Chi nhánh 2": "Bình Thạnh",
+  "Chi nhánh 3": "Quận 7",
+};
+
+const getBranchName = (branch) => BRANCH_LEGACY_MAP[branch] || branch;
 
 const getCloudinaryPublicIdFromUrl = (imageUrl) => {
   if (!imageUrl || typeof imageUrl !== "string") return null;
@@ -297,39 +304,71 @@ const bookAppointment = async (req, res) => {
       });
     }
 
-    let slots_booked = styData.slots_booked;
+    const existingAppointment = await appointmentModel.findOne({
+      slotDate,
+      slotTime,
+      cancelled: false,
+      $or: [{ styId }, { userId }],
+    }).select("_id");
 
-    //checking for slot availability
-    if (slots_booked[slotDate]) {
-      if (slots_booked[slotDate].includes(slotTime)) {
-        return res.json({ success: false, message: "Khung giờ không khả dụng" });
-      } else {
-        slots_booked[slotDate].push(slotTime);
-      }
-    } else {
-      slots_booked[slotDate] = [];
-      slots_booked[slotDate].push(slotTime);
+    if (existingAppointment) {
+      return res.json({
+        success: false,
+        message: "Bạn hoặc nhân viên đã có lịch hẹn trong khung giờ này",
+      });
     }
 
-    delete styData.slots_booked;
+    const slotPath = `slots_booked.${slotDate}`;
+    const reservedStylist = await stylistModel.findOneAndUpdate(
+      {
+        _id: styId,
+        available: true,
+        [slotPath]: { $ne: slotTime },
+      },
+      {
+        $addToSet: { [slotPath]: slotTime },
+      },
+      {
+        new: true,
+      },
+    ).select("-password -slots_booked");
+
+    // Chỉ một request có thể giữ thành công cùng một slot. Request double
+    // click đến sau sẽ nhận null tại đây và không thể tạo thêm appointment.
+    if (!reservedStylist) {
+      return res.json({
+        success: false,
+        message: "Khung giờ vừa được đặt, vui lòng chọn khung giờ khác",
+      });
+    }
+
+    const stylistSnapshot = reservedStylist.toObject();
 
     const appointmentData = {
       userId,
       styId,
+      branch: getBranchName(stylistSnapshot.branch) || "Chưa phân bổ",
       userData,
-      styData,
-      amount: styData.fees,
+      styData: stylistSnapshot,
+      amount: stylistSnapshot.fees,
       slotTime,
       slotDate,
       date: Date.now(),
       selectedStyleImage: selectedStyleImage || null,
     };
 
-    const newAppointment = new appointmentModel(appointmentData);
-    await newAppointment.save();
+    try {
+      const newAppointment = new appointmentModel(appointmentData);
+      await newAppointment.save();
+    } catch (error) {
+      // Nếu lưu appointment thất bại, trả lại slot vừa giữ để người dùng có
+      // thể thử lại thay vì làm khung giờ bị khóa vĩnh viễn.
+      await stylistModel.findByIdAndUpdate(styId, {
+        $pull: { [slotPath]: slotTime },
+      });
+      throw error;
+    }
 
-    //save new slots data in styData
-    await stylistModel.findByIdAndUpdate(styId, { slots_booked });
     emitStylistSlotsUpdated(styId, {
       action: "booked",
       slotDate,
