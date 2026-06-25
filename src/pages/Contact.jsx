@@ -17,7 +17,7 @@ const Contact = () => {
           <p className=' text-gray-500'>Số điện thoại: 0567 276 276 <br /> Email: hdncare@gmail.com</p>
           <p className=' font-semibold text-lg text-gray-600'>CƠ HỘI NGHỀ NGHIỆP TẠI HDNCARE</p>
           <p className=' text-gray-500'>Tìm hiểu thêm về đội ngũ và ví trí tuyển dụng của chúng tôi.</p>
-          <button className='border border-black px-8 py-4 text-sm hover:bg-black hover:text-white transition-all duration-500'>Khám phá việc làm</button>
+          <button className='rounded-lg border px-8 py-4 text-sm hover:bg-primary hover:text-white transition-all duration-500'>Khám phá việc làm</button>
         </div>
       </div>
 

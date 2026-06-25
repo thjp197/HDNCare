@@ -24,15 +24,15 @@ const About = () => {
       </div>
 
       <div className='flex flex-col md:flex-row mb-20'>
-        <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600 cursor-pointer'>
+        <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600'>
           <b>HIỆU QUẢ:</b>
           <p>Hệ thống đặt lịch hẹn được tối ưu hóa, phù hợp với lối sống bận rộn của bạn.</p>
         </div>
-        <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600 cursor-pointer'>
+        <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600'>
           <b>TIỆN LỢI: </b>
           <p>Tiếp cận mạng lưới chuyên viên trang điểm và stylist đáng tin cậy ngay trong khu vực của bạn.</p>
         </div>
-        <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600 cursor-pointer'>
+        <div className='border px-10 md:px-16 py-8 sm:py-16 flex flex-col gap-5 text-[15px] hover:bg-primary hover:text-white transition-all duration-300 text-gray-600'>
           <b>CÁ NHÂN HÓA:</b>
           <p >Gợi ý dịch vụ, nhắc lịch và tư vấn phong cách được thiết kế riêng để bạn luôn tự tin và tỏa sáng.</p>
         </div>

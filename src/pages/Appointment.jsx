@@ -6,7 +6,7 @@ import RelatedStylist from "../components/RelatedStylists";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { MapPin } from "lucide-react";
+import { MapPin, Upload } from "lucide-react";
 import { formatBookingDate, getBranchDisplayLabel } from "../utils/quickBooking";
 
 const buildSlotDate = (date) =>
@@ -107,6 +107,7 @@ const Appointment = () => {
     token,
     getStylistsData,
     userData,
+    patchPersonalImages,
   } = useContext(AppContext);
 
   const dayOfWeek = [
@@ -123,6 +124,7 @@ const Appointment = () => {
   const socketRef = useRef(null);
   const getStylistsDataRef = useRef(getStylistsData);
   const bookingRequestRef = useRef(false);
+  const imageUploadInputRef = useRef(null);
 
   const [slotIndex, setSlotIndex] = useState(null);
   const [slotTime, setSlotTime] = useState("");
@@ -131,6 +133,7 @@ const Appointment = () => {
   const [selectedStyleImage, setSelectedStyleImage] = useState(null);
   const [userBookedSlots, setUserBookedSlots] = useState({});
   const [isBooking, setIsBooking] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const quickBookingParams = new URLSearchParams(search);
   const selectedBookingDate = quickBookingParams.get("date") || "";
   const selectedBookingTime = normalizeSlotTime(quickBookingParams.get("time") || "");
@@ -267,6 +270,47 @@ const Appointment = () => {
     } finally {
       bookingRequestRef.current = false;
       setIsBooking(false);
+    }
+  };
+
+  const handleDirectImageUpload = async (event) => {
+    const imageFile = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!imageFile) {
+      return;
+    }
+
+    if (!imageFile.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn đúng định dạng hình ảnh");
+      return;
+    }
+
+    if (imageFile.size > 10 * 1024 * 1024) {
+      toast.error("Ảnh tải lên không được vượt quá 10 MB");
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+
+      const formData = new FormData();
+      formData.append("action", "add");
+      formData.append("image", imageFile);
+
+      const result = await patchPersonalImages(formData);
+
+      if (result.success) {
+        setSelectedStyleImage(result.imageUrl);
+        toast.success("Tải ảnh lên thành công");
+      } else {
+        toast.error(result.message || "Không thể tải ảnh lên");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error.message);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -485,12 +529,32 @@ const Appointment = () => {
                     Chọn tối đa 1 ảnh để stylist tham khảo phong cách makeup bạn muốn.
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowImageModal(false)}
-                  className="rounded-lg border border-[#e6ced6] px-3 py-1.5 text-sm text-[#7b1e3a]"
-                >
-                  Đóng
-                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={imageUploadInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleDirectImageUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageUploadInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Upload className="h-4 w-4" aria-hidden="true" />
+                    {isUploadingImage ? "Đang tải..." : "Tải ảnh lên"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowImageModal(false)}
+                    disabled={isUploadingImage}
+                    className="rounded-lg border border-[#e6ced6] px-3 py-1.5 text-sm text-[#7b1e3a] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Đóng
+                  </button>
+                </div>
               </div>
 
               {Array.isArray(userData?.personalImages) &&
@@ -524,7 +588,7 @@ const Appointment = () => {
                 </div>
               ) : (
                 <div className="mt-5 rounded-xl border border-dashed border-[#ead5dd] bg-[#fff8fb] p-8 text-center text-[#8a6960]">
-                  Bạn chưa có ảnh trong thư viện. Vui lòng vào trang AI Makeup để lưu ảnh trước.
+                  Bạn chưa có ảnh trong thư viện. Hãy tải ảnh trực tiếp bằng nút phía trên.
                 </div>
               )}
 

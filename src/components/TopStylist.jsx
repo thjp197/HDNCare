@@ -10,7 +10,7 @@ const TopStylist = () => {
     <div className="flex flex-col items-center gap-4 my-16 text-gray-900 md:mx-10">
       <h1 className="px-4 text-3xl font-semibold text-center sm:px-0">Đặt lịch với các chuyên viên hàng đầu</h1>
       <p className="text-sm text-center text-gray-500 sm:w-1/3">
-        Xem qua các chuyên viên của chúng tôi.
+        Xem qua các chuyên viên của chúng tôi
       </p>
 
       <div className="grid w-full grid-cols-2 gap-4 px-3 pt-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:px-0">
