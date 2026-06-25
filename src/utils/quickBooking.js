@@ -42,8 +42,8 @@ export const getBranchDisplayLabel = (branchValue = '') => {
   return branch.displayLabel || `${branch.label} - ${branch.description}`;
 };
 
-export const QUICK_BOOKING_HOURS = Array.from({ length: 12 }, (_, index) => {
-  const hour = index + 9;
+export const QUICK_BOOKING_HOURS = Array.from({ length: 13 }, (_, index) => {
+  const hour = index + 8;
   return {
     value: `${String(hour).padStart(2, '0')}:00`,
     label: `${String(hour).padStart(2, '0')}:00`,

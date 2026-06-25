@@ -229,8 +229,8 @@ const MyProfile = () => {
   return userData ? (
     <div className="mx-4 sm:mx-[10%] py-8">
       <div className="rounded-3xl border border-[#ead6dc] bg-gradient-to-br from-[#fff8fa] via-white to-[#fdf3f6] shadow-[0_20px_60px_rgba(97,21,43,0.12)] overflow-hidden">
-        <div className="px-6 sm:px-10 py-8 border-b border-[#ecdde1] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div className="flex items-center gap-4">
+        <div className="px-6 sm:px-10 py-8 border-b border-[#ecdde1] flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
             {isEdit ? (
               <label htmlFor="image" className="cursor-pointer">
                 <div className="relative">
@@ -258,7 +258,7 @@ const MyProfile = () => {
               />
             )}
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-xs tracking-[0.2em] text-[#7b1e3a] font-semibold uppercase">
                 Tài khoản của bạn
               </p>
@@ -276,22 +276,22 @@ const MyProfile = () => {
                   {userData.name}
                 </p>
               )}
-              <p className="text-[#6f4d56] mt-1 break-words max-w-xs sm:max-w-lg">{userData.email}</p>
+              <p className="text-[#6f4d56] mt-1 break-words max-w-xs sm:max-w-md xl:max-w-sm">{userData.email}</p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full sm:w-auto">
+          <div className="flex w-full flex-col gap-3 lg:flex-row lg:flex-nowrap lg:justify-end xl:w-auto xl:flex-none">
             {isEdit ? (
               <button
                 onClick={updateUserProfileData}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary text-white hover:opacity-90 transition-all"
+                className="w-full whitespace-nowrap px-4 py-2.5 rounded-xl bg-primary text-sm text-white hover:opacity-90 transition-all lg:w-auto"
               >
                 Lưu thông tin
               </button>
             ) : (
               <button
                 onClick={() => setIsEdit(true)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-primary text-primary hover:bg-primary hover:text-white transition-all"
+                className="w-full whitespace-nowrap px-4 py-2.5 rounded-xl border border-primary text-sm text-primary hover:bg-primary hover:text-white transition-all lg:w-auto"
               >
                 Chỉnh sửa hồ sơ
               </button>
@@ -299,7 +299,7 @@ const MyProfile = () => {
 
             <button
               onClick={() => setShowLibraryModal(true)}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-white hover:bg-[#fff5f8] transition-all inline-flex items-center gap-2 justify-center sm:justify-start"
+              className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl border border-[#d7b3be] text-sm text-[#7b1e3a] bg-white hover:bg-[#fff5f8] transition-all lg:w-auto"
             >
               <Images className="w-4 h-4" />
               Thư viện ảnh của bạn
@@ -307,7 +307,7 @@ const MyProfile = () => {
 
             <button
               onClick={() => setShowPasswordForm(true)}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-[#d7b3be] text-[#7b1e3a] bg-[#fff4f7] hover:bg-[#fdeaf0] transition-all"
+              className="w-full whitespace-nowrap px-4 py-2.5 rounded-xl border border-[#d7b3be] text-sm text-[#7b1e3a] bg-[#fff4f7] hover:bg-[#fdeaf0] transition-all lg:w-auto"
             >
               Đổi mật khẩu
             </button>

@@ -6,6 +6,7 @@ import RelatedStylist from "../components/RelatedStylists";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { io } from "socket.io-client";
+import { MapPin } from "lucide-react";
 import { formatBookingDate, getBranchDisplayLabel } from "../utils/quickBooking";
 
 const buildSlotDate = (date) =>
@@ -59,7 +60,7 @@ const getAvailableSlots = (styInfo, serverNow) => {
 
     const slots = [];
 
-    for (let hour = 9; hour < 21; hour += 1) {
+    for (let hour = 8; hour < 21; hour += 1) {
       const currentDate = new Date(slotDay);
       currentDate.setHours(hour, 0, 0, 0);
 
@@ -305,6 +306,11 @@ const Appointment = () => {
               <button className="py-0.5 px-2 border text-xs rounded-full">
                 {styInfo.experience}
               </button>
+            </div>
+
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span>{getBranchDisplayLabel(styInfo.branch || "Chưa phân bổ")}</span>
             </div>
 
             <div>

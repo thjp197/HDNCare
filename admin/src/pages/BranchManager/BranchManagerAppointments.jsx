@@ -1,6 +1,25 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { StylistContext } from '../../context/StylistContext'
 import { isAppointmentExpired } from '../../utils/appointmentUtils'
+
+const getAppointmentTimeValue = (appointment) => {
+  const [day, month, year] = String(appointment?.slotDate || '').split('_').map(Number)
+  const timeMatch = String(appointment?.slotTime || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i)
+
+  if (!day || !month || !year || !timeMatch) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  let hour = Number(timeMatch[1])
+  const minute = Number(timeMatch[2])
+  const period = timeMatch[3]?.toUpperCase()
+
+  if (period === 'PM' && hour < 12) hour += 12
+  if (period === 'AM' && hour === 12) hour = 0
+
+  const date = new Date(year, month - 1, day, hour, minute)
+  return Number.isNaN(date.getTime()) ? Number.NEGATIVE_INFINITY : date.getTime()
+}
 
 const BranchManagerAppointments = () => {
   const { sToken, getBranchManagerAppointments, appointments, cancelBranchManagerAppointment } = useContext(StylistContext)
@@ -8,6 +27,14 @@ const BranchManagerAppointments = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [appointmentToCancel, setAppointmentToCancel] = useState(null)
+
+  const sortedAppointments = useMemo(
+    () =>
+      [...(appointments || [])].sort(
+        (first, second) => getAppointmentTimeValue(second) - getAppointmentTimeValue(first),
+      ),
+    [appointments],
+  )
 
   useEffect(() => {
     if (sToken) {
@@ -18,7 +45,7 @@ const BranchManagerAppointments = () => {
   const getHoursUntilAppointment = (slotDate, slotTime) => {
     const [dayStr, monthStr, yearStr] = slotDate.split("_")
     const [hourStr, minuteStr] = slotTime.split(":")
-    
+
     const appointmentDateTime = new Date(
       parseInt(yearStr),
       parseInt(monthStr) - 1,
@@ -26,7 +53,7 @@ const BranchManagerAppointments = () => {
       parseInt(hourStr),
       parseInt(minuteStr)
     )
-    
+
     const now = new Date()
     return (appointmentDateTime - now) / (1000 * 60 * 60)
   }
@@ -72,8 +99,8 @@ const BranchManagerAppointments = () => {
               </tr>
             </thead>
             <tbody>
-              {appointments && appointments.length > 0 ? (
-                appointments.map((item, index) => {
+              {sortedAppointments.length > 0 ? (
+                sortedAppointments.map((item, index) => {
                   const isExpired = isAppointmentExpired(item)
                   return (
                     <tr key={index} className='border-b border-gray-200 hover:bg-gray-50 transition'>
@@ -107,7 +134,7 @@ const BranchManagerAppointments = () => {
                           >
                             Chi Tiết
                           </button>
-                          {!item.cancelled && (
+                          {!item.cancelled && !isExpired && (
                             <button
                               onClick={() => openCancelModal(item._id)}
                               className='px-3 py-1 text-red-600 hover:text-red-800 font-medium text-xs'
@@ -175,26 +202,26 @@ const BranchManagerAppointments = () => {
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'>
           <div className='w-full max-w-md rounded-lg bg-white p-6 shadow-lg'>
             <h2 className='mb-3 text-xl font-bold text-gray-800'>Xác nhận hủy đơn</h2>
-            
+
             {appointmentToCancel && appointments.find(a => a._id === appointmentToCancel) && (() => {
               const appointment = appointments.find(a => a._id === appointmentToCancel)
               const hoursUntil = getHoursUntilAppointment(appointment.slotDate, appointment.slotTime)
               const isWithin2Hours = hoursUntil < 2 && hoursUntil >= 0
-              
+
               return (
                 <>
                   {isWithin2Hours && (
                     <div className='mb-4 p-3 bg-red-50 border border-red-300 rounded-lg'>
                       <p className='text-sm font-semibold text-red-700'>⚠️ Cảnh báo vi phạm chính sách</p>
                       <p className='text-sm text-red-600 mt-1'>
-                        Lịch hẹn này còn {Math.round(hoursUntil * 60)} phút nữa. 
+                        Lịch hẹn này còn {Math.round(hoursUntil * 60)} phút nữa.
                         Hủy trong vòng 2 giờ trước giờ hẹn sẽ phạt người dùng 1 lần.
                       </p>
                     </div>
                   )}
-                  
+
                   <p className='text-gray-600 mb-6'>
-                    {isWithin2Hours 
+                    {isWithin2Hours
                       ? 'Chỉ có thể hủy và phạt người dùng'
                       : 'Chọn cách thức hủy lịch hẹn'
                     }

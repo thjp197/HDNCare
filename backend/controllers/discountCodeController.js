@@ -1,5 +1,4 @@
 import discountCodeModel from "../models/discountCodeModel.js";
-import { toast } from "react-toastify";
 
 // API to add a new discount code
 const addDiscountCode = async (req, res) => {

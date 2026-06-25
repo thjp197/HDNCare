@@ -2,7 +2,6 @@ import { useEffect } from 'react'; // BỔ SUNG
 import { Route, Routes } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify'; // BỔ SUNG import toast
 import 'react-toastify/dist/ReactToastify.css';
-import { io } from 'socket.io-client'; // BỔ SUNG
 import Chatbot from './components/Chatbot';
 import Footer from './components/Footer';
 import GlobalBannedAccountModal from './components/GlobalBannedAccountModal';
@@ -18,9 +17,7 @@ import MyAppointments from './pages/MyAppointments';
 import MyProfile from './pages/MyProfile';
 import MyWallet from './pages/MyWallet';
 import Stylists from './pages/Stylists';
-
-// Khởi tạo kết nối Socket (đặt bên ngoài Component để tránh bị render lại nhiều lần)
-export const socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:4000");
+import { socket } from './socket';
 
 const App = () => {
   

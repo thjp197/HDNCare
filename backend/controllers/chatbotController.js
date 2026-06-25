@@ -497,7 +497,7 @@ export const handleChatbotMessage = async (req, res) => {
         if (error.status === 503 || (error.message && error.message.includes("503"))) {
             return res.json({ 
                 success: true, 
-                reply: "Dạ hiện tại hệ thống tổng đài AI đang có chút quá tải do lượng khách truy cập đông. Anh/chị vui lòng thử nhắn lại giúp em sau vài giây nhé ạ!" 
+                reply: "Dạ hiện tại hệ thống AI đang có chút quá tải do lượng khách truy cập đông. Anh/chị vui lòng thử nhắn lại giúp em sau vài giây nhé ạ!" 
             });
         }
 

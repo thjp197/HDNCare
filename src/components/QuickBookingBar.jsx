@@ -4,7 +4,6 @@ import { specialityData } from '../assets/assets';
 import {
   QUICK_BOOKING_BRANCHES,
   QUICK_BOOKING_HOURS,
-  getBranchDisplayLabel,
   formatBookingDate,
   getMaxBookingDate,
   getTodayInputValue,
@@ -66,7 +65,6 @@ const QuickBookingBar = () => {
     window.scrollTo(0, 0);
   };
 
-  const selectedBranchData = QUICK_BOOKING_BRANCHES.find((item) => item.value === branch);
   const selectedDateLabel = formatBookingDate(bookingDate);
   const selectedTimeLabel = effectiveBookingTime || 'Chọn giờ';
 
@@ -146,7 +144,7 @@ const QuickBookingBar = () => {
                           Giờ
                         </label>
                         <span className='text-[11px] text-slate-400'>
-                          {availableTimes.length > 0 ? '09:00 - 20:00' : 'Hết khung giờ'}
+                          {availableTimes.length > 0 ? '08:00 - 20:00' : 'Hết khung giờ'}
                         </span>
                       </div>
 
@@ -180,7 +178,7 @@ const QuickBookingBar = () => {
                 )}
               </div>
               <p className='mt-1.5 text-xs text-slate-500'>
-                Tối đa đặt trước 7 ngày, các khung giờ từ 09:00 đến 20:00.
+                Tối đa đặt trước 7 ngày, các khung giờ từ 08:00 đến 20:00.
               </p>
             </div>
 
