@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { assets } from "../assets/assets";
@@ -46,7 +46,7 @@ const normalizeSlotTime = (value = "") => {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };
 
-const getAvailableSlots = (styInfo, serverNow) => {
+const getAvailableSlots = (styInfo, serverNow, userBookedSlots = {}) => {
   if (!styInfo) return [];
 
   const bookedSlots = styInfo.slots_booked || {};
@@ -70,10 +70,15 @@ const getAvailableSlots = (styInfo, serverNow) => {
 
       const formattedTime = formatSlotTime(currentDate);
       const slotDate = buildSlotDate(currentDate);
-      const bookedSlotTimes = Array.isArray(bookedSlots[slotDate])
+      const stylistBookedTimes = Array.isArray(bookedSlots[slotDate])
         ? bookedSlots[slotDate].map(normalizeSlotTime)
         : [];
-      const isSlotAvailable = !bookedSlotTimes.includes(formattedTime);
+      const customerBookedTimes = Array.isArray(userBookedSlots[slotDate])
+        ? userBookedSlots[slotDate].map(normalizeSlotTime)
+        : [];
+      const isSlotAvailable =
+        !stylistBookedTimes.includes(formattedTime) &&
+        !customerBookedTimes.includes(formattedTime);
 
       if (isSlotAvailable) {
         slots.push({
@@ -124,6 +129,7 @@ const Appointment = () => {
   const [serverNow, setServerNow] = useState(() => Date.now());
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedStyleImage, setSelectedStyleImage] = useState(null);
+  const [userBookedSlots, setUserBookedSlots] = useState({});
   const [isBooking, setIsBooking] = useState(false);
   const quickBookingParams = new URLSearchParams(search);
   const selectedBookingDate = quickBookingParams.get("date") || "";
@@ -136,9 +142,46 @@ const Appointment = () => {
     [stylists, styId],
   );
 
+  const loadUserBookedSlots = useCallback(async () => {
+    if (!token) {
+      setUserBookedSlots({});
+      return;
+    }
+
+    try {
+      const { data } = await axios.get(backendUrl + "/api/user/appointments", {
+        headers: { token },
+      });
+
+      if (!data.success) {
+        return;
+      }
+
+      const nextBookedSlots = {};
+
+      for (const appointment of data.appointments || []) {
+        if (
+          appointment.cancelled ||
+          !appointment.slotDate ||
+          !appointment.slotTime
+        ) {
+          continue;
+        }
+
+        const dateSlots = new Set(nextBookedSlots[appointment.slotDate] || []);
+        dateSlots.add(normalizeSlotTime(appointment.slotTime));
+        nextBookedSlots[appointment.slotDate] = [...dateSlots];
+      }
+
+      setUserBookedSlots(nextBookedSlots);
+    } catch (error) {
+      console.log(error);
+    }
+  }, [backendUrl, token]);
+
   const stySlots = useMemo(
-    () => getAvailableSlots(styInfo, serverNow),
-    [styInfo, serverNow],
+    () => getAvailableSlots(styInfo, serverNow, userBookedSlots),
+    [styInfo, serverNow, userBookedSlots],
   );
 
   let quickBookingDayIndex = -1;
@@ -216,6 +259,7 @@ const Appointment = () => {
       } else {
         toast.error(data.message);
         getStylistsData();
+        loadUserBookedSlots();
       }
     } catch (error) {
       console.log(error);
@@ -233,6 +277,10 @@ const Appointment = () => {
   useEffect(() => {
     getStylistsDataRef.current = getStylistsData;
   }, [getStylistsData]);
+
+  useEffect(() => {
+    loadUserBookedSlots();
+  }, [loadUserBookedSlots]);
 
   useEffect(() => {
     const socket = io(backendUrl, {
@@ -261,12 +309,21 @@ const Appointment = () => {
       }
     });
 
+    socket.on("user-appointments-updated", (payload) => {
+      if (
+        userData?._id &&
+        String(payload?.userId) === String(userData._id)
+      ) {
+        loadUserBookedSlots();
+      }
+    });
+
     return () => {
       socket.emit("leave-stylist-slots", styId);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [backendUrl, styId]);
+  }, [backendUrl, loadUserBookedSlots, styId, userData?._id]);
 
   return (
     styInfo && (

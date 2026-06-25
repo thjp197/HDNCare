@@ -5,6 +5,7 @@ import { AppContext } from "../context/AppContext";
 import { assets, stylists as localStylists } from "../assets/assets";
 import { toast } from "react-toastify";
 import { socket } from "../socket";
+import { getBranchDisplayLabel, normalizeBranchName } from "../utils/quickBooking";
 
 const MyAppointments = () => {
   const navigate = useNavigate();
@@ -645,6 +646,12 @@ const MyAppointments = () => {
             item.styData?.image || stylist?.image || assets.profile_pic;
           const stylistName =
             item.styData?.name || stylist?.name || "Chuyên viên";
+          const appointmentBranch = normalizeBranchName(
+            stylist?.branch || item.branch || item.styData?.branch || "",
+          );
+          const branchDisplayName = appointmentBranch
+            ? getBranchDisplayLabel(appointmentBranch)
+            : "Chưa phân bổ";
           return (
             <div
               key={item._id || index}
@@ -682,17 +689,12 @@ const MyAppointments = () => {
                 <p className={`text-sm mt-2 ${
                   isAppointmentExpired(item) ? "text-gray-500" : ""
                 }`}>
-                  <span className="font-semibold">Địa chỉ:</span>
+                  <span className="font-semibold">Chi nhánh:</span>
                 </p>
                 <p className={`text-sm ${
                   isAppointmentExpired(item) ? "text-gray-500" : "text-gray-700"
                 }`}>
-                  {item.styData?.address?.line1 || stylist?.address?.line1}
-                </p>
-                <p className={`text-sm ${
-                  isAppointmentExpired(item) ? "text-gray-500" : "text-gray-700"
-                }`}>
-                  {item.styData?.address?.line2 || stylist?.address?.line2}
+                  {branchDisplayName}
                 </p>
                 <p className={`text-sm mt-2 ${
                   isAppointmentExpired(item) ? "text-gray-500" : ""

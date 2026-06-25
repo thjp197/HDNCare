@@ -50,9 +50,38 @@ const changeAvailablity = async (req, res) => {
 // API to get all stylists list for Frontend
 const stylistList = async (req, res) => {
     try {
+        const [stylists, activeAppointments] = await Promise.all([
+            stylistModel.find({}).select(['-password', '-email']).lean(),
+            appointmentModel.find({ cancelled: { $ne: true } })
+                .select('styId slotDate slotTime')
+                .lean(),
+        ])
 
-        const stylists = await stylistModel.find({}).select(['-password', '-email'])
-        res.json({ success: true, stylists })
+        const bookedSlotsByStylist = new Map()
+
+        for (const appointment of activeAppointments) {
+            if (!appointment.styId || !appointment.slotDate || !appointment.slotTime) {
+                continue
+            }
+
+            const stylistId = String(appointment.styId)
+            const stylistSlots = bookedSlotsByStylist.get(stylistId) || {}
+            const dateSlots = new Set(stylistSlots[appointment.slotDate] || [])
+
+            dateSlots.add(appointment.slotTime)
+            stylistSlots[appointment.slotDate] = [...dateSlots]
+            bookedSlotsByStylist.set(stylistId, stylistSlots)
+        }
+
+        const synchronizedStylists = stylists.map((stylist) => ({
+            ...stylist,
+            // Appointment là nguồn dữ liệu chính xác. Nhờ vậy các đơn cũ bị
+            // thiếu trong stylist.slots_booked vẫn được ẩn khỏi lịch đặt.
+            slots_booked: bookedSlotsByStylist.get(String(stylist._id)) || {},
+        }))
+
+        res.set('Cache-Control', 'no-store')
+        res.json({ success: true, stylists: synchronizedStylists })
 
     } catch (error) {
         res.json({ success: false, message: error.message })
