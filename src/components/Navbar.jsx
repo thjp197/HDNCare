@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AppContext } from '../context/AppContext';
@@ -11,11 +11,39 @@ const Navbar = () => {
 
       const [showMenu, setShowMenu] = useState(false);
       const [showProfile, setShowProfile] = useState(false);
+      const profileMenuRef = useRef(null);
 
       const logout = () => {
         resetUserSession()
         navigate('/')
       }
+
+      useEffect(() => {
+        if (!showProfile) return;
+
+        const handleClickOutside = (event) => {
+          if (
+            profileMenuRef.current &&
+            !profileMenuRef.current.contains(event.target)
+          ) {
+            setShowProfile(false);
+          }
+        };
+
+        const handleEscape = (event) => {
+          if (event.key === 'Escape') {
+            setShowProfile(false);
+          }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+          document.removeEventListener('keydown', handleEscape);
+        };
+      }, [showProfile]);
 
   return (
     <div className='flex items-center justify-between p-4 mb-5 text-sm border-b border-b-gray-400'>
@@ -47,11 +75,19 @@ const Navbar = () => {
         <div className='flex items-center gap-4'>
           {
             token && userData
-            ? <div className='relative flex items-center gap-2 cursor-pointer'>
-              <img className='w-8 h-8 rounded-full' src={userData.image} alt="" onClick={() => setShowProfile(!showProfile)}/>
-              <img className='w-2.5' src={assets.dropdown_icon} alt="" onClick={() => setShowProfile(!showProfile)}/>
+            ? <div ref={profileMenuRef} className='relative flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={() => setShowProfile((prev) => !prev)}
+                className='flex items-center gap-2'
+                aria-haspopup='menu'
+                aria-expanded={showProfile}
+              >
+                <img className='w-8 h-8 rounded-full' src={userData.image} alt="" />
+                <img className='w-2.5' src={assets.dropdown_icon} alt="" />
+              </button>
               {showProfile && (
-                <div className='absolute right-0 z-50 text-base font-medium text-gray-600 top-8 pt-2'>
+                <div className='absolute right-0 z-50 text-base font-medium text-gray-600 top-8 pt-2' role='menu'>
                   <div className='flex flex-col gap-4 p-4 rounded min-w-48 bg-stone-100'>
                     <p onClick={()=>{navigate('/my-profile'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Hồ sơ của tôi</p>
                     <p onClick={()=>{navigate('/my-appointments'); setShowProfile(false)}} className='cursor-pointer hover:text-black'>Lịch hẹn của tôi</p>
